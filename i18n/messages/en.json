@@ -1,0 +1,13 @@
+{
+  "common": {
+    "appName": "LionHome",
+    "tagline": "Buy property in Singapore, smarter."
+  },
+  "home": {
+    "heroTitle": "How much property in Singapore can I actually afford?",
+    "heroSubtitle": "Cut through BSD, ABSD, TDSR, and LTV before you decide.",
+    "ctaCalculator": "Start the calculator",
+    "ctaQuiz": "Take the buyer quiz",
+    "ctaArticles": "Read articles"
+  }
+}

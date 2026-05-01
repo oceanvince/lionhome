@@ -1,0 +1,13 @@
+{
+  "common": {
+    "appName": "LionHome",
+    "tagline": "新加坡买房，更聪明的决策"
+  },
+  "home": {
+    "heroTitle": "新加坡买房，我到底买得起多少？",
+    "heroSubtitle": "用专业工具厘清 BSD、ABSD、TDSR、LTV，再做决定。",
+    "ctaCalculator": "开始测算",
+    "ctaQuiz": "做买家健康测试",
+    "ctaArticles": "阅读文章"
+  }
+}
