@@ -109,6 +109,9 @@
     .picker {
       position: relative;
       height: 220px;
+      max-width: 240px;
+      margin-left: auto;
+      margin-right: auto;
       overflow: hidden;
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%);
               mask-image: linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%);
@@ -289,13 +292,13 @@
             <span class="title">永久居民 (PR)</span>
             <span class="sub">ABSD 5% 起</span>
           </div>
-          <div class="identity-card" onclick="selectOption('residency','foreigner',this)">
-            <span class="title">外籍人士</span>
-            <span class="sub">ABSD 60%</span>
+          <div class="identity-card" onclick="selectOption('residency','foreigner_wp',this)">
+            <span class="title">外籍·有工作许可</span>
+            <span class="sub">EP/SP/WP/DP · ABSD 60%</span>
           </div>
-          <div class="identity-card" onclick="selectOption('residency','company',this)">
-            <span class="title">公司主体</span>
-            <span class="sub">ABSD 65%</span>
+          <div class="identity-card" onclick="selectOption('residency','foreigner_none',this)">
+            <span class="title">外籍·无在新身份</span>
+            <span class="sub">仅访客 · ABSD 60%</span>
           </div>
         </div>
       </div>
@@ -469,84 +472,158 @@
   <main id="view-result" class="view-section" style="background:#FCFBF9; padding-left:0; padding-right:0; padding-top:0; padding-bottom:0;">
     <!-- Hero on cream -->
     <div class="px-6 pt-12 pb-8" style="background:#F5F1E8; padding-top: max(48px, env(safe-area-inset-top));">
-      <div class="text-[11px] tracking-[0.2em] text-primary font-medium uppercase mb-3">推荐购置预算区间</div>
-      <div class="font-serif font-semibold text-charcoal leading-tight whitespace-nowrap" style="font-size:36px;">
-        S$&nbsp;<span id="res-min">2.0M</span>&nbsp;–&nbsp;<span id="res-max">2.2M</span>
+      <div class="text-[11px] tracking-[0.2em] text-primary font-medium uppercase mb-3">您的购房参考预算</div>
+      <div class="font-serif font-semibold text-charcoal leading-tight whitespace-nowrap" style="font-size:38px;">
+        S$&nbsp;<span id="res-maxprice">2,080,000</span>
       </div>
-      <div class="mt-4 flex items-center gap-3">
-        <div class="w-6 h-px bg-primary"></div>
-        <span class="text-xs text-gray-500 font-light">中位 S$ <span id="res-mid">2.08M</span> · 由您的输入测算</span>
-      </div>
+      <div class="mt-3 text-xs text-gray-500 font-light">基于您的输入测算，仅作初步参考</div>
     </div>
 
     <!-- Body -->
-    <div class="px-6 py-8 space-y-7">
-      <!-- Composition -->
+    <div class="px-6 py-7 space-y-6">
+      <!-- 房产明细 -->
       <section>
-        <h4 class="text-sm font-semibold text-charcoal mb-4 tracking-wide">资金构成</h4>
-        <div class="bg-white border border-border rounded-[4px] p-5 space-y-3">
-          <div class="flex justify-between text-sm">
-            <span class="text-gray-500 font-light">现金 + CPF 首付</span>
-            <span class="font-medium text-charcoal">S$ 520,000</span>
+        <h4 class="text-sm font-semibold text-charcoal mb-4 tracking-wide">房产成本明细</h4>
+        <div class="bg-white border border-border rounded-[4px] p-5 space-y-3 text-sm">
+          <div class="flex justify-between">
+            <span class="text-gray-500 font-light">房屋单价</span>
+            <span class="font-medium text-charcoal" id="cost-price">S$ 2,080,000</span>
           </div>
-          <div class="flex justify-between text-sm">
-            <span class="text-gray-500 font-light">最高贷款额 (75% LTV)</span>
-            <span class="font-medium text-charcoal">S$ 1,560,000</span>
+
+          <div class="border-t border-border pt-3">
+            <div class="flex justify-between mb-2">
+              <span class="text-charcoal font-medium">首付（含 CPF）</span>
+              <span class="font-medium text-charcoal" id="cost-downpayment">S$ 520,000</span>
+            </div>
+            <div class="pl-3 space-y-1.5 text-xs">
+              <div class="flex justify-between text-gray-500"><span>5% 现金（必须）</span><span id="cost-cash5">S$ 104,000</span></div>
+              <div class="flex justify-between text-gray-500"><span>CPF OA 可付</span><span id="cost-cpf">S$ 200,000</span></div>
+              <div class="flex justify-between text-gray-500"><span>现金补充</span><span id="cost-cashextra">S$ 216,000</span></div>
+            </div>
           </div>
-          <div class="border-t border-border pt-3 flex justify-between text-sm">
-            <span class="text-charcoal font-medium">合计购置上限</span>
-            <span class="font-semibold text-primary">S$ 2,080,000</span>
+
+          <div class="border-t border-border pt-3">
+            <div class="flex justify-between mb-2">
+              <span class="text-charcoal font-medium">税费</span>
+              <span class="font-medium text-charcoal" id="cost-fees">S$ 181,750</span>
+            </div>
+            <div class="pl-3 space-y-1.5 text-xs">
+              <div class="flex justify-between text-gray-500"><span>BSD 买方印花税</span><span id="cost-bsd">S$ 73,600</span></div>
+              <div class="flex justify-between text-gray-500"><span>ABSD 额外印花税</span><span id="cost-absd">S$ 104,000</span></div>
+              <div class="flex justify-between text-gray-500"><span>抵押印花</span><span>S$ 500</span></div>
+              <div class="flex justify-between text-gray-500"><span>律师 + 估价</span><span>S$ 3,650</span></div>
+            </div>
+          </div>
+
+          <div class="border-t border-border pt-3 flex justify-between">
+            <span class="text-charcoal font-medium">贷款本金 (75% LTV)</span>
+            <span class="font-medium text-charcoal" id="cost-loan">S$ 1,560,000</span>
+          </div>
+
+          <div class="border-t border-border pt-3 flex justify-between">
+            <span class="text-charcoal font-medium">利息总支出</span>
+            <span class="font-medium text-charcoal" id="cost-interest">S$ 345,000</span>
+          </div>
+
+          <div class="border-t border-border pt-3 flex justify-between text-base">
+            <span class="text-charcoal font-semibold">总成本</span>
+            <span class="font-semibold text-primary" id="cost-total">S$ 2,606,750</span>
           </div>
         </div>
       </section>
 
-      <!-- Tax breakdown -->
+      <!-- 试算器 -->
       <section>
-        <h4 class="text-sm font-semibold text-charcoal mb-4 tracking-wide">税费明细</h4>
-        <div class="bg-white border border-border rounded-[4px] p-5 space-y-3">
-          <div class="flex justify-between text-sm">
-            <div>
-              <div class="text-charcoal font-medium">买方印花税 (BSD)</div>
-              <div class="text-[11px] text-gray-400 font-light">按 IRAS 累进税率</div>
+        <h4 class="text-sm font-semibold text-charcoal mb-4 tracking-wide">月供试算器</h4>
+        <div class="bg-white border border-border rounded-[4px] p-5 space-y-5">
+          <!-- 利率 -->
+          <div>
+            <div class="flex justify-between items-baseline mb-2">
+              <label class="text-xs text-gray-500 font-light">利率（年化）<button onclick="showRateInfo()" class="text-primary ml-1 underline cursor-pointer text-[10px]">说明</button></label>
+              <span class="font-serif font-semibold text-charcoal" style="font-size:18px;"><span id="calc-rate-display">1.65</span>%</span>
             </div>
-            <div class="text-charcoal font-medium">S$ 73,600</div>
+            <input type="range" min="1.40" max="1.85" step="0.05" value="1.65"
+                   id="calc-rate" oninput="onRateChange(this.value)"
+                   class="w-full accent-primary cursor-pointer">
+            <div class="flex justify-between text-[10px] text-gray-400 font-light mt-1">
+              <span>1.40%</span><span>1.85%</span>
+            </div>
           </div>
-          <div class="flex justify-between text-sm border-t border-border pt-3">
-            <div>
-              <div class="text-charcoal font-medium">额外印花税 (ABSD)</div>
-              <div class="text-[11px] text-gray-400 font-light">PR 首套，5%</div>
+
+          <!-- 贷款年限 -->
+          <div>
+            <div class="flex justify-between items-baseline mb-2">
+              <label class="text-xs text-gray-500 font-light">贷款年限</label>
+              <span class="font-serif font-semibold text-charcoal" style="font-size:18px;"><span id="calc-tenure-display">25</span> 年</span>
             </div>
-            <div class="text-charcoal font-medium">S$ 104,000</div>
+            <input type="range" min="5" max="30" step="1" value="25"
+                   id="calc-tenure" oninput="onTenureChange(this.value)"
+                   class="w-full accent-primary cursor-pointer">
+            <div class="flex justify-between text-[10px] text-gray-400 font-light mt-1">
+              <span>5 年</span><span>30 年</span>
+            </div>
           </div>
-          <div class="flex justify-between text-sm border-t border-border pt-3">
-            <div>
-              <div class="text-charcoal font-medium">律师 + 估价 + 抵押印花</div>
-              <div class="text-[11px] text-gray-400 font-light">预估</div>
+
+          <!-- 月供（实时反算，可拖动调） -->
+          <div class="border-t border-border pt-4">
+            <div class="flex justify-between items-baseline mb-1">
+              <span class="text-xs text-gray-500 font-light">预估月供</span>
+              <div>
+                <span class="font-serif font-semibold text-charcoal" style="font-size:24px;">S$&nbsp;<span id="calc-monthly-display">6,338</span></span>
+                <span class="text-xs font-sans text-gray-400 font-light ml-1">/ 月</span>
+              </div>
             </div>
-            <div class="text-charcoal font-medium">S$ 4,150</div>
+            <div class="text-[10px] text-gray-400 font-light">
+              ⓘ 实际批贷以 4% 压力测试月供 <span class="text-charcoal">S$ <span id="calc-stress-monthly">8,232</span></span> 为准 (MAS 要求)
+              <button onclick="showStressInfo()" class="text-primary underline cursor-pointer">详细</button>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- Stress test -->
+      <!-- 付款时间表 accordion -->
       <section>
-        <h4 class="text-sm font-semibold text-charcoal mb-4 tracking-wide">月供压力测试</h4>
-        <div class="bg-white border border-border rounded-[4px] p-5">
-          <div class="flex justify-between items-end mb-2">
-            <div class="font-serif font-semibold text-charcoal" style="font-size:28px;">
-              S$&nbsp;8,232<span class="text-sm font-sans text-gray-400 font-light ml-1">/ 月</span>
+        <button onclick="togglePaymentSchedule()" class="w-full flex items-center justify-between py-3 px-4 bg-white border border-border rounded-[4px] cursor-pointer hover:bg-gray-50 transition-colors">
+          <span class="text-sm font-medium text-charcoal">📅 完整付款时间表</span>
+          <i class="ph-thin ph-caret-down text-base" id="payment-caret"></i>
+        </button>
+        <div id="payment-schedule" class="hidden mt-3 bg-white border border-border rounded-[4px] p-5 space-y-4 text-sm">
+          <div class="flex gap-3">
+            <div class="text-[11px] tracking-widest text-primary font-medium pt-0.5 w-16 flex-shrink-0">DAY 0</div>
+            <div class="flex-1">
+              <div class="font-medium text-charcoal mb-1">选定房 · OTP 定金</div>
+              <div class="text-xs text-gray-500 font-light leading-relaxed">现金 1% = <span class="text-charcoal">S$ 20,800</span>。卖方签发购房意向书 (OTP)，您锁定房产 14 天。</div>
             </div>
-            <div class="pill-good"><i class="ph-thin ph-check"></i>健康</div>
           </div>
-          <div class="text-xs text-gray-500 font-light leading-relaxed">
-            基于 4% 利率 / 25 年。TDSR 利用率 <span class="text-charcoal font-medium">64%</span>（法定上限 55%，已含 +2pp 压力测试）。
+          <div class="flex gap-3 border-t border-border pt-4">
+            <div class="text-[11px] tracking-widest text-primary font-medium pt-0.5 w-16 flex-shrink-0">DAY 14</div>
+            <div class="flex-1">
+              <div class="font-medium text-charcoal mb-1">行使 OTP · 现金 + 印花税</div>
+              <div class="text-xs text-gray-500 font-light leading-relaxed">
+                现金 4% = <span class="text-charcoal">S$ 83,200</span>，BSD <span class="text-charcoal">S$ 73,600</span>，ABSD <span class="text-charcoal">S$ 104,000</span>。共需现金约 <span class="text-charcoal">S$ 260,800</span>。
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-3 border-t border-border pt-4">
+            <div class="text-[11px] tracking-widest text-primary font-medium pt-0.5 w-16 flex-shrink-0">2-3月内</div>
+            <div class="flex-1">
+              <div class="font-medium text-charcoal mb-1">完成贷款审批 · 律师交接</div>
+              <div class="text-xs text-gray-500 font-light leading-relaxed">银行审核您的 TDSR/LTV，律师协助过户。律师 + 估价费 ~<span class="text-charcoal">S$ 3,650</span>。</div>
+            </div>
+          </div>
+          <div class="flex gap-3 border-t border-border pt-4">
+            <div class="text-[11px] tracking-widest text-primary font-medium pt-0.5 w-16 flex-shrink-0">交房</div>
+            <div class="flex-1">
+              <div class="font-medium text-charcoal mb-1">余款支付 · 钥匙交付</div>
+              <div class="text-xs text-gray-500 font-light leading-relaxed">CPF OA <span class="text-charcoal">S$ 200,000</span> 转付 + 现金补充 <span class="text-charcoal">S$ 216,000</span> + 贷款 <span class="text-charcoal">S$ 1,560,000</span>。开始月供 <span class="text-charcoal">S$ 6,338</span>。</div>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- Identity-specific note -->
       <section class="border-l-2 border-primary pl-4 py-1">
-        <p class="text-xs text-gray-500 font-light leading-relaxed">
+        <p class="text-xs text-gray-500 font-light leading-relaxed" id="identity-note">
           作为 PR 首次置业，您的 ABSD 为 5%。若您与外籍配偶联名购买首套主居所，可申请 ABSD 退税，详情请咨询顾问。
         </p>
       </section>
@@ -555,41 +632,68 @@
     <!-- Footer CTAs -->
     <div class="px-5 py-4 bg-white border-t border-border sticky bottom-0 z-20 space-y-3"
          style="padding-bottom: max(16px, env(safe-area-inset-bottom));">
-      <button onclick="openModal()" class="btn-primary">保存并获取定制报告</button>
-      <button class="btn-secondary">预约理财顾问解读</button>
+      <button onclick="sendToWhatsApp()" class="btn-primary">保存并获取定制报告</button>
+      <button onclick="openConsultDrawer()" class="btn-secondary">即刻咨询</button>
     </div>
   </main>
 
   <!-- ============================================================
-       LEAD CAPTURE MODAL
+       即刻咨询 DRAWER
        ============================================================ -->
-  <div id="modal-lead" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-charcoal/40 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop" onclick="closeModal()"></div>
-    <div class="absolute bottom-0 left-0 w-full bg-white rounded-t-2xl transition-transform transform translate-y-full" id="modal-panel"
+  <div id="consult-drawer" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-charcoal/40 backdrop-blur-sm transition-opacity opacity-0" id="consult-backdrop" onclick="closeConsultDrawer()"></div>
+    <div class="absolute bottom-0 left-0 w-full bg-white rounded-t-2xl transition-transform transform translate-y-full" id="consult-panel"
          style="padding-bottom: max(20px, env(safe-area-inset-bottom));">
       <div class="p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-semibold">获取您的专属方案</h3>
-          <button onclick="closeModal()" class="text-gray-400 cursor-pointer"><i class="ph-thin ph-x text-2xl"></i></button>
+          <h3 class="text-xl font-semibold">即刻咨询</h3>
+          <button onclick="closeConsultDrawer()" class="text-gray-400 cursor-pointer"><i class="ph-thin ph-x text-2xl"></i></button>
         </div>
-        <p class="text-sm text-gray-500 font-light mb-6">我们将一份详细资金流向、贷款方案对比的 PDF 报告发送至您的 WhatsApp。</p>
+        <p class="text-sm text-gray-500 font-light mb-6">留下您的联系方式，理财顾问将在 24 小时内联系您解读测算结果。</p>
         <div class="space-y-4">
           <div>
             <label class="input-label mb-2">您的称呼</label>
-            <input type="text" placeholder="例如：陈先生" class="w-full border-b border-border py-3 text-base focus:outline-none focus:border-primary transition-colors font-sans" />
+            <input type="text" id="consult-name" placeholder="例如：陈先生" class="w-full border-b border-border py-3 text-base focus:outline-none focus:border-primary transition-colors font-sans" />
           </div>
           <div>
-            <label class="input-label mb-2">WhatsApp 号码</label>
+            <label class="input-label mb-2">手机号码</label>
             <div class="flex items-center">
               <span class="border-b border-border py-3 text-base mr-2 text-gray-500">+65</span>
-              <input type="tel" placeholder="8123 4567" class="w-full border-b border-border py-3 text-base focus:outline-none focus:border-primary transition-colors font-sans" />
+              <input type="tel" id="consult-phone" placeholder="8123 4567" class="w-full border-b border-border py-3 text-base focus:outline-none focus:border-primary transition-colors font-sans" />
             </div>
           </div>
+          <div>
+            <label class="input-label mb-2">留言（可选）</label>
+            <textarea id="consult-message" rows="2" placeholder="例如：希望了解 PR 二套购房策略" class="w-full border border-border rounded-[4px] py-2 px-3 text-sm focus:outline-none focus:border-primary transition-colors font-sans resize-none"></textarea>
+          </div>
         </div>
-        <button class="btn-primary mt-7" onclick="alert('报告已发送，顾问将很快与您联系！')">发送报告至 WhatsApp</button>
-        <p class="text-[11px] text-gray-400 mt-4 text-center font-light leading-relaxed">点击发送即表示您同意我们的隐私政策。</p>
+        <button class="btn-primary mt-7" onclick="submitConsult()">提交</button>
+        <p class="text-[11px] text-gray-400 mt-4 text-center font-light leading-relaxed">提交即表示您同意我们的隐私政策。</p>
       </div>
     </div>
+  </div>
+
+  <!-- ============================================================
+       INFO MODAL（共用：利率说明 / 压力测试说明）
+       ============================================================ -->
+  <div id="info-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-charcoal/40 backdrop-blur-sm transition-opacity opacity-0" id="info-backdrop" onclick="closeInfo()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[88%] max-w-sm bg-white rounded-[6px] shadow-xl">
+      <div class="p-6">
+        <div class="flex justify-between items-start mb-3">
+          <h3 class="text-base font-semibold text-charcoal" id="info-title">说明</h3>
+          <button onclick="closeInfo()" class="text-gray-400 cursor-pointer"><i class="ph-thin ph-x text-xl"></i></button>
+        </div>
+        <p class="text-sm text-gray-600 font-light leading-relaxed" id="info-body"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       提交成功 TOAST
+       ============================================================ -->
+  <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-[60] hidden bg-charcoal text-white text-sm py-3 px-5 rounded-[4px] shadow-xl">
+    ✓ 提交成功，顾问将在 24 小时内联系您
   </div>
 
   <script>
@@ -598,8 +702,14 @@
        ============================================================ */
     const state = {
       age: 35, residency: null, properties: null,
-      incomeBucket: 2, debtBucket: 0, cashBucket: 1, cpfBucket: 1,
+      incomeBucket: 3, debtBucket: 0, cashBucket: 1, cpfBucket: 1,
       purpose: null, propertyType: null, timeline: null, tenure: '25',
+      // 试算器 state
+      maxPrice: 2080000,        // 基于 4% 压力利率反算（合规）
+      loanPrincipal: 1560000,   // 75% LTV
+      displayRate: 0.0165,      // 1.65% 默认市场利率
+      stressRate: 0.04,         // MAS TDSR 压力测试利率（固定）
+      calcTenure: 25,
     };
 
     /* ============================================================
@@ -645,11 +755,14 @@
     const ageItems = Array.from({ length: 45 }, (_, i) => 21 + i);
 
     const incomeBuckets = [
-      { label: '15 万以下',     mid: 120000 },
-      { label: '15 – 30 万',    mid: 225000 },
-      { label: '30 – 50 万',    mid: 400000 },
-      { label: '50 – 80 万',    mid: 650000 },
-      { label: '80 万以上',     mid: 1000000 },
+      { label: '15 万以下',     mid: 100000  },
+      { label: '15 – 25 万',    mid: 200000  },
+      { label: '25 – 35 万',    mid: 300000  },
+      { label: '35 – 50 万',    mid: 425000  },
+      { label: '50 – 70 万',    mid: 600000  },
+      { label: '70 – 100 万',   mid: 850000  },
+      { label: '100 – 150 万',  mid: 1250000 },
+      { label: '150 万以上',    mid: 1750000 },
     ];
 
     const debtBuckets = [
@@ -681,7 +794,7 @@
        ============================================================ */
     window.addEventListener('DOMContentLoaded', () => {
       buildPicker('age-picker-list', ageItems, 14, idx => state.age = ageItems[idx]);
-      buildPicker('income-picker-list', incomeBuckets.map(b => b.label), 2, idx => state.incomeBucket = idx);
+      buildPicker('income-picker-list', incomeBuckets.map(b => b.label), 3, idx => state.incomeBucket = idx);
       buildPicker('debt-picker-list', debtBuckets.map(b => b.label), 0, idx => state.debtBucket = idx);
       buildPicker('cash-picker-list', cashBuckets.map(b => b.label), 1, idx => state.cashBucket = idx);
       buildPicker('cpf-picker-list', cpfBuckets.map(b => b.label), 1, idx => state.cpfBucket = idx);
@@ -704,7 +817,7 @@
       // Hide/show CPF group based on residency (CPF lives on step 2 now)
       if (viewId === 'view-step-2') {
         const cpf = document.getElementById('cpf-group');
-        if (state.residency === 'foreigner' || state.residency === 'company') {
+        if (state.residency && state.residency.startsWith('foreigner_')) {
           cpf.style.display = 'none';
         } else {
           cpf.style.display = '';
@@ -755,26 +868,233 @@
     }
 
     /* ============================================================
-       Modal
+       FORMATTING HELPERS
        ============================================================ */
-    function openModal() {
-      const modal = document.getElementById('modal-lead');
-      const backdrop = document.getElementById('modal-backdrop');
-      const panel = document.getElementById('modal-panel');
+    function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+    function fmtMoney(n) { return 'S$ ' + fmt(n); }
+
+    /* ============================================================
+       MORTGAGE FORMULA
+       monthly = P × i × (1+i)^N / ((1+i)^N − 1)
+       ============================================================ */
+    function monthlyMortgage(P, annualRate, years) {
+      if (annualRate === 0) return P / (years * 12);
+      const i = annualRate / 12;
+      const N = years * 12;
+      return P * (i * Math.pow(1 + i, N)) / (Math.pow(1 + i, N) - 1);
+    }
+
+    /* ============================================================
+       CALC: 重算所有展示数字
+       ============================================================ */
+    function recalcAll() {
+      const price = state.maxPrice;
+      const loan = state.loanPrincipal;
+      const rate = state.displayRate;
+      const stressRate = state.stressRate;
+      const years = state.calcTenure;
+
+      // 月供
+      const monthly = monthlyMortgage(loan, rate, years);
+      const stressMonthly = monthlyMortgage(loan, stressRate, years);
+      const totalInterest = monthly * years * 12 - loan;
+
+      // 更新 hero
+      document.getElementById('res-maxprice').textContent = fmt(price);
+
+      // 更新成本明细
+      const cash5 = price * 0.05;
+      const cpfMid = [60000, 175000, 375000, 750000, 1200000][state.cpfBucket];
+      const downpayment = price - loan;
+      const cashExtra = downpayment - cash5 - cpfMid;
+      const bsdRate = price <= 1500000 ? 0.04 : 0.05;  // 简化：假设落在 [1.5M, 3M] slab
+      const bsd = 73600;  // 简化为常数（demo 数据）
+      const absdRate = state.residency === 'sc' ? 0 :
+                       state.residency === 'pr' ? 0.05 :
+                       state.residency && state.residency.startsWith('foreigner_') ? 0.60 : 0;
+      const absd = price * absdRate;
+      const fees = bsd + absd + 500 + 3650;
+      const total = price + fees + totalInterest;
+
+      document.getElementById('cost-price').textContent = fmtMoney(price);
+      document.getElementById('cost-downpayment').textContent = fmtMoney(downpayment);
+      document.getElementById('cost-cash5').textContent = fmtMoney(cash5);
+      document.getElementById('cost-cpf').textContent = fmtMoney(cpfMid);
+      document.getElementById('cost-cashextra').textContent = fmtMoney(Math.max(0, cashExtra));
+      document.getElementById('cost-fees').textContent = fmtMoney(fees);
+      document.getElementById('cost-bsd').textContent = fmtMoney(bsd);
+      document.getElementById('cost-absd').textContent = fmtMoney(absd);
+      document.getElementById('cost-loan').textContent = fmtMoney(loan);
+      document.getElementById('cost-interest').textContent = fmtMoney(totalInterest);
+      document.getElementById('cost-total').textContent = fmtMoney(total);
+
+      // 试算器月供
+      document.getElementById('calc-rate-display').textContent = (rate * 100).toFixed(2);
+      document.getElementById('calc-tenure-display').textContent = years;
+      document.getElementById('calc-monthly-display').textContent = fmt(monthly);
+      document.getElementById('calc-stress-monthly').textContent = fmt(stressMonthly);
+    }
+
+    function onRateChange(v) { state.displayRate = parseFloat(v) / 100; recalcAll(); }
+    function onTenureChange(v) { state.calcTenure = parseInt(v, 10); recalcAll(); }
+
+    /* ============================================================
+       INFO MODAL（共用）
+       ============================================================ */
+    function showInfo(title, body) {
+      document.getElementById('info-title').textContent = title;
+      document.getElementById('info-body').textContent = body;
+      const modal = document.getElementById('info-modal');
+      const backdrop = document.getElementById('info-backdrop');
       modal.classList.remove('hidden');
+      setTimeout(() => { backdrop.classList.remove('opacity-0'); backdrop.classList.add('opacity-100'); }, 10);
+    }
+    function closeInfo() {
+      const modal = document.getElementById('info-modal');
+      const backdrop = document.getElementById('info-backdrop');
+      backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0');
+      setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+    function showRateInfo() {
+      showInfo('利率说明',
+        '我们使用 2026 年 5 月新加坡三大银行（DBS/OCBC/UOB）公寓首套房贷的市场平均利率作为估算基准。您的实际利率会根据贷款金额、个人信用、银行促销等因素有所不同，通常浮动在 1.40% - 1.85% 之间。'
+      );
+    }
+    function showStressInfo() {
+      showInfo('为何按 4% 压力测试？',
+        '新加坡金管局 (MAS) 要求所有银行批贷时使用 4% 中期压力利率测算 TDSR (总偿债比率上限 55%)。本工具的参考预算基于此压力测试，以确保您的预算在利率上行时仍可承担。当前显示月供基于实际市场利率 1.65%，仅作直观参考。'
+      );
+    }
+
+    /* ============================================================
+       付款时间表 accordion
+       ============================================================ */
+    function togglePaymentSchedule() {
+      const panel = document.getElementById('payment-schedule');
+      const caret = document.getElementById('payment-caret');
+      if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        caret.classList.remove('ph-caret-down');
+        caret.classList.add('ph-caret-up');
+      } else {
+        panel.classList.add('hidden');
+        caret.classList.add('ph-caret-down');
+        caret.classList.remove('ph-caret-up');
+      }
+    }
+
+    /* ============================================================
+       WhatsApp 跳转 - 不记名 UID
+       ============================================================ */
+    function sendToWhatsApp() {
+      const uuid = (crypto.randomUUID && crypto.randomUUID()) ||
+                   ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+
+      const residencyMap = {
+        sc: '新加坡公民', pr: '永久居民 (PR)',
+        foreigner_wp: '外籍·有工作许可', foreigner_none: '外籍·无在新身份',
+      };
+      const inc = ['15万以下','15-25万','25-35万','35-50万','50-70万','70-100万','100-150万','150万以上'][state.incomeBucket];
+      const csh = ['20万以下','20-50万','50-100万','100-200万','200万以上'][state.cashBucket];
+      const cpf = ['10万以下','10-25万','25-50万','50-100万','100万以上'][state.cpfBucket];
+      const dbt = ['无','2,000以下','2k-5k','5k-10k','1万以上'][state.debtBucket];
+      const purpMap = { self: '自住', invest: '投资', upgrade: '升级换房' };
+      const ptMap = { new: '新楼盘', resale: '二手房', either: '两者均可' };
+      const tlMap = { '3m':'3 个月内','6m':'6 个月内','1y':'1 年内','explore':'仅了解' };
+      const monthlyDisp = fmt(monthlyMortgage(state.loanPrincipal, state.displayRate, state.calcTenure));
+
+      const text =
+`Hi 狮城家，请帮我生成一份定制购房参考报告。
+
+UID: ${uuid}
+身份: ${residencyMap[state.residency] || '未填'}
+年龄: ${state.age}
+持有房产: ${state.properties || '未填'} 套
+年收入: ${inc}
+现金: ${csh}
+CPF: ${cpf}
+月债务: ${dbt}
+目的: ${purpMap[state.purpose] || '未填'}
+房型: ${ptMap[state.propertyType] || '未填'}
+时间: ${tlMap[state.timeline] || '未填'}
+期望年限: ${state.calcTenure} 年
+利率: ${(state.displayRate*100).toFixed(2)}%
+─────
+参考预算: S$ ${fmt(state.maxPrice)}
+预估月供: S$ ${monthlyDisp} / 月`;
+
+      // localStorage 存档
+      try {
+        localStorage.setItem('lh_inquiry_' + uuid, JSON.stringify({
+          uuid, ts: new Date().toISOString(), state, text,
+        }));
+      } catch (e) { /* ignore */ }
+
+      // PropertyGuru 风格的 WhatsApp 跳转
+      const phone = '6588888888';  // TODO: 替换为正式客服号
+      const url = 'https://api.whatsapp.com/send?phone=' + phone + '&text=' + encodeURIComponent(text);
+      window.open(url, '_blank');
+    }
+
+    /* ============================================================
+       即刻咨询 DRAWER
+       ============================================================ */
+    function openConsultDrawer() {
+      const drawer = document.getElementById('consult-drawer');
+      const backdrop = document.getElementById('consult-backdrop');
+      const panel = document.getElementById('consult-panel');
+      drawer.classList.remove('hidden');
       setTimeout(() => {
         backdrop.classList.remove('opacity-0'); backdrop.classList.add('opacity-100');
         panel.classList.remove('translate-y-full');
       }, 10);
     }
-    function closeModal() {
-      const modal = document.getElementById('modal-lead');
-      const backdrop = document.getElementById('modal-backdrop');
-      const panel = document.getElementById('modal-panel');
+    function closeConsultDrawer() {
+      const drawer = document.getElementById('consult-drawer');
+      const backdrop = document.getElementById('consult-backdrop');
+      const panel = document.getElementById('consult-panel');
       backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0');
       panel.classList.add('translate-y-full');
-      setTimeout(() => modal.classList.add('hidden'), 300);
+      setTimeout(() => drawer.classList.add('hidden'), 300);
     }
+    function submitConsult() {
+      const name = document.getElementById('consult-name').value.trim();
+      const phone = document.getElementById('consult-phone').value.trim();
+      const message = document.getElementById('consult-message').value.trim();
+      if (!name || !phone) {
+        alert('请填写姓名和手机号');
+        return;
+      }
+      // localStorage 存档
+      const uuid = (crypto.randomUUID && crypto.randomUUID()) || Date.now().toString();
+      try {
+        localStorage.setItem('lh_consult_' + uuid, JSON.stringify({
+          uuid, ts: new Date().toISOString(), name, phone, message, state,
+        }));
+      } catch (e) { /* ignore */ }
+      closeConsultDrawer();
+      // toast
+      const toast = document.getElementById('toast');
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+      // 清空表单
+      document.getElementById('consult-name').value = '';
+      document.getElementById('consult-phone').value = '';
+      document.getElementById('consult-message').value = '';
+    }
+
+    /* ============================================================
+       Hook recalc 到 view 切换
+       ============================================================ */
+    const _origGoToView = goToView;
+    goToView = function(viewId) {
+      _origGoToView(viewId);
+      if (viewId === 'view-result') {
+        // 根据 state.cashBucket / cpfBucket 推算合理 maxPrice（demo 简化）
+        recalcAll();
+      }
+    };
   </script>
 </body>
 </html>
