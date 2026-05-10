@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#FDFBF7">
+  <title>狮城家 | 购房向导</title>
+
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary: #8B3A3A;
+      --color-primary-light: #F8EDED;
+      --color-primary-soft: #F4E8E4;
+      --color-text: #3A3632;
+      --color-bg: #FDFBF7;
+      --color-surface: #F2EBE1;
+      --color-success: #9CAF88;
+      --color-success-light: #F0F4EC;
+      --font-sans: 'DM Sans', 'Noto Sans SC', sans-serif;
+    }
+
+    body { @apply bg-bg text-text font-sans antialiased selection:bg-primary/20; }
+
+    /* Buttons - rounded full pill */
+    .btn-primary {
+      @apply w-full bg-primary text-white py-4 px-6 rounded-full font-medium text-base shadow-[0_8px_20px_rgba(139,58,58,0.2)] hover:shadow-[0_12px_24px_rgba(139,58,58,0.25)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer;
+      min-height: 56px;
+    }
+    .btn-secondary {
+      @apply w-full bg-white border-2 border-surface text-text py-4 px-6 rounded-full font-medium text-base hover:bg-surface/50 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer;
+      min-height: 56px;
+    }
+
+    /* Radio cards (linear list) */
+    .radio-card {
+      @apply flex items-center justify-between p-4 border-2 border-surface rounded-2xl cursor-pointer transition-all hover:bg-white bg-bg/50;
+      min-height: 60px;
+    }
+    .radio-card.active {
+      @apply border-primary bg-primary-light shadow-[0_4px_14px_rgba(139,58,58,0.08)];
+    }
+
+    /* Identity grid card */
+    .identity-card {
+      @apply flex flex-col items-start justify-center p-4 border-2 border-surface rounded-2xl cursor-pointer transition-all hover:bg-white bg-bg/50 text-left;
+      min-height: 88px;
+    }
+    .identity-card.active {
+      @apply border-primary bg-primary-light shadow-[0_4px_14px_rgba(139,58,58,0.08)];
+    }
+    .identity-card .title { @apply text-base font-bold text-text; }
+    .identity-card.active .title { @apply text-primary; }
+    .identity-card .sub { @apply text-xs font-medium text-gray-500 mt-1; }
+
+    /* Segmented control */
+    .seg-wrap { @apply flex bg-surface rounded-full p-1.5; }
+    .seg {
+      @apply flex-1 py-3 px-4 text-center text-sm font-medium text-gray-500 rounded-full cursor-pointer transition-all;
+    }
+    .seg.active { @apply bg-white text-primary shadow-sm font-bold; }
+
+    /* Layout — plain CSS to bypass Tailwind v4 CDN apply-ordering quirks. */
+    .view-section {
+      display: none;
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      flex-direction: column;
+      position: relative;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding-left: 20px;
+      padding-right: 20px;
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+    .view-section.active {
+      display: flex;
+      animation: springUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes springUp {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .step-header { @apply w-full flex items-center justify-between mb-7; }
+    .step-back-btn {
+      @apply w-11 h-11 flex items-center justify-center bg-white border-2 border-surface rounded-full text-text active:scale-90 cursor-pointer shadow-sm;
+    }
+    .step-progress { @apply flex gap-1.5; }
+    .progress-dot { @apply w-2 h-2 rounded-full bg-surface transition-colors; }
+    .progress-dot.active { @apply bg-primary w-6; }
+
+    .question-title { @apply text-2xl font-bold mb-2 leading-tight tracking-tight; }
+    .question-sub { @apply text-sm text-gray-500 mb-7 leading-relaxed; }
+    .input-group { @apply mb-6; }
+    .input-label { @apply block text-sm font-bold text-text mb-3; }
+
+    /* iOS-style picker */
+    .picker {
+      position: relative;
+      height: 220px;
+      overflow: hidden;
+      background: #FFFFFF;
+      border: 2px solid var(--color-surface);
+      border-radius: 16px;
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 25%, #000 75%, transparent 100%);
+              mask-image: linear-gradient(to bottom, transparent 0%, #000 25%, #000 75%, transparent 100%);
+    }
+    .picker-list {
+      height: 100%;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scroll-snap-stop: always;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 88px 0;
+    }
+    .picker-list::-webkit-scrollbar { display: none; }
+    .picker-item {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: center;
+      font-size: 16px;
+      color: #9CA3AF;
+      transition: all 0.15s;
+      font-variant-numeric: tabular-nums;
+    }
+    .picker-item.is-center {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+    .picker-suffix {
+      position: absolute;
+      top: calc(50% - 12px);
+      right: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #9CA3AF;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    /* Helper hint card */
+    .hint {
+      @apply text-xs text-gray-500 mt-3 flex items-start gap-2 bg-white/60 p-3 rounded-xl border border-surface/50;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       PAGE 1 · HERO (value-driven, friendly hook)
+       ============================================================ -->
+  <main id="view-hero" class="view-section active" style="background:#FDFBF7; display:flex; padding-left:0; padding-right:0;">
+    <!-- Top brand strip -->
+    <div class="flex-shrink-0 px-5 flex items-center justify-between"
+         style="padding-top: max(20px, env(safe-area-inset-top));">
+      <div class="flex items-center gap-2">
+        <div class="relative w-7 h-7">
+          <div class="absolute inset-0 bg-primary-light rounded-full"></div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 2 L11.5 5 V11 C11.5 11.3 11.3 11.5 11 11.5 H3 C2.7 11.5 2.5 11.3 2.5 11 V5 Z"
+                    stroke="#8B3A3A" stroke-width="1.4" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+        </div>
+        <span class="text-sm font-bold text-text tracking-wide">狮城家 LionHome</span>
+      </div>
+    </div>
+
+    <!-- Visual hero block (soft pink) -->
+    <div class="flex-shrink-0 px-6 pt-10 pb-8 mt-5 mx-5 rounded-[28px] relative overflow-hidden"
+         style="background:#F4E8E4;">
+      <!-- Decorative friendly elements -->
+      <div class="absolute top-5 right-5">
+        <div class="relative w-14 h-14">
+          <div class="absolute inset-0 bg-white rounded-full opacity-60"></div>
+          <div class="absolute inset-2 bg-primary-light rounded-2xl flex items-center justify-center transform rotate-6">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M10 3 L16 7 V15 C16 15.5 15.5 16 15 16 H5 C4.5 16 4 15.5 4 15 V7 Z"
+                    stroke="#8B3A3A" stroke-width="1.6" stroke-linejoin="round" fill="none"/>
+              <path d="M7 16 V11 H13 V16" stroke="#8B3A3A" stroke-width="1.6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="absolute -bottom-2 -left-2 w-12 h-12 bg-success-light rounded-full opacity-70"></div>
+
+      <p class="text-[11px] tracking-[0.2em] text-primary font-bold uppercase mb-3 relative z-10">购房力测算</p>
+      <h1 class="font-bold text-text leading-[1.05] mb-4 relative z-10" style="font-size:36px;">
+        我的购房<br>预算是多少？
+      </h1>
+      <div class="flex items-center gap-2 relative z-10">
+        <span class="text-xs text-gray-600 font-medium">⏱ 3 分钟</span>
+        <span class="w-1 h-1 rounded-full bg-gray-400"></span>
+        <span class="text-xs text-gray-600 font-medium">无需注册</span>
+        <span class="w-1 h-1 rounded-full bg-gray-400"></span>
+        <span class="text-xs text-gray-600 font-medium">免费</span>
+      </div>
+    </div>
+
+    <!-- Friendly value bullets -->
+    <div class="flex-1 px-6 pt-7 pb-2 space-y-4">
+      <div class="flex items-start gap-3.5 bg-white/60 rounded-2xl p-3.5 border border-surface/50">
+        <div class="w-9 h-9 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+          <span class="text-base">🎯</span>
+        </div>
+        <div>
+          <div class="text-sm font-bold text-text mb-0.5">精确到每一笔税</div>
+          <div class="text-xs text-gray-500 leading-relaxed">基于 IRAS 最新 BSD/ABSD 累进税率</div>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3.5 bg-white/60 rounded-2xl p-3.5 border border-surface/50">
+        <div class="w-9 h-9 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+          <span class="text-base">🪪</span>
+        </div>
+        <div>
+          <div class="text-sm font-bold text-text mb-0.5">考虑您的真实身份</div>
+          <div class="text-xs text-gray-500 leading-relaxed">PR 二套、外籍首套，税率天差地别</div>
+        </div>
+      </div>
+
+      <div class="flex items-start gap-3.5 bg-white/60 rounded-2xl p-3.5 border border-surface/50">
+        <div class="w-9 h-9 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+          <span class="text-base">📊</span>
+        </div>
+        <div>
+          <div class="text-sm font-bold text-text mb-0.5">压力测试 +2pp</div>
+          <div class="text-xs text-gray-500 leading-relaxed">看清未来利率波动下的真实月供</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: CTA (flex-shrink-0 so it never gets squeezed off screen) -->
+    <div class="flex-shrink-0 px-5 pt-4"
+         style="padding-bottom: max(24px, env(safe-area-inset-bottom));">
+      <button onclick="goToStep(1)" class="btn-primary">开始测算</button>
+      <div class="flex items-center justify-center gap-2 text-xs text-gray-400 mt-3 font-medium">
+        <i class="ph-thin ph-lock-key text-sm"></i>
+        <span>您的数据已被加密处理</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       PAGE 2 (step 1) · 个人信息
+       身份 + 年龄 + 现有持有住宅
+       ============================================================ -->
+  <main id="view-step-1" class="view-section">
+    <div class="step-header">
+      <button onclick="goToView('view-hero')" class="step-back-btn"><i class="ph-thin ph-arrow-left text-xl"></i></button>
+      <div class="step-progress">
+        <div class="progress-dot active w-6"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+      </div>
+    </div>
+
+    <div class="flex-1">
+      <h2 class="question-title">关于您的身份</h2>
+      <p class="question-sub">这三项决定您的印花税率和贷款成数。</p>
+
+      <div class="input-group">
+        <label class="input-label">主申请人身份</label>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="identity-card" onclick="selectOption('residency','sc',this)">
+            <span class="title">新加坡公民</span>
+            <span class="sub">ABSD 0% 起</span>
+          </div>
+          <div class="identity-card" onclick="selectOption('residency','pr',this)">
+            <span class="title">永久居民 (PR)</span>
+            <span class="sub">ABSD 5% 起</span>
+          </div>
+          <div class="identity-card" onclick="selectOption('residency','foreigner',this)">
+            <span class="title">外籍人士</span>
+            <span class="sub">ABSD 60%</span>
+          </div>
+          <div class="identity-card" onclick="selectOption('residency','company',this)">
+            <span class="title">公司主体</span>
+            <span class="sub">ABSD 65%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group mt-7">
+        <label class="input-label">主申请人年龄</label>
+        <div class="picker" id="age-picker">
+          <div class="picker-list" id="age-picker-list"></div>
+          <span class="picker-suffix">岁</span>
+        </div>
+        <div class="hint">
+          <i class="ph-thin ph-info-bold text-base flex-shrink-0 mt-0.5"></i>
+          <span>年龄 + 贷款年限 ≤ 65 时可享 75% LTV。</span>
+        </div>
+      </div>
+
+      <div class="input-group mt-7">
+        <label class="input-label">目前持有住宅数（含全球）</label>
+        <div class="space-y-2">
+          <div class="radio-card" onclick="selectOption('properties','0',this)">
+            <span class="text-base font-medium">0 套</span>
+            <span class="text-xs text-gray-400">首次置业</span>
+          </div>
+          <div class="radio-card" onclick="selectOption('properties','1',this)">
+            <span class="text-base font-medium">1 套</span>
+            <span class="text-xs text-gray-400">第二套买家</span>
+          </div>
+          <div class="radio-card" onclick="selectOption('properties','2+',this)">
+            <span class="text-base font-medium">2 套及以上</span>
+            <span class="text-xs text-gray-400">多套持有</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 pt-4">
+      <button onclick="goToStep(2)" class="btn-primary">下一步</button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       PAGE 3 (step 2) · 收入情况
+       年收入 + 存款 + CPF + 月贷款还款
+       ============================================================ -->
+  <main id="view-step-2" class="view-section">
+    <div class="step-header">
+      <button onclick="goToStep(1)" class="step-back-btn"><i class="ph-thin ph-arrow-left text-xl"></i></button>
+      <div class="step-progress">
+        <div class="progress-dot"></div>
+        <div class="progress-dot active w-6"></div>
+        <div class="progress-dot"></div>
+      </div>
+    </div>
+
+    <div class="flex-1">
+      <h2 class="question-title">您的收入与资产</h2>
+      <p class="question-sub">用于测算贷款额度与首付能力。</p>
+
+      <div class="input-group">
+        <label class="input-label">家庭年税前总收入（含花红）</label>
+        <div class="picker" id="income-picker">
+          <div class="picker-list" id="income-picker-list"></div>
+        </div>
+      </div>
+
+      <div class="input-group mt-7">
+        <label class="input-label">可动用现金存款（不含 CPF）</label>
+        <div class="picker" id="cash-picker">
+          <div class="picker-list" id="cash-picker-list"></div>
+        </div>
+      </div>
+
+      <div class="input-group mt-7" id="cpf-group">
+        <label class="input-label">CPF 普通户头 (OA) 余额</label>
+        <div class="picker" id="cpf-picker">
+          <div class="picker-list" id="cpf-picker-list"></div>
+        </div>
+        <div class="hint">
+          <i class="ph-thin ph-info-bold text-base flex-shrink-0 mt-0.5"></i>
+          <span>私宅至少 5% 须以现金支付，余下可由 CPF 补足。</span>
+        </div>
+      </div>
+
+      <div class="input-group mt-7">
+        <label class="input-label">每月固定债务还款（车贷、卡 min、学生贷）</label>
+        <div class="picker" id="debt-picker">
+          <div class="picker-list" id="debt-picker-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 pt-4">
+      <button onclick="goToStep(3)" class="btn-primary">下一步</button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       PAGE 4 (step 3) · 买房预期
+       目的 + 房产类型 + 购入时间 + 贷款年限
+       ============================================================ -->
+  <main id="view-step-3" class="view-section">
+    <div class="step-header">
+      <button onclick="goToStep(2)" class="step-back-btn"><i class="ph-thin ph-arrow-left text-xl"></i></button>
+      <div class="step-progress">
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot active w-6"></div>
+      </div>
+    </div>
+
+    <div class="flex-1">
+      <h2 class="question-title">您的购房计划</h2>
+      <p class="question-sub">帮助我们理解您的购房动机。</p>
+
+      <div class="input-group">
+        <label class="input-label">购房目的</label>
+        <div class="space-y-2">
+          <div class="radio-card" onclick="selectOption('purpose','self',this)">
+            <span class="text-base font-medium">自住</span>
+            <span class="text-xs text-gray-400">家人居住</span>
+          </div>
+          <div class="radio-card" onclick="selectOption('purpose','invest',this)">
+            <span class="text-base font-medium">投资</span>
+            <span class="text-xs text-gray-400">出租或资本增值</span>
+          </div>
+          <div class="radio-card" onclick="selectOption('purpose','upgrade',this)">
+            <span class="text-base font-medium">升级换房</span>
+            <span class="text-xs text-gray-400">出售现有住宅，置换更好的房产</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group mt-7">
+        <label class="input-label">房产类型偏好</label>
+        <div class="seg-wrap">
+          <div class="seg" onclick="selectSeg(this,'propertyType','new')">新楼盘</div>
+          <div class="seg" onclick="selectSeg(this,'propertyType','resale')">二手房</div>
+          <div class="seg" onclick="selectSeg(this,'propertyType','either')">两者均可</div>
+        </div>
+      </div>
+
+      <div class="input-group mt-7">
+        <label class="input-label">购入预期时间</label>
+        <div class="seg-wrap">
+          <div class="seg" onclick="selectSeg(this,'timeline','3m')">3 个月内</div>
+          <div class="seg" onclick="selectSeg(this,'timeline','6m')">6 个月内</div>
+          <div class="seg" onclick="selectSeg(this,'timeline','1y')">1 年内</div>
+          <div class="seg" onclick="selectSeg(this,'timeline','explore')">仅了解</div>
+        </div>
+      </div>
+
+      <div class="input-group mt-7">
+        <label class="input-label">期望贷款年限</label>
+        <div class="seg-wrap">
+          <div class="seg" onclick="selectSeg(this,'tenure','20')">20 年</div>
+          <div class="seg active" onclick="selectSeg(this,'tenure','25')">25 年</div>
+          <div class="seg" onclick="selectSeg(this,'tenure','30')">30 年</div>
+        </div>
+        <div class="hint">
+          <i class="ph-thin ph-info-bold text-base flex-shrink-0 mt-0.5"></i>
+          <span>年龄 + 年限 ≤ 65 时享 75% LTV，否则降至 55%。</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 pt-4">
+      <button onclick="submitForm()" class="btn-primary">看看我能买多少 ✨</button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       LOADING
+       ============================================================ -->
+  <main id="view-loading" class="view-section justify-center items-center">
+    <div class="flex flex-col items-center text-center">
+      <div class="relative w-20 h-20 mb-7">
+        <div class="absolute inset-0 bg-primary-light rounded-full opacity-50"></div>
+        <div class="absolute inset-0 bg-surface rounded-full m-2"></div>
+        <div class="absolute inset-0 bg-primary rounded-full m-5 flex items-center justify-center">
+          <i class="ph-fill ph-check text-xl text-white"></i>
+        </div>
+      </div>
+      <h3 class="text-xl font-bold text-text mb-2">稍等一下下…</h3>
+      <p class="text-sm text-gray-500" id="loading-text">正在为您计算 ABSD、TDSR、LTV…</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       RESULT — soft pink background, no heavy color band
+       ============================================================ -->
+  <main id="view-result" class="view-section" style="background:#FDFBF7; padding-left:0; padding-right:0; padding-top:0; padding-bottom:0;">
+    <!-- Hero on soft pink -->
+    <div class="px-6 pt-12 pb-8" style="background:#F4E8E4; padding-top: max(48px, env(safe-area-inset-top));">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+          <i class="ph-fill ph-check text-sm text-white"></i>
+        </div>
+        <span class="text-xs font-bold text-primary tracking-wide uppercase">推荐购置预算区间</span>
+      </div>
+      <div class="font-bold text-text leading-tight whitespace-nowrap" style="font-size:36px;">
+        S$&nbsp;<span id="res-min">2.0M</span>&nbsp;–&nbsp;<span id="res-max">2.2M</span>
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <div class="w-6 h-1 bg-primary rounded-full"></div>
+        <span class="text-xs text-gray-500">中位 S$ <span id="res-mid">2.08M</span> · 由您的输入测算</span>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="px-5 py-6 space-y-5">
+      <!-- Composition -->
+      <section class="bg-white rounded-3xl p-5 border border-surface">
+        <h4 class="text-sm font-bold text-text mb-4">资金构成</h4>
+        <div class="space-y-3 text-sm">
+          <div class="flex justify-between">
+            <span class="text-gray-500">现金 + CPF 首付</span>
+            <span class="font-bold text-text">S$ 520,000</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">最高贷款 (75% LTV)</span>
+            <span class="font-bold text-text">S$ 1,560,000</span>
+          </div>
+          <div class="flex justify-between border-t border-surface pt-3">
+            <span class="font-bold text-text">合计购置上限</span>
+            <span class="font-bold text-primary">S$ 2,080,000</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tax breakdown -->
+      <section class="bg-white rounded-3xl p-5 border border-surface">
+        <h4 class="text-sm font-bold text-text mb-4">税费明细</h4>
+        <div class="space-y-3 text-sm">
+          <div class="flex justify-between">
+            <div>
+              <div class="font-medium text-text">买方印花税 (BSD)</div>
+              <div class="text-[11px] text-gray-400">按 IRAS 累进税率</div>
+            </div>
+            <span class="font-bold text-text">S$ 73,600</span>
+          </div>
+          <div class="flex justify-between border-t border-surface pt-3">
+            <div>
+              <div class="font-medium text-text">额外印花税 (ABSD)</div>
+              <div class="text-[11px] text-gray-400">PR 首套，5%</div>
+            </div>
+            <span class="font-bold text-primary">S$ 104,000</span>
+          </div>
+          <div class="flex justify-between border-t border-surface pt-3">
+            <div>
+              <div class="font-medium text-text">律师 + 估价 + 抵押印花</div>
+              <div class="text-[11px] text-gray-400">预估</div>
+            </div>
+            <span class="font-bold text-text">S$ 4,150</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stress test -->
+      <section class="rounded-3xl p-5 border-2" style="background:#F0F4EC; border-color:#9CAF88;">
+        <h4 class="text-sm font-bold text-text mb-4">月供压力测试</h4>
+        <div class="flex justify-between items-end mb-2">
+          <div class="font-bold text-text" style="font-size:28px;">
+            S$ 8,232<span class="text-sm text-gray-500 ml-1 font-medium">/ 月</span>
+          </div>
+          <div class="px-3 py-1 rounded-full text-xs font-bold text-white" style="background:#9CAF88;">健康</div>
+        </div>
+        <div class="text-xs text-gray-500 leading-relaxed">
+          基于 4% 利率 / 25 年。TDSR 利用率 <span class="text-text font-bold">64%</span>（法定上限 55%，已含 +2pp 压力测试）。
+        </div>
+      </section>
+
+      <!-- Identity-specific note -->
+      <section class="border-l-4 border-primary pl-4 py-1 bg-white/60 rounded-r-2xl">
+        <p class="text-xs text-gray-500 leading-relaxed py-2">
+          作为 PR 首次置业，您的 ABSD 为 5%。若您与外籍配偶联名购买首套主居所，可申请 ABSD 退税，详情请咨询顾问。
+        </p>
+      </section>
+    </div>
+
+    <!-- Footer CTAs -->
+    <div class="px-5 py-4 bg-white border-t border-surface sticky bottom-0 z-20 space-y-3"
+         style="padding-bottom: max(16px, env(safe-area-inset-bottom));">
+      <button onclick="openModal()" class="btn-primary">保存并获取定制报告 <i class="ph-thin ph-download-simple"></i></button>
+      <button class="btn-secondary">预约理财顾问解读</button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       LEAD CAPTURE MODAL
+       ============================================================ -->
+  <div id="modal-lead" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-text/40 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop" onclick="closeModal()"></div>
+    <div class="absolute bottom-0 left-0 w-full bg-white rounded-t-[2rem] transition-transform transform translate-y-full" id="modal-panel"
+         style="padding-bottom: max(20px, env(safe-area-inset-bottom));">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-text">获取您的专属方案</h3>
+          <button onclick="closeModal()" class="text-gray-400 cursor-pointer"><i class="ph-thin ph-x text-2xl"></i></button>
+        </div>
+        <p class="text-sm text-gray-500 mb-6">我们将一份详细资金流向、贷款方案对比的 PDF 报告发送至您的 WhatsApp。</p>
+        <div class="space-y-4">
+          <div>
+            <label class="input-label mb-2">您的称呼</label>
+            <input type="text" placeholder="例如：陈先生" class="w-full bg-white border-2 border-surface rounded-2xl py-3 px-4 text-base focus:outline-none focus:border-primary transition-colors" />
+          </div>
+          <div>
+            <label class="input-label mb-2">WhatsApp 号码</label>
+            <div class="flex items-center gap-2">
+              <span class="bg-surface px-3 py-3 rounded-2xl text-base font-medium text-gray-500">+65</span>
+              <input type="tel" placeholder="8123 4567" class="flex-1 bg-white border-2 border-surface rounded-2xl py-3 px-4 text-base focus:outline-none focus:border-primary transition-colors" />
+            </div>
+          </div>
+        </div>
+        <button class="btn-primary mt-6" onclick="alert('报告已发送，顾问将很快与您联系！')">发送报告至 WhatsApp</button>
+        <p class="text-[11px] text-gray-400 mt-4 text-center leading-relaxed">点击发送即表示您同意我们的隐私政策。</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       STATE
+       ============================================================ */
+    const state = {
+      age: 35, residency: null, properties: null,
+      incomeBucket: 2, debtBucket: 0, cashBucket: 1, cpfBucket: 1,
+      purpose: null, propertyType: null, timeline: null, tenure: '25',
+    };
+
+    /* ============================================================
+       PICKER
+       ============================================================ */
+    function buildPicker(listId, items, defaultIndex, onChange) {
+      const list = document.getElementById(listId);
+      list.innerHTML = items.map((label, i) =>
+        `<div class="picker-item" data-i="${i}">${label}</div>`
+      ).join('');
+
+      requestAnimationFrame(() => {
+        list.scrollTop = defaultIndex * 44;
+        markCenter(list, defaultIndex);
+      });
+
+      let scrollTimer = null;
+      list.addEventListener('scroll', () => {
+        const idx = Math.round(list.scrollTop / 44);
+        markCenter(list, idx);
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+          const snapped = Math.max(0, Math.min(items.length - 1, idx));
+          if (Math.abs(list.scrollTop - snapped * 44) > 1) {
+            list.scrollTo({ top: snapped * 44, behavior: 'smooth' });
+          }
+          onChange(snapped);
+        }, 100);
+      });
+    }
+
+    function markCenter(list, centerIdx) {
+      list.querySelectorAll('.picker-item').forEach((el, i) => {
+        el.classList.toggle('is-center', i === centerIdx);
+      });
+    }
+
+    /* ============================================================
+       PICKER configs
+       ============================================================ */
+    const ageItems = Array.from({ length: 45 }, (_, i) => 21 + i);
+
+    const incomeBuckets = [
+      { label: '15 万以下',     mid: 120000 },
+      { label: '15 – 30 万',    mid: 225000 },
+      { label: '30 – 50 万',    mid: 400000 },
+      { label: '50 – 80 万',    mid: 650000 },
+      { label: '80 万以上',     mid: 1000000 },
+    ];
+
+    const debtBuckets = [
+      { label: '无',             mid: 0 },
+      { label: '2,000 以下',     mid: 1000 },
+      { label: '2,000 – 5,000',  mid: 3500 },
+      { label: '5,000 – 10,000', mid: 7500 },
+      { label: '1 万以上',        mid: 12000 },
+    ];
+
+    const cashBuckets = [
+      { label: '20 万以下',     mid: 150000 },
+      { label: '20 – 50 万',    mid: 350000 },
+      { label: '50 – 100 万',   mid: 750000 },
+      { label: '100 – 200 万',  mid: 1500000 },
+      { label: '200 万以上',    mid: 2500000 },
+    ];
+
+    const cpfBuckets = [
+      { label: '10 万以下',     mid: 60000 },
+      { label: '10 – 25 万',    mid: 175000 },
+      { label: '25 – 50 万',    mid: 375000 },
+      { label: '50 – 100 万',   mid: 750000 },
+      { label: '100 万以上',    mid: 1200000 },
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildPicker('age-picker-list', ageItems, 14, idx => state.age = ageItems[idx]);
+      buildPicker('income-picker-list', incomeBuckets.map(b => b.label), 2, idx => state.incomeBucket = idx);
+      buildPicker('debt-picker-list', debtBuckets.map(b => b.label), 0, idx => state.debtBucket = idx);
+      buildPicker('cash-picker-list', cashBuckets.map(b => b.label), 1, idx => state.cashBucket = idx);
+      buildPicker('cpf-picker-list', cpfBuckets.map(b => b.label), 1, idx => state.cpfBucket = idx);
+    });
+
+    /* ============================================================
+       Navigation
+       ============================================================ */
+    function goToView(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => {
+        el.classList.remove('active');
+        el.style.display = 'none';
+      });
+      const target = document.getElementById(viewId);
+      target.style.display = 'flex';
+      void target.offsetWidth;
+      target.classList.add('active');
+      window.scrollTo(0, 0);
+
+      // Hide/show CPF group based on residency (CPF lives on step 2 now)
+      if (viewId === 'view-step-2') {
+        const cpf = document.getElementById('cpf-group');
+        if (state.residency === 'foreigner' || state.residency === 'company') {
+          cpf.style.display = 'none';
+        } else {
+          cpf.style.display = '';
+        }
+      }
+    }
+    function goToStep(n) { goToView(`view-step-${n}`); }
+
+    function selectOption(category, value, element) {
+      state[category] = value;
+      const parent = element.parentElement;
+      parent.querySelectorAll('.identity-card, .radio-card').forEach(card => card.classList.remove('active'));
+      element.classList.add('active');
+    }
+
+    function selectSeg(element, key, value) {
+      state[key] = value;
+      element.parentElement.querySelectorAll('.seg').forEach(s => s.classList.remove('active'));
+      element.classList.add('active');
+    }
+
+    /* ============================================================
+       Submit / Loading
+       ============================================================ */
+    function submitForm() {
+      goToView('view-loading');
+      const texts = [
+        '正在为您计算 ABSD、TDSR、LTV…',
+        '测算最高贷款成数…',
+        '评估月供压力…',
+        '生成预算区间…',
+      ];
+      let i = 0;
+      const textEl = document.getElementById('loading-text');
+      const interval = setInterval(() => {
+        i++;
+        if (i < texts.length) textEl.innerText = texts[i];
+      }, 800);
+      setTimeout(() => {
+        clearInterval(interval);
+        goToView('view-result');
+      }, 3500);
+    }
+
+    /* ============================================================
+       Modal
+       ============================================================ */
+    function openModal() {
+      const modal = document.getElementById('modal-lead');
+      const backdrop = document.getElementById('modal-backdrop');
+      const panel = document.getElementById('modal-panel');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        backdrop.classList.remove('opacity-0'); backdrop.classList.add('opacity-100');
+        panel.classList.remove('translate-y-full');
+      }, 10);
+    }
+    function closeModal() {
+      const modal = document.getElementById('modal-lead');
+      const backdrop = document.getElementById('modal-backdrop');
+      const panel = document.getElementById('modal-panel');
+      backdrop.classList.remove('opacity-100'); backdrop.classList.add('opacity-0');
+      panel.classList.add('translate-y-full');
+      setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+  </script>
+</body>
+</html>

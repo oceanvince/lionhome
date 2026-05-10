@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LionHome — Variant D (Friendly Guide · Confident Burgundy)
+  Designed for iPhone 14/15 Pro 393 × 852.
+  Each screen is a 393 × 852 frame, laid out left-to-right with 60px gutters.
+  All groups have data-name attributes so Figma reconstructs them as frames.
+
+  HOW TO USE IN FIGMA:
+  1. Open this file in Figma (File → Place image), OR
+  2. Copy entire <svg>...</svg> block and paste into a Figma frame.
+  3. Each <g> with id/data-name appears as a separate layer/frame.
+  4. Text is real <text> — double-click to edit copy.
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="2658" height="852"
+     viewBox="0 0 2658 852"
+     fill="none"
+     font-family="'DM Sans', 'Noto Sans SC', 'PingFang SC', sans-serif">
+
+  <defs>
+    <style>
+      .sans { font-family: 'DM Sans', 'Noto Sans SC', 'PingFang SC', sans-serif; }
+    </style>
+  </defs>
+
+  <!-- ======================================================
+       SCREEN 1 · HERO  (x = 0)
+       ====================================================== -->
+  <g id="D-01-Hero" data-name="D · 01 Hero">
+    <rect x="0" y="0" width="393" height="852" fill="#FDFBF7"/>
+
+    <g id="D-01-StatusBar" data-name="Status bar">
+      <text x="32" y="32" font-size="14" font-weight="700" fill="#3A3632" class="sans">9:41</text>
+      <text x="361" y="32" font-size="11" font-weight="500" fill="#3A3632" text-anchor="end" class="sans">●●● 100%</text>
+    </g>
+
+    <!-- Brand strip (small, top-left) -->
+    <g id="D-01-Brand" data-name="Brand strip">
+      <circle cx="28" cy="72" r="14" fill="#F8EDED"/>
+      <path d="M22 70 L28 66 V76 C28 76.4 27.7 76.8 27.4 76.8 H21 C20.6 76.8 20.4 76.4 20.4 76 V70 Z"
+            stroke="#8B3A3A" stroke-width="1.4" stroke-linejoin="round" fill="none"
+            transform="translate(8 1)"/>
+      <text x="50" y="76" font-size="14" font-weight="700" fill="#3A3632" class="sans">狮城家 LionHome</text>
+    </g>
+
+    <!-- Hero card (soft pink with friendly graphic) -->
+    <g id="D-01-HeroCard" data-name="Hero card">
+      <rect x="20" y="116" width="353" height="232" rx="28" fill="#F4E8E4"/>
+
+      <!-- Friendly stacked-shape graphic (top-right corner) -->
+      <g id="D-01-HeroGraphic" data-name="Hero graphic">
+        <circle cx="324" cy="160" r="28" fill="#FFFFFF" opacity="0.6"/>
+        <rect x="304" y="142" width="40" height="40" rx="12" fill="#F8EDED" transform="rotate(6 324 162)"/>
+        <g transform="translate(310 148) rotate(6 14 14)">
+          <path d="M14 4 L22 9 V19 C22 19.6 21.6 20 21 20 H7 C6.4 20 6 19.6 6 19 V9 Z"
+                stroke="#8B3A3A" stroke-width="1.6" stroke-linejoin="round" fill="none"/>
+          <path d="M9 20 V14 H19 V20" stroke="#8B3A3A" stroke-width="1.6"/>
+        </g>
+      </g>
+
+      <!-- Bottom-left decorative dot -->
+      <circle cx="14" cy="346" r="22" fill="#F0F4EC" opacity="0.7"/>
+
+      <!-- Eyebrow + huge headline -->
+      <text x="40" y="170" font-size="11" font-weight="700" letter-spacing="2.2" fill="#8B3A3A" class="sans">购房力测算</text>
+      <text x="40" y="232" font-size="36" font-weight="700" fill="#3A3632" class="sans">我的购房</text>
+      <text x="40" y="278" font-size="36" font-weight="700" fill="#3A3632" class="sans">预算是多少？</text>
+
+      <!-- Meta row -->
+      <g id="D-01-Meta" data-name="Meta row">
+        <text x="40" y="316" font-size="12" font-weight="500" fill="#4B5563" class="sans">⏱ 3 分钟</text>
+        <circle cx="103" cy="312" r="1.5" fill="#9CA3AF"/>
+        <text x="113" y="316" font-size="12" font-weight="500" fill="#4B5563" class="sans">无需注册</text>
+        <circle cx="170" cy="312" r="1.5" fill="#9CA3AF"/>
+        <text x="180" y="316" font-size="12" font-weight="500" fill="#4B5563" class="sans">免费</text>
+      </g>
+    </g>
+
+    <!-- Friendly value bullets (white-pill cards) -->
+    <g id="D-01-Bullets" data-name="Value bullets">
+      <!-- Bullet 1 -->
+      <g id="D-01-B1" data-name="Bullet · 精确到税">
+        <rect x="20" y="380" width="353" height="64" rx="16" fill="#FFFFFF" stroke="#F2EBE1"/>
+        <circle cx="50" cy="412" r="18" fill="#F8EDED"/>
+        <text x="50" y="418" font-size="16" text-anchor="middle" class="sans">🎯</text>
+        <text x="84" y="408" font-size="14" font-weight="700" fill="#3A3632" class="sans">精确到每一笔税</text>
+        <text x="84" y="427" font-size="11" font-weight="400" fill="#9CA3AF" class="sans">基于 IRAS 最新 BSD/ABSD 累进税率</text>
+      </g>
+
+      <!-- Bullet 2 -->
+      <g id="D-01-B2" data-name="Bullet · 真实身份">
+        <rect x="20" y="456" width="353" height="64" rx="16" fill="#FFFFFF" stroke="#F2EBE1"/>
+        <circle cx="50" cy="488" r="18" fill="#F8EDED"/>
+        <text x="50" y="494" font-size="16" text-anchor="middle" class="sans">🪪</text>
+        <text x="84" y="484" font-size="14" font-weight="700" fill="#3A3632" class="sans">考虑您的真实身份</text>
+        <text x="84" y="503" font-size="11" font-weight="400" fill="#9CA3AF" class="sans">PR 二套、外籍首套，税率天差地别</text>
+      </g>
+
+      <!-- Bullet 3 -->
+      <g id="D-01-B3" data-name="Bullet · 压力测试">
+        <rect x="20" y="532" width="353" height="64" rx="16" fill="#FFFFFF" stroke="#F2EBE1"/>
+        <circle cx="50" cy="564" r="18" fill="#F8EDED"/>
+        <text x="50" y="570" font-size="16" text-anchor="middle" class="sans">📊</text>
+        <text x="84" y="560" font-size="14" font-weight="700" fill="#3A3632" class="sans">压力测试 +2pp</text>
+        <text x="84" y="579" font-size="11" font-weight="400" fill="#9CA3AF" class="sans">看清未来利率波动下的真实月供</text>
+      </g>
+    </g>
+
+    <!-- Primary CTA (rounded full) -->
+    <g id="D-01-PrimaryCTA" data-name="Primary CTA">
+      <rect x="20" y="744" width="353" height="56" rx="28" fill="#8B3A3A"/>
+      <text x="196.5" y="778" font-size="16" font-weight="500" fill="#FFFFFF" text-anchor="middle" class="sans">开始测算</text>
+    </g>
+
+    <!-- Trust badge -->
+    <g id="D-01-TrustBadge" data-name="Trust badge">
+      <text x="196.5" y="822" font-size="11" font-weight="500" fill="#9CA3AF" text-anchor="middle" class="sans">🔒  您的数据已被加密处理</text>
+    </g>
+  </g>
+
+  <!-- ======================================================
+       SCREEN 2 · STEP 1 个人信息  (x = 453)
+       身份(2x2) + 年龄滚轮 + 现有持有住宅
+       ====================================================== -->
+  <g id="D-02-Step1-Personal" data-name="D · 02 Step1 个人信息" transform="translate(453, 0)">
+    <rect x="0" y="0" width="393" height="852" fill="#FDFBF7"/>
+
+    <g id="D-02-StatusBar" data-name="Status bar">
+      <text x="32" y="32" font-size="14" font-weight="700" fill="#3A3632" class="sans">9:41</text>
+      <text x="361" y="32" font-size="11" font-weight="500" fill="#3A3632" text-anchor="end" class="sans">●●● 100%</text>
+    </g>
+
+    <g id="D-02-Header" data-name="Step header">
+      <g id="D-02-BackBtn" data-name="Back button">
+        <circle cx="42" cy="80" r="22" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="42" y="86" font-size="16" fill="#3A3632" text-anchor="middle" class="sans">←</text>
+      </g>
+      <g id="D-02-ProgressDots" data-name="Progress dots (1/3)">
+        <rect x="313" y="76" width="24" height="8" rx="4" fill="#8B3A3A"/>
+        <circle cx="350" cy="80" r="4" fill="#F2EBE1"/>
+        <circle cx="370" cy="80" r="4" fill="#F2EBE1"/>
+      </g>
+    </g>
+
+    <g id="D-02-QuestionTitle" data-name="Question title">
+      <text x="20" y="156" font-size="22" font-weight="700" fill="#3A3632" class="sans">关于您的身份</text>
+      <text x="20" y="180" font-size="13" font-weight="400" fill="#6B7280" class="sans">这三项决定您的印花税率和贷款成数。</text>
+    </g>
+
+    <!-- Field: 主申请人身份 (2x2) -->
+    <g id="D-02-Field-Identity" data-name="Field · 主申请人身份">
+      <text x="20" y="220" font-size="13" font-weight="700" fill="#3A3632" class="sans">主申请人身份</text>
+      <g id="D-02-Opt-SC" data-name="Option · SC">
+        <rect x="20" y="234" width="170" height="80" rx="16" fill="#FDFBF7" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="36" y="266" font-size="14" font-weight="700" fill="#3A3632" class="sans">新加坡公民</text>
+        <text x="36" y="286" font-size="11" font-weight="500" fill="#9CA3AF" class="sans">ABSD 0% 起</text>
+      </g>
+      <g id="D-02-Opt-PR" data-name="Option · PR (selected)">
+        <rect x="203" y="232" width="170" height="84" rx="16" fill="#F8EDED" stroke="#8B3A3A" stroke-width="2"/>
+        <text x="219" y="266" font-size="14" font-weight="700" fill="#8B3A3A" class="sans">永久居民 (PR)</text>
+        <text x="219" y="286" font-size="11" font-weight="500" fill="#8B3A3A" class="sans">ABSD 5% 起</text>
+      </g>
+      <g id="D-02-Opt-Foreigner" data-name="Option · 外籍">
+        <rect x="20" y="328" width="170" height="80" rx="16" fill="#FDFBF7" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="36" y="360" font-size="14" font-weight="700" fill="#3A3632" class="sans">外籍人士</text>
+        <text x="36" y="380" font-size="11" font-weight="500" fill="#9CA3AF" class="sans">ABSD 60%</text>
+      </g>
+      <g id="D-02-Opt-Company" data-name="Option · 公司">
+        <rect x="203" y="328" width="170" height="80" rx="16" fill="#FDFBF7" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="219" y="360" font-size="14" font-weight="700" fill="#3A3632" class="sans">公司主体</text>
+        <text x="219" y="380" font-size="11" font-weight="500" fill="#9CA3AF" class="sans">ABSD 65%</text>
+      </g>
+    </g>
+
+    <!-- Field: 年龄滚轮 -->
+    <g id="D-02-Field-Age" data-name="Field · 年龄滚轮">
+      <text x="20" y="448" font-size="13" font-weight="700" fill="#3A3632" class="sans">主申请人年龄</text>
+      <rect x="20" y="462" width="353" height="120" rx="16" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+      <line x1="20" y1="540" x2="373" y2="540" stroke="#F2EBE1"/>
+      <line x1="20" y1="498" x2="373" y2="498" stroke="#F2EBE1"/>
+      <text x="196.5" y="488" font-size="14" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">37</text>
+      <text x="196.5" y="528" font-size="22" font-weight="700" fill="#3A3632" text-anchor="middle" class="sans">38</text>
+      <text x="196.5" y="572" font-size="14" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">39</text>
+      <text x="357" y="528" font-size="13" font-weight="500" fill="#9CA3AF" text-anchor="end" class="sans">岁</text>
+      <text x="20" y="600" font-size="11" fill="#6B7280" class="sans">💡  年龄 + 贷款年限 ≤ 65 时可享 75% LTV</text>
+    </g>
+
+    <!-- Field: 现有持有住宅 -->
+    <g id="D-02-Field-Properties" data-name="Field · 持有住宅">
+      <text x="20" y="638" font-size="13" font-weight="700" fill="#3A3632" class="sans">目前持有住宅数（含全球）</text>
+      <g id="D-02-Prop-0" data-name="0 套 (selected)">
+        <rect x="20" y="652" width="353" height="48" rx="16" fill="#F8EDED" stroke="#8B3A3A" stroke-width="2"/>
+        <text x="36" y="681" font-size="14" font-weight="700" fill="#8B3A3A" class="sans">0 套</text>
+        <text x="357" y="681" font-size="11" font-weight="500" fill="#8B3A3A" text-anchor="end" class="sans">首次置业</text>
+      </g>
+      <g id="D-02-Prop-1" data-name="1 套">
+        <rect x="20" y="708" width="353" height="48" rx="16" fill="#FDFBF7" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="36" y="737" font-size="14" font-weight="500" fill="#3A3632" class="sans">1 套</text>
+        <text x="357" y="737" font-size="11" font-weight="500" fill="#9CA3AF" text-anchor="end" class="sans">第二套买家</text>
+      </g>
+      <g id="D-02-Prop-2" data-name="2 套及以上">
+        <rect x="20" y="764" width="353" height="48" rx="16" fill="#FDFBF7" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="36" y="793" font-size="14" font-weight="500" fill="#3A3632" class="sans">2 套及以上</text>
+        <text x="357" y="793" font-size="11" font-weight="500" fill="#9CA3AF" text-anchor="end" class="sans">多套持有</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ======================================================
+       SCREEN 3 · STEP 2 收入情况  (x = 906)
+       4 滚轮: 年收入 + 现金存款 + CPF + 月债务
+       ====================================================== -->
+  <g id="D-03-Step2-Income" data-name="D · 03 Step2 收入情况" transform="translate(906, 0)">
+    <rect x="0" y="0" width="393" height="852" fill="#FDFBF7"/>
+
+    <g id="D-03-StatusBar" data-name="Status bar">
+      <text x="32" y="32" font-size="14" font-weight="700" fill="#3A3632" class="sans">9:41</text>
+      <text x="361" y="32" font-size="11" font-weight="500" fill="#3A3632" text-anchor="end" class="sans">●●● 100%</text>
+    </g>
+
+    <g id="D-03-Header" data-name="Step header">
+      <g id="D-03-BackBtn" data-name="Back button">
+        <circle cx="42" cy="80" r="22" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="42" y="86" font-size="16" fill="#3A3632" text-anchor="middle" class="sans">←</text>
+      </g>
+      <g id="D-03-ProgressDots" data-name="Progress dots (2/3)">
+        <circle cx="313" cy="80" r="4" fill="#F2EBE1"/>
+        <rect x="332" y="76" width="24" height="8" rx="4" fill="#8B3A3A"/>
+        <circle cx="370" cy="80" r="4" fill="#F2EBE1"/>
+      </g>
+    </g>
+
+    <g id="D-03-QuestionTitle" data-name="Question title">
+      <text x="20" y="156" font-size="22" font-weight="700" fill="#3A3632" class="sans">您的收入与资产</text>
+      <text x="20" y="180" font-size="13" font-weight="400" fill="#6B7280" class="sans">用于测算贷款额度与首付能力。</text>
+    </g>
+
+    <!-- Picker 1: 年收入 -->
+    <g id="D-03-Picker-Income" data-name="Picker · 年收入">
+      <text x="20" y="220" font-size="13" font-weight="700" fill="#3A3632" class="sans">家庭年税前总收入（含花红）</text>
+      <rect x="20" y="234" width="353" height="100" rx="16" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+      <line x1="20" y1="266" x2="373" y2="266" stroke="#F2EBE1"/>
+      <line x1="20" y1="302" x2="373" y2="302" stroke="#F2EBE1"/>
+      <text x="196.5" y="258" font-size="13" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">15 – 30 万</text>
+      <text x="196.5" y="290" font-size="18" font-weight="700" fill="#3A3632" text-anchor="middle" class="sans">30 – 50 万</text>
+      <text x="196.5" y="324" font-size="13" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">50 – 80 万</text>
+    </g>
+
+    <!-- Picker 2: 现金存款 -->
+    <g id="D-03-Picker-Cash" data-name="Picker · 现金存款">
+      <text x="20" y="372" font-size="13" font-weight="700" fill="#3A3632" class="sans">可动用现金存款（不含 CPF）</text>
+      <rect x="20" y="386" width="353" height="100" rx="16" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+      <line x1="20" y1="418" x2="373" y2="418" stroke="#F2EBE1"/>
+      <line x1="20" y1="454" x2="373" y2="454" stroke="#F2EBE1"/>
+      <text x="196.5" y="410" font-size="13" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">20 万以下</text>
+      <text x="196.5" y="442" font-size="18" font-weight="700" fill="#3A3632" text-anchor="middle" class="sans">20 – 50 万</text>
+      <text x="196.5" y="476" font-size="13" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">50 – 100 万</text>
+    </g>
+
+    <!-- Picker 3: CPF -->
+    <g id="D-03-Picker-CPF" data-name="Picker · CPF OA">
+      <text x="20" y="524" font-size="13" font-weight="700" fill="#3A3632" class="sans">CPF 普通户头 (OA) 余额</text>
+      <rect x="20" y="538" width="353" height="100" rx="16" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+      <line x1="20" y1="570" x2="373" y2="570" stroke="#F2EBE1"/>
+      <line x1="20" y1="606" x2="373" y2="606" stroke="#F2EBE1"/>
+      <text x="196.5" y="562" font-size="13" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">10 万以下</text>
+      <text x="196.5" y="594" font-size="18" font-weight="700" fill="#3A3632" text-anchor="middle" class="sans">10 – 25 万</text>
+      <text x="196.5" y="628" font-size="13" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">25 – 50 万</text>
+    </g>
+
+    <!-- Picker 4: 月债务 -->
+    <g id="D-03-Picker-Debt" data-name="Picker · 月债务">
+      <text x="20" y="676" font-size="13" font-weight="700" fill="#3A3632" class="sans">每月固定债务还款</text>
+      <rect x="20" y="690" width="353" height="100" rx="16" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+      <line x1="20" y1="722" x2="373" y2="722" stroke="#F2EBE1"/>
+      <line x1="20" y1="758" x2="373" y2="758" stroke="#F2EBE1"/>
+      <text x="196.5" y="746" font-size="18" font-weight="700" fill="#3A3632" text-anchor="middle" class="sans">无</text>
+      <text x="196.5" y="780" font-size="13" font-weight="400" fill="#9CA3AF" text-anchor="middle" class="sans">2,000 以下</text>
+    </g>
+  </g>
+
+  <!-- ======================================================
+       SCREEN 4 · STEP 3 买房预期  (x = 1359)
+       目的 + 房产类型 + 购入时间 + 贷款年限
+       ====================================================== -->
+  <g id="D-04-Step3-Plan" data-name="D · 04 Step3 买房预期" transform="translate(1359, 0)">
+    <rect x="0" y="0" width="393" height="852" fill="#FDFBF7"/>
+
+    <g id="D-04-StatusBar" data-name="Status bar">
+      <text x="32" y="32" font-size="14" font-weight="700" fill="#3A3632" class="sans">9:41</text>
+      <text x="361" y="32" font-size="11" font-weight="500" fill="#3A3632" text-anchor="end" class="sans">●●● 100%</text>
+    </g>
+
+    <g id="D-04-Header" data-name="Step header">
+      <g id="D-04-BackBtn" data-name="Back button">
+        <circle cx="42" cy="80" r="22" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="42" y="86" font-size="16" fill="#3A3632" text-anchor="middle" class="sans">←</text>
+      </g>
+      <g id="D-04-ProgressDots" data-name="Progress dots (3/3)">
+        <circle cx="313" cy="80" r="4" fill="#F2EBE1"/>
+        <circle cx="333" cy="80" r="4" fill="#F2EBE1"/>
+        <rect x="352" y="76" width="24" height="8" rx="4" fill="#8B3A3A"/>
+      </g>
+    </g>
+
+    <g id="D-04-QuestionTitle" data-name="Question title">
+      <text x="20" y="156" font-size="22" font-weight="700" fill="#3A3632" class="sans">您的购房计划</text>
+      <text x="20" y="180" font-size="13" font-weight="400" fill="#6B7280" class="sans">帮助我们理解您的购房动机。</text>
+    </g>
+
+    <!-- Field: 购房目的 (3 cards) -->
+    <g id="D-04-Field-Purpose" data-name="Field · 购房目的">
+      <text x="20" y="220" font-size="13" font-weight="700" fill="#3A3632" class="sans">购房目的</text>
+      <g id="D-04-Purp-Self" data-name="自住 (selected)">
+        <rect x="20" y="234" width="353" height="48" rx="16" fill="#F8EDED" stroke="#8B3A3A" stroke-width="2"/>
+        <text x="36" y="263" font-size="14" font-weight="700" fill="#8B3A3A" class="sans">自住</text>
+        <text x="357" y="263" font-size="11" font-weight="500" fill="#8B3A3A" text-anchor="end" class="sans">家人居住</text>
+      </g>
+      <g id="D-04-Purp-Invest" data-name="投资">
+        <rect x="20" y="290" width="353" height="48" rx="16" fill="#FDFBF7" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="36" y="319" font-size="14" font-weight="500" fill="#3A3632" class="sans">投资</text>
+        <text x="357" y="319" font-size="11" font-weight="500" fill="#9CA3AF" text-anchor="end" class="sans">出租或资本增值</text>
+      </g>
+      <g id="D-04-Purp-Upgrade" data-name="升级换房">
+        <rect x="20" y="346" width="353" height="48" rx="16" fill="#FDFBF7" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="36" y="375" font-size="14" font-weight="500" fill="#3A3632" class="sans">升级换房</text>
+        <text x="357" y="375" font-size="11" font-weight="500" fill="#9CA3AF" text-anchor="end" class="sans">置换更好房产</text>
+      </g>
+    </g>
+
+    <!-- Field: 房产类型 (3-seg pill) -->
+    <g id="D-04-Field-PropertyType" data-name="Field · 房产类型">
+      <text x="20" y="426" font-size="13" font-weight="700" fill="#3A3632" class="sans">房产类型偏好</text>
+      <rect x="20" y="440" width="353" height="46" rx="23" fill="#F2EBE1"/>
+      <rect x="24" y="444" width="115" height="38" rx="19" fill="#FFFFFF"/>
+      <text x="81.5" y="468" font-size="13" font-weight="700" fill="#8B3A3A" text-anchor="middle" class="sans">新楼盘</text>
+      <text x="196.5" y="468" font-size="13" font-weight="500" fill="#9CA3AF" text-anchor="middle" class="sans">二手房</text>
+      <text x="311.5" y="468" font-size="13" font-weight="500" fill="#9CA3AF" text-anchor="middle" class="sans">两者均可</text>
+    </g>
+
+    <!-- Field: 购入时间 (4-seg pill) -->
+    <g id="D-04-Field-Timeline" data-name="Field · 购入时间">
+      <text x="20" y="514" font-size="13" font-weight="700" fill="#3A3632" class="sans">购入预期时间</text>
+      <rect x="20" y="528" width="353" height="46" rx="23" fill="#F2EBE1"/>
+      <rect x="24" y="532" width="86" height="38" rx="19" fill="#FFFFFF"/>
+      <text x="67" y="556" font-size="12" font-weight="700" fill="#8B3A3A" text-anchor="middle" class="sans">3 个月</text>
+      <text x="156" y="556" font-size="12" font-weight="500" fill="#9CA3AF" text-anchor="middle" class="sans">6 个月</text>
+      <text x="244" y="556" font-size="12" font-weight="500" fill="#9CA3AF" text-anchor="middle" class="sans">1 年内</text>
+      <text x="332" y="556" font-size="12" font-weight="500" fill="#9CA3AF" text-anchor="middle" class="sans">仅了解</text>
+    </g>
+
+    <!-- Field: 贷款年限 (3-seg pill) -->
+    <g id="D-04-Field-Tenure" data-name="Field · 贷款年限">
+      <text x="20" y="602" font-size="13" font-weight="700" fill="#3A3632" class="sans">期望贷款年限</text>
+      <rect x="20" y="616" width="353" height="46" rx="23" fill="#F2EBE1"/>
+      <rect x="139" y="620" width="115" height="38" rx="19" fill="#FFFFFF"/>
+      <text x="81.5" y="644" font-size="13" font-weight="500" fill="#9CA3AF" text-anchor="middle" class="sans">20 年</text>
+      <text x="196.5" y="644" font-size="13" font-weight="700" fill="#8B3A3A" text-anchor="middle" class="sans">25 年</text>
+      <text x="311.5" y="644" font-size="13" font-weight="500" fill="#9CA3AF" text-anchor="middle" class="sans">30 年</text>
+      <text x="20" y="678" font-size="11" fill="#6B7280" class="sans">💡  年龄 + 年限 ≤ 65 时享 75% LTV</text>
+    </g>
+
+    <!-- Footer Submit -->
+    <g id="D-04-Footer" data-name="Footer">
+      <g id="D-04-SubmitBtn" data-name="Submit button">
+        <rect x="20" y="780" width="353" height="56" rx="28" fill="#8B3A3A"/>
+        <text x="196.5" y="814" font-size="16" font-weight="500" fill="#FFFFFF" text-anchor="middle" class="sans">看看我能买多少 ✨</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ======================================================
+       SCREEN 5 · LOADING  (x = 1812)
+       ====================================================== -->
+  <g id="D-05-Loading" data-name="D · 05 Loading" transform="translate(1812, 0)">
+    <rect x="0" y="0" width="393" height="852" fill="#FDFBF7"/>
+
+    <g id="D-05-Spinner" data-name="Spinner pulses">
+      <circle cx="196.5" cy="396" r="60" fill="#F8EDED" opacity="0.5"/>
+      <circle cx="196.5" cy="396" r="40" fill="#F2EBE1"/>
+      <circle cx="196.5" cy="396" r="22" fill="#8B3A3A"/>
+      <text x="196.5" y="404" font-size="20" fill="#FFFFFF" text-anchor="middle" class="sans">✓</text>
+    </g>
+
+    <g id="D-05-Text" data-name="Text">
+      <text x="196.5" y="496" font-size="20" font-weight="700" fill="#3A3632" text-anchor="middle" class="sans">稍等一下下…</text>
+      <text x="196.5" y="526" font-size="14" font-weight="400" fill="#6B7280" text-anchor="middle" class="sans">正在为您计算 ABSD、TDSR、LTV…</text>
+    </g>
+
+    <g id="D-05-ProgressBar" data-name="Progress bar">
+      <rect x="80" y="580" width="233" height="6" rx="3" fill="#F2EBE1"/>
+      <rect x="80" y="580" width="156" height="6" rx="3" fill="#8B3A3A"/>
+    </g>
+  </g>
+
+  <!-- ======================================================
+       SCREEN 6 · RESULT  (x = 2265)
+       ====================================================== -->
+  <g id="D-06-Result" data-name="D · 06 Result" transform="translate(2265, 0)">
+    <rect x="0" y="0" width="393" height="852" fill="#FDFBF7"/>
+
+    <!-- Burgundy hero header -->
+    <g id="D-06-HeroBurgundy" data-name="Result hero (burgundy)">
+      <rect x="0" y="0" width="393" height="298" fill="#8B3A3A"/>
+
+      <g id="D-06-Badge" data-name="Check badge row">
+        <circle cx="40" cy="68" r="18" fill="#FFFFFF" opacity="0.2"/>
+        <text x="40" y="74" font-size="14" fill="#FFFFFF" text-anchor="middle" class="sans">✓</text>
+        <text x="68" y="73" font-size="11" font-weight="500" fill="#FFFFFF" opacity="0.85" class="sans">根据您的财务状况测算</text>
+      </g>
+
+      <text x="24" y="116" font-size="13" font-weight="500" fill="#FFFFFF" opacity="0.85" class="sans">最稳妥的购置总价大约是</text>
+      <text x="24" y="166" font-size="34" font-weight="700" fill="#FFFFFF" class="sans">S$ 2,080,000</text>
+
+      <g id="D-06-Stats" data-name="Stats cards">
+        <g id="D-06-Stat-Down" data-name="Down payment card">
+          <rect x="20" y="200" width="170" height="74" rx="16" fill="#FFFFFF" opacity="0.1"/>
+          <text x="36" y="222" font-size="11" fill="#FFFFFF" opacity="0.7" class="sans">首付及税费</text>
+          <text x="36" y="252" font-size="18" font-weight="700" fill="#FFFFFF" class="sans">S$ 520k</text>
+        </g>
+        <g id="D-06-Stat-Loan" data-name="Loan card">
+          <rect x="203" y="200" width="170" height="74" rx="16" fill="#FFFFFF" opacity="0.1"/>
+          <text x="219" y="222" font-size="11" fill="#FFFFFF" opacity="0.7" class="sans">贷款 (75% LTV)</text>
+          <text x="219" y="252" font-size="18" font-weight="700" fill="#FFFFFF" class="sans">S$ 1.56M</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Body: breakdown card -->
+    <g id="D-06-Breakdown" data-name="Breakdown card">
+      <rect x="20" y="322" width="353" height="200" rx="24" fill="#FFFFFF" stroke="#F2EBE1"/>
+      <text x="36" y="354" font-size="16" font-weight="700" fill="#3A3632" class="sans">税费明细</text>
+      <!-- Row 1 -->
+      <text x="36" y="394" font-size="13" font-weight="500" fill="#3A3632" class="sans">买方印花税 (BSD)</text>
+      <text x="357" y="394" font-size="14" font-weight="700" fill="#3A3632" text-anchor="end" class="sans">S$ 73,600</text>
+      <line x1="36" y1="412" x2="357" y2="412" stroke="#F2EBE1"/>
+      <!-- Row 2 -->
+      <text x="36" y="438" font-size="13" font-weight="500" fill="#3A3632" class="sans">额外印花税 (ABSD 5%)</text>
+      <text x="357" y="438" font-size="14" font-weight="700" fill="#8B3A3A" text-anchor="end" class="sans">S$ 104,000</text>
+      <line x1="36" y1="456" x2="357" y2="456" stroke="#F2EBE1"/>
+      <!-- Row 3 -->
+      <text x="36" y="482" font-size="13" font-weight="500" fill="#3A3632" class="sans">律师费及估价费</text>
+      <text x="357" y="482" font-size="14" font-weight="700" fill="#3A3632" text-anchor="end" class="sans">S$ 3,650</text>
+      <line x1="36" y1="500" x2="357" y2="500" stroke="#F2EBE1"/>
+    </g>
+
+    <!-- Stress test card -->
+    <g id="D-06-StressTest" data-name="Stress test card">
+      <rect x="20" y="540" width="353" height="120" rx="24" fill="#F0F4EC" stroke="#9CAF88"/>
+      <text x="36" y="572" font-size="13" font-weight="500" fill="#3A3632" class="sans">月供（基于 4% 利率 / 25 年）</text>
+      <text x="36" y="612" font-size="28" font-weight="700" fill="#3A3632" class="sans">S$ 8,232</text>
+      <text x="148" y="612" font-size="13" font-weight="400" fill="#6B7280" class="sans">/ 月</text>
+      <g id="D-06-HealthPill" data-name="Health pill">
+        <rect x="297" y="588" width="60" height="26" rx="13" fill="#9CAF88"/>
+        <text x="327" y="606" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" class="sans">健康</text>
+      </g>
+      <text x="36" y="640" font-size="11" fill="#6B7280" class="sans">TDSR 64%（上限 55%）</text>
+    </g>
+
+    <!-- Sticky footer -->
+    <g id="D-06-Footer" data-name="Footer CTAs">
+      <rect x="0" y="700" width="393" height="152" fill="#FFFFFF"/>
+      <line x1="0" y1="700" x2="393" y2="700" stroke="#F2EBE1"/>
+      <g id="D-06-PrimaryCTA" data-name="Primary CTA">
+        <rect x="20" y="720" width="353" height="52" rx="26" fill="#8B3A3A"/>
+        <text x="196.5" y="752" font-size="15" font-weight="500" fill="#FFFFFF" text-anchor="middle" class="sans">保存并获取定制版报告  ↓</text>
+      </g>
+      <g id="D-06-SecondaryCTA" data-name="Secondary CTA">
+        <rect x="20" y="780" width="353" height="48" rx="24" fill="#FFFFFF" stroke="#F2EBE1" stroke-width="2"/>
+        <text x="196.5" y="810" font-size="15" font-weight="500" fill="#3A3632" text-anchor="middle" class="sans">预约理财顾问解读</text>
+      </g>
+    </g>
+  </g>
+
+</svg>

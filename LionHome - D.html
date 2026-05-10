@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>狮城家 | 购房向导</title>
+  
+  <!-- Tailwind CSS v4 via CDN -->
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  
+  <!-- Google Fonts: DM Sans & Noto Sans SC for "Friendly Guide" feel -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Phosphor Icons (Regular) -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary: #8B3A3A; /* Confident Burgundy */
+      --color-primary-light: #F8EDED; /* Light burgundy wash */
+      --color-text: #3A3632; /* Warm dark gray */
+      --color-bg: #FDFBF7; /* Warm cream */
+      --color-surface: #F2EBE1; /* Soft beige */
+      --color-success: #9CAF88; /* Sage green */
+      --color-success-light: #F0F4EC; /* Light sage wash */
+      --font-sans: 'DM Sans', 'Noto Sans SC', sans-serif;
+    }
+    
+    body {
+      @apply bg-bg text-text font-sans antialiased selection:bg-primary/20;
+    }
+    
+    /* Boxed Inputs */
+    .input-box {
+      @apply w-full bg-white border-2 border-surface rounded-2xl py-4 px-5 text-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-gray-300;
+    }
+    
+    /* Radio/Select Cards */
+    .radio-card {
+      @apply flex flex-col items-center justify-center p-5 border-2 border-surface rounded-2xl cursor-pointer transition-all hover:bg-white bg-bg/50 text-center gap-2;
+    }
+    .radio-card.active {
+      @apply border-primary bg-primary-light shadow-[0_4px_14px_rgba(139,58,58,0.08)] transform scale-[1.02];
+    }
+    
+    /* Buttons */
+    .btn-primary {
+      @apply w-full bg-primary text-white py-4 px-6 rounded-full font-medium text-lg shadow-[0_8px_20px_rgba(139,58,58,0.2)] hover:shadow-[0_12px_24px_rgba(139,58,58,0.25)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 transition-all flex items-center justify-center gap-2 cursor-pointer;
+    }
+    .btn-secondary {
+      @apply w-full bg-white border-2 border-surface text-text py-4 px-6 rounded-full font-medium text-lg hover:bg-surface/50 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer;
+    }
+    
+    /* Layout Views */
+    .view-section {
+      @apply hidden w-full max-w-2xl mx-auto min-h-screen flex-col relative px-6 py-8;
+    }
+    .view-section.active {
+      @apply flex;
+      animation: springUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    
+    @keyframes springUp {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    
+    .step-header {
+      @apply w-full flex items-center justify-between mb-8;
+    }
+    .step-back-btn {
+      @apply w-12 h-12 flex items-center justify-center bg-white border-2 border-surface rounded-full text-text hover:bg-surface transition-all active:scale-90 cursor-pointer shadow-sm;
+    }
+    .step-progress {
+      @apply flex gap-1.5;
+    }
+    .progress-dot {
+      @apply w-2 h-2 rounded-full bg-surface transition-colors;
+    }
+    .progress-dot.active {
+      @apply bg-primary w-6;
+    }
+    
+    .question-title {
+      @apply text-3xl md:text-4xl font-bold mb-4 leading-tight tracking-tight;
+    }
+    
+    .input-group {
+      @apply mb-8;
+    }
+    .input-label {
+      @apply block text-base font-medium text-text mb-3;
+    }
+    .helper-text {
+      @apply text-sm text-gray-500 mt-3 flex items-start gap-2 bg-white/60 p-3 rounded-xl border border-surface/50;
+    }
+    
+    /* Minimal scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: var(--color-surface); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <!-- HERO SECTION -->
+  <main id="view-hero" class="view-section active justify-center pb-20">
+    <div class="flex-1 flex flex-col justify-center items-center text-center">
+      <div class="mb-10 w-full">
+        <!-- Friendly Hero Graphic Placeholder -->
+        <div class="relative w-32 h-32 mx-auto mb-8">
+          <div class="absolute inset-0 bg-primary-light rounded-full transform -rotate-6"></div>
+          <div class="absolute inset-0 bg-surface rounded-[2rem] transform rotate-3 flex items-center justify-center overflow-hidden">
+            <i class="ph-fill ph-house-line text-5xl text-primary transform -rotate-3"></i>
+          </div>
+          <!-- Decorative elements -->
+          <i class="ph-fill ph-sparkle absolute -top-2 -right-4 text-2xl text-success animate-pulse"></i>
+        </div>
+        
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-5 text-text leading-tight">
+          在新加坡买房，<br>到底需要准备多少钱？
+        </h1>
+        <p class="text-gray-500 text-lg md:text-xl leading-relaxed max-w-sm mx-auto px-4">
+          别担心，我们会像朋友一样陪您梳理。3分钟理清首付、税费和月供，让您买得心中有数。
+        </p>
+      </div>
+    </div>
+    
+    <div class="w-full space-y-4">
+      <button onclick="goToStep(1)" class="btn-primary">
+        让我们开始吧
+        <i class="ph-bold ph-arrow-right"></i>
+      </button>
+      <div class="flex items-center justify-center gap-2 text-sm text-gray-400 mt-4">
+        <i class="ph-fill ph-shield-check text-success"></i>
+        <span>放心，您的信息仅存在本地</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- STEP 1: IDENTITY -->
+  <main id="view-step-1" class="view-section">
+    <div class="step-header">
+      <button onclick="goToView('view-hero')" class="step-back-btn">
+        <i class="ph-bold ph-arrow-left text-xl"></i>
+      </button>
+      <div class="step-progress">
+        <div class="progress-dot active"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+      </div>
+    </div>
+    
+    <div class="flex-1">
+      <div class="inline-flex items-center gap-2 text-primary bg-primary-light px-3 py-1 rounded-full text-sm font-bold mb-4">
+        <i class="ph-fill ph-identification-card"></i> 第一步：您的身份
+      </div>
+      <h2 class="question-title">您好！请问您的购房身份是？</h2>
+      <p class="text-gray-500 mb-8">身份会直接影响印花税的计算，这是最重要的一步哦。</p>
+      
+      <div class="input-group">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="radio-card" onclick="selectOption('status', 'sc', this)">
+            <i class="ph-duotone ph-flag text-3xl text-primary mb-1"></i>
+            <span class="text-lg font-medium">新加坡公民 (SC)</span>
+          </div>
+          <div class="radio-card" onclick="selectOption('status', 'pr', this)">
+            <i class="ph-duotone ph-star text-3xl text-primary mb-1"></i>
+            <span class="text-lg font-medium">永久居民 (PR)</span>
+          </div>
+          <div class="radio-card" onclick="selectOption('status', 'foreigner', this)">
+            <i class="ph-duotone ph-globe text-3xl text-primary mb-1"></i>
+            <span class="text-lg font-medium">外籍人士</span>
+          </div>
+          <div class="radio-card" onclick="selectOption('status', 'company', this)">
+            <i class="ph-duotone ph-buildings text-3xl text-primary mb-1"></i>
+            <span class="text-lg font-medium">公司名义购买</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="input-group mt-10" id="marital-group">
+        <label class="input-label">您是自己买，还是和伴侣一起？</label>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="radio-card py-4" onclick="selectOption('marital', 'single', this); toggleSpouse(false)">
+            <span class="text-lg font-medium">自己买（单身）</span>
+          </div>
+          <div class="radio-card py-4" onclick="selectOption('marital', 'married', this); toggleSpouse(true)">
+            <span class="text-lg font-medium">和伴侣一起（已婚）</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="input-group hidden mt-8 bg-white p-5 rounded-2xl border-2 border-primary-light" id="spouse-status-group">
+        <label class="input-label text-primary">伴侣的身份是？</label>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="radio-card py-3 px-2 border" onclick="selectOption('spouseStatus', 'sc', this)">
+            <span class="text-sm font-medium">公民 (SC)</span>
+          </div>
+          <div class="radio-card py-3 px-2 border" onclick="selectOption('spouseStatus', 'pr', this)">
+            <span class="text-sm font-medium">PR</span>
+          </div>
+          <div class="radio-card py-3 px-2 border" onclick="selectOption('spouseStatus', 'foreigner', this)">
+            <span class="text-sm font-medium">外籍人士</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-8 pb-4">
+      <button onclick="goToStep(2)" class="btn-primary">
+        下一步
+      </button>
+    </div>
+  </main>
+
+  <!-- STEP 2: FAMILY -->
+  <main id="view-step-2" class="view-section">
+    <div class="step-header">
+      <button onclick="goToStep(1)" class="step-back-btn">
+        <i class="ph-bold ph-arrow-left text-xl"></i>
+      </button>
+      <div class="step-progress">
+        <div class="progress-dot"></div>
+        <div class="progress-dot active"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+      </div>
+    </div>
+    
+    <div class="flex-1">
+      <div class="inline-flex items-center gap-2 text-primary bg-primary-light px-3 py-1 rounded-full text-sm font-bold mb-4">
+        <i class="ph-fill ph-house"></i> 第二步：现有房产
+      </div>
+      <h2 class="question-title">这是您的第几套房？</h2>
+      
+      <div class="input-group mt-8">
+        <label class="input-label">目前全球范围内，您名下已有几套住宅？</label>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="radio-card py-6" onclick="selectOption('properties', '0', this)">
+            <span class="text-2xl font-bold text-primary mb-1">0</span>
+            <span class="text-sm font-medium">第一套房</span>
+          </div>
+          <div class="radio-card py-6" onclick="selectOption('properties', '1', this)">
+            <span class="text-2xl font-bold text-primary mb-1">1</span>
+            <span class="text-sm font-medium">第二套房</span>
+          </div>
+          <div class="radio-card py-6" onclick="selectOption('properties', '2+', this)">
+            <span class="text-2xl font-bold text-primary mb-1">2+</span>
+            <span class="text-sm font-medium">第三套或更多</span>
+          </div>
+        </div>
+        <div class="helper-text">
+          <i class="ph-fill ph-info text-primary mt-0.5"></i>
+          <span>如果是第一套房，往往能享受最优惠的税率和最高的贷款额度哦！</span>
+        </div>
+      </div>
+      
+      <div class="input-group mt-12">
+        <label class="input-label">主申请人今年几岁了？</label>
+        <div class="relative flex items-center">
+          <input type="number" id="age" placeholder="例如：35" class="input-box pr-12 text-2xl font-bold" />
+          <span class="absolute right-5 text-gray-400 font-medium">岁</span>
+        </div>
+        <div class="helper-text mt-3">
+          <i class="ph-fill ph-calendar text-primary mt-0.5"></i>
+          <span>年龄会影响您可以贷款的最长年限。</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-8 pb-4">
+      <button onclick="goToStep(3)" class="btn-primary">
+        下一步
+      </button>
+    </div>
+  </main>
+
+  <!-- STEP 3: INCOME -->
+  <main id="view-step-3" class="view-section">
+    <div class="step-header">
+      <button onclick="goToStep(2)" class="step-back-btn">
+        <i class="ph-bold ph-arrow-left text-xl"></i>
+      </button>
+      <div class="step-progress">
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot active"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+      </div>
+    </div>
+    
+    <div class="flex-1">
+      <div class="inline-flex items-center gap-2 text-primary bg-primary-light px-3 py-1 rounded-full text-sm font-bold mb-4">
+        <i class="ph-fill ph-wallet"></i> 第三步：收入情况
+      </div>
+      <h2 class="question-title">接下来聊聊您的收入</h2>
+      <p class="text-gray-500 mb-8">这决定了银行最高能批给您多少贷款。</p>
+      
+      <div class="input-group">
+        <label class="input-label">您的工作类型是？</label>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="radio-card flex-row py-4 px-4 justify-start" onclick="selectOption('employment', 'employee', this)">
+            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0">
+              <i class="ph-fill ph-briefcase text-xl text-primary"></i>
+            </div>
+            <span class="text-base font-medium text-left">拿固定工资的<br>上班族</span>
+          </div>
+          <div class="radio-card flex-row py-4 px-4 justify-start" onclick="selectOption('employment', 'self', this)">
+            <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0">
+              <i class="ph-fill ph-storefront text-xl text-primary"></i>
+            </div>
+            <span class="text-base font-medium text-left">自雇人士 /<br>企业主</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group mt-10">
+        <label class="input-label">家庭总年收入大约是多少？(含花红)</label>
+        <div class="relative flex items-center">
+          <span class="absolute left-5 text-gray-400 font-bold text-xl">S$</span>
+          <input type="number" id="income" placeholder="150,000" class="input-box pl-12 text-2xl font-bold" />
+        </div>
+      </div>
+      
+      <div class="input-group mt-8">
+        <label class="input-label">每个月需要固定还款的债务大约多少？</label>
+        <div class="relative flex items-center">
+          <span class="absolute left-5 text-gray-400 font-bold text-xl">S$</span>
+          <input type="number" id="debts" placeholder="如车贷、卡债等，没有填0" class="input-box pl-12 text-lg" />
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-8 pb-4">
+      <button onclick="goToStep(4)" class="btn-primary">
+        下一步
+      </button>
+    </div>
+  </main>
+
+  <!-- STEP 4: CASH -->
+  <main id="view-step-4" class="view-section">
+    <div class="step-header">
+      <button onclick="goToStep(3)" class="step-back-btn">
+        <i class="ph-bold ph-arrow-left text-xl"></i>
+      </button>
+      <div class="step-progress">
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot active"></div>
+        <div class="progress-dot"></div>
+      </div>
+    </div>
+    
+    <div class="flex-1">
+      <div class="inline-flex items-center gap-2 text-primary bg-primary-light px-3 py-1 rounded-full text-sm font-bold mb-4">
+        <i class="ph-fill ph-piggy-bank"></i> 第四步：储备金
+      </div>
+      <h2 class="question-title">您手头准备了多少钱？</h2>
+      <p class="text-gray-500 mb-8">我们将帮您测算这些钱能够买到多大总价的房子。</p>
+      
+      <div class="input-group bg-white p-6 rounded-3xl border-2 border-surface shadow-sm">
+        <label class="input-label !text-lg !font-bold">准备用于首付和税费的现金</label>
+        <div class="relative flex items-center mb-6">
+          <span class="absolute left-4 text-gray-400 font-bold text-xl">S$</span>
+          <input type="number" id="cash" placeholder="0" class="input-box pl-12 text-2xl font-bold !border-gray-200" />
+        </div>
+        
+        <label class="input-label !text-lg !font-bold border-t border-surface pt-6">可用的公积金 CPF (OA) 余额</label>
+        <div class="relative flex items-center">
+          <span class="absolute left-4 text-gray-400 font-bold text-xl">S$</span>
+          <input type="number" id="cpf" placeholder="0" class="input-box pl-12 text-2xl font-bold !border-gray-200" />
+        </div>
+        <div class="helper-text !mt-4 !bg-bg">
+          <i class="ph-fill ph-lightbulb text-primary mt-0.5"></i>
+          <span>CPF OA 可以用来支付首付和每个月的房贷，减轻现金流压力。</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-8 pb-4">
+      <button onclick="goToStep(5)" class="btn-primary">
+        最后一步
+      </button>
+    </div>
+  </main>
+
+  <!-- STEP 5: PREFERENCES -->
+  <main id="view-step-5" class="view-section">
+    <div class="step-header">
+      <button onclick="goToStep(4)" class="step-back-btn">
+        <i class="ph-bold ph-arrow-left text-xl"></i>
+      </button>
+      <div class="step-progress">
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot active"></div>
+      </div>
+    </div>
+    
+    <div class="flex-1">
+      <div class="inline-flex items-center gap-2 text-primary bg-primary-light px-3 py-1 rounded-full text-sm font-bold mb-4">
+        <i class="ph-fill ph-heart"></i> 第五步：购房偏好
+      </div>
+      <h2 class="question-title">您更心仪哪种类型的房产？</h2>
+      
+      <div class="input-group mt-8">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="radio-card overflow-hidden !p-0 relative h-40" onclick="selectOption('propertyType', 'new', this)">
+            <div class="absolute inset-0 bg-gradient-to-br from-surface to-bg z-0 opacity-50"></div>
+            <div class="relative z-10 flex flex-col items-center justify-center h-full gap-2">
+              <i class="ph-duotone ph-buildings text-4xl text-primary"></i>
+              <span class="text-lg font-bold">新楼盘 (New)</span>
+              <span class="text-xs text-gray-500 bg-white px-2 py-1 rounded-full shadow-sm">全新交付，付款期长</span>
+            </div>
+          </div>
+          <div class="radio-card overflow-hidden !p-0 relative h-40" onclick="selectOption('propertyType', 'resale', this)">
+            <div class="absolute inset-0 bg-gradient-to-br from-surface to-bg z-0 opacity-50"></div>
+            <div class="relative z-10 flex flex-col items-center justify-center h-full gap-2">
+              <i class="ph-duotone ph-house text-4xl text-primary"></i>
+              <span class="text-lg font-bold">二手房 (Resale)</span>
+              <span class="text-xs text-gray-500 bg-white px-2 py-1 rounded-full shadow-sm">拎包入住，周边成熟</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="input-group mt-10">
+        <label class="input-label">期望的贷款年限</label>
+        <div class="relative flex items-center">
+          <input type="number" id="tenure" placeholder="一般最多可以贷 30 年" class="input-box pr-12 text-lg" />
+          <span class="absolute right-5 text-gray-400 font-medium">年</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-8 pb-4">
+      <button onclick="submitForm()" class="btn-primary py-5 text-xl">
+        生成专属购房方案
+        <i class="ph-fill ph-magic-wand"></i>
+      </button>
+    </div>
+  </main>
+
+  <!-- LOADING STATE -->
+  <main id="view-loading" class="view-section justify-center items-center">
+    <div class="flex flex-col items-center text-center bg-white p-10 rounded-[2rem] shadow-sm border border-surface w-full max-w-sm">
+      <div class="relative w-24 h-24 mb-6 flex items-center justify-center">
+        <!-- Soft pulsing circles -->
+        <div class="absolute inset-0 bg-primary-light rounded-full animate-ping opacity-75 duration-1000"></div>
+        <div class="absolute inset-4 bg-primary/20 rounded-full animate-pulse"></div>
+        <div class="absolute inset-8 bg-primary rounded-full flex items-center justify-center z-10 shadow-lg">
+          <i class="ph-bold ph-calculator text-white text-2xl"></i>
+        </div>
+      </div>
+      <h3 class="text-2xl font-bold mb-3">为您计算中</h3>
+      <p class="text-gray-500" id="loading-text">正在梳理税费明细...</p>
+      
+      <!-- Progress Bar -->
+      <div class="w-full bg-surface h-2 rounded-full mt-8 overflow-hidden">
+        <div class="bg-primary h-full rounded-full transition-all duration-1000 ease-out" id="loading-bar" style="width: 10%"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RESULT PAGE -->
+  <main id="view-result" class="view-section !max-w-3xl !px-0 !py-0 my-0 sm:my-8 rounded-none sm:rounded-[2.5rem] overflow-hidden hidden bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-surface">
+    <!-- Result Header -->
+    <div class="bg-primary text-white p-8 pb-12 relative overflow-hidden">
+      <!-- Friendly Decorative Background -->
+      <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3"></div>
+      <div class="absolute bottom-0 left-0 w-40 h-40 bg-black opacity-10 rounded-full blur-2xl transform -translate-x-1/2 translate-y-1/2"></div>
+      
+      <div class="relative z-10">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+            <i class="ph-fill ph-check-circle text-2xl text-white"></i>
+          </div>
+          <div class="text-sm font-medium text-white/80 tracking-wide">根据您的财务状况测算</div>
+        </div>
+        
+        <div class="text-white/80 font-medium mb-1">最稳妥的购置总价大约是</div>
+        <div class="text-5xl md:text-6xl font-bold mb-8 tracking-tight">
+          S$ <span id="res-budget">2,850,000</span>
+        </div>
+        
+        <div class="flex gap-4">
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex-1">
+            <div class="text-xs text-white/70 mb-1">首付及税费准备</div>
+            <div class="font-bold text-xl">S$ 855k</div>
+          </div>
+          <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex-1">
+            <div class="text-xs text-white/70 mb-1">预估最高贷款 (75%)</div>
+            <div class="font-bold text-xl">S$ 2.13M</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-6 md:p-8 space-y-6 bg-bg">
+      
+      <!-- Breakdown Section -->
+      <section class="bg-white rounded-3xl p-6 border border-surface shadow-sm relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-surface rounded-full blur-xl opacity-50 transform translate-x-1/2 -translate-y-1/2"></div>
+        <h4 class="text-xl font-bold mb-6 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
+            <i class="ph-fill ph-receipt text-primary text-lg"></i>
+          </div>
+          需要交哪些税费？
+        </h4>
+        <div class="space-y-5">
+          <div class="flex justify-between items-center border-b border-surface pb-4">
+            <div>
+              <div class="font-bold text-text">买方印花税 (BSD)</div>
+              <div class="text-sm text-gray-500">固定支出</div>
+            </div>
+            <div class="text-lg font-bold">S$ 114,600</div>
+          </div>
+          <div class="flex justify-between items-center border-b border-surface pb-4">
+            <div>
+              <div class="font-bold text-text flex items-center gap-2">
+                额外买方印花税 (ABSD)
+                <span class="text-[10px] bg-success-light text-success px-2 py-0.5 rounded-full font-bold">免税</span>
+              </div>
+              <div class="text-sm text-gray-500">因为这是您的首套房产</div>
+            </div>
+            <div class="text-lg font-bold">S$ 0</div>
+          </div>
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="font-bold text-text">律师费与估价费</div>
+              <div class="text-sm text-gray-500">预估费用</div>
+            </div>
+            <div class="text-lg font-bold">S$ 3,500</div>
+          </div>
+        </div>
+      </section>
+      
+      <!-- Stress Test Section -->
+      <section class="bg-white rounded-3xl p-6 border border-surface shadow-sm">
+        <h4 class="text-xl font-bold mb-6 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-success-light flex items-center justify-center">
+            <i class="ph-fill ph-chart-line-up text-success text-lg"></i>
+          </div>
+          月供压力大吗？
+        </h4>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-bg rounded-2xl p-5 border border-surface">
+          <div>
+            <div class="text-sm text-gray-500 mb-1">预估每月还款 (30年, 3.5%)</div>
+            <div class="text-3xl font-bold">S$ 8,420</div>
+          </div>
+          <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-surface shadow-sm">
+            <div class="w-3 h-3 rounded-full bg-success animate-pulse"></div>
+            <span class="font-bold text-success text-sm">压力健康 (TDSR 42%)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scenarios -->
+      <section class="bg-white rounded-3xl p-6 border border-surface shadow-sm">
+        <h4 class="text-xl font-bold mb-6 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
+            <i class="ph-fill ph-house-line text-primary text-lg"></i>
+          </div>
+          在这个预算内，能买什么？
+        </h4>
+        <div class="space-y-4">
+          <!-- Property 1 -->
+          <div class="flex gap-4 p-4 bg-bg border border-surface rounded-2xl items-center hover:shadow-md transition-all cursor-pointer">
+            <div class="w-20 h-20 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-surface">
+              <i class="ph-duotone ph-student text-3xl text-primary"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-bold text-lg mb-0.5">优质学区三居室</div>
+              <div class="text-sm text-gray-500">第 10 邮区 · 核心中央区</div>
+              <div class="text-primary font-bold text-sm mt-2">约 S$ 2.5M - 2.8M</div>
+            </div>
+            <i class="ph-bold ph-caret-right text-gray-300"></i>
+          </div>
+          <!-- Property 2 -->
+          <div class="flex gap-4 p-4 bg-bg border border-surface rounded-2xl items-center hover:shadow-md transition-all cursor-pointer">
+            <div class="w-20 h-20 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-surface">
+              <i class="ph-duotone ph-waves text-3xl text-primary"></i>
+            </div>
+            <div class="flex-1">
+              <div class="font-bold text-lg mb-0.5">东海岸新盘两居室</div>
+              <div class="text-sm text-gray-500">第 15 邮区 · 靠海生活</div>
+              <div class="text-primary font-bold text-sm mt-2">约 S$ 2.1M - 2.4M</div>
+            </div>
+            <i class="ph-bold ph-caret-right text-gray-300"></i>
+          </div>
+        </div>
+      </section>
+      
+    </div>
+    
+    <!-- CTA Sticky Footer -->
+    <div class="p-6 bg-white border-t border-surface sticky bottom-0 z-20 space-y-3 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] rounded-b-[2.5rem]">
+      <button onclick="openModal()" class="btn-primary py-5">
+        保存并获取 PDF 完整版
+        <i class="ph-bold ph-download-simple"></i>
+      </button>
+      <button class="btn-secondary border-none shadow-none bg-transparent hover:bg-surface/50">
+        有点疑惑？找真人聊聊
+      </button>
+    </div>
+  </main>
+
+  <!-- LEAD CAPTURE MODAL -->
+  <div id="modal-lead" class="fixed inset-0 z-50 hidden">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-text/30 backdrop-blur-sm transition-opacity opacity-0" id="modal-backdrop" onclick="closeModal()"></div>
+    
+    <!-- Modal Content -->
+    <div class="absolute bottom-0 left-0 w-full bg-bg rounded-t-[2.5rem] sm:rounded-3xl sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md sm:w-full transition-transform transform translate-y-full sm:translate-y-0 sm:scale-95 sm:opacity-0 shadow-2xl" id="modal-panel">
+      
+      <div class="p-8">
+        <div class="flex justify-between items-start mb-6">
+          <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-surface mb-4">
+            <i class="ph-fill ph-whatsapp-logo text-2xl text-[#25D366]"></i>
+          </div>
+          <button onclick="closeModal()" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-400 hover:text-text hover:bg-surface transition-colors cursor-pointer border border-surface">
+            <i class="ph-bold ph-x"></i>
+          </button>
+        </div>
+        
+        <h3 class="text-2xl font-bold mb-3">报告已生成，发到哪里？</h3>
+        <p class="text-gray-500 mb-8 leading-relaxed text-sm">
+          我们会将这份包含<b>图表分析、贷款方案对比</b>的完整 PDF 报告，直接发送到您的 WhatsApp。无电话打扰，随时查看。
+        </p>
+        
+        <div class="space-y-5">
+          <div>
+            <label class="input-label mb-2">怎么称呼您？</label>
+            <input type="text" placeholder="例如：陈先生 / Alice" class="input-box bg-white !border-surface" />
+          </div>
+          <div>
+            <label class="input-label mb-2">WhatsApp 号码</label>
+            <div class="flex gap-2">
+              <div class="input-box bg-white !border-surface w-24 flex items-center justify-center px-0 text-center font-bold text-gray-500">
+                +65
+              </div>
+              <input type="tel" placeholder="8123 4567" class="input-box bg-white !border-surface flex-1" />
+            </div>
+          </div>
+        </div>
+        
+        <button class="btn-primary mt-8 py-5" onclick="alert('发送成功！请查看您的 WhatsApp。')">
+          通过 WhatsApp 发送给我
+        </button>
+        
+        <p class="text-xs text-gray-400 mt-6 text-center leading-relaxed">
+          点击发送即表示您同意隐私政策。我们像保护自己的信息一样保护您的数据。
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      status: null,
+      marital: null,
+      spouseStatus: null,
+      properties: null,
+      employment: null,
+      propertyType: null
+    };
+
+    // View Navigation
+    function goToView(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => {
+        el.classList.remove('active');
+        el.classList.add('hidden');
+      });
+      const target = document.getElementById(viewId);
+      target.classList.remove('hidden');
+      // Trigger reflow for spring animation
+      void target.offsetWidth;
+      target.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToStep(step) {
+      goToView(`view-step-${step}`);
+    }
+
+    function prevStep() {
+      // Handled by inline onclicks directly to maintain simple logic for prototype
+    }
+
+    // UI Logic
+    function selectOption(category, value, element) {
+      state[category] = value;
+      
+      // Update UI
+      const parent = element.parentElement;
+      parent.querySelectorAll('.radio-card').forEach(card => {
+        card.classList.remove('active');
+        // Remove solid icon fill if present
+        const icon = card.querySelector('i');
+        if(icon && icon.classList.contains('ph-fill')) {
+           icon.classList.remove('ph-fill');
+           icon.classList.add('ph-duotone');
+        }
+      });
+      
+      element.classList.add('active');
+      const icon = element.querySelector('i');
+      if(icon && icon.classList.contains('ph-duotone')) {
+         icon.classList.remove('ph-duotone');
+         icon.classList.add('ph-fill');
+      }
+    }
+
+    function toggleSpouse(isMarried) {
+      const spouseGroup = document.getElementById('spouse-status-group');
+      if (isMarried) {
+        spouseGroup.classList.remove('hidden');
+        // Add small bounce animation
+        spouseGroup.animate([
+          { opacity: 0, transform: 'translateY(-10px)' },
+          { opacity: 1, transform: 'translateY(0)' }
+        ], { duration: 300, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
+      } else {
+        spouseGroup.classList.add('hidden');
+        state.spouseStatus = null; // reset
+      }
+    }
+
+    // Submission and Loading
+    function submitForm() {
+      goToView('view-loading');
+      
+      const texts = [
+        "正在梳理税费明细...",
+        "计算最划算的贷款方案...",
+        "匹配适合您的优质房源...",
+        "报告生成中，马上就好！"
+      ];
+      
+      let i = 0;
+      const textEl = document.getElementById('loading-text');
+      const barEl = document.getElementById('loading-bar');
+      
+      const interval = setInterval(() => {
+        i++;
+        if(i < texts.length) {
+          textEl.innerText = texts[i];
+          barEl.style.width = `${(i + 1) * 25}%`;
+        }
+      }, 800);
+      
+      setTimeout(() => {
+        clearInterval(interval);
+        barEl.style.width = '100%';
+        setTimeout(() => {
+           goToView('view-result');
+        }, 300);
+      }, 3500);
+    }
+
+    // Modal Logic
+    function openModal() {
+      const modal = document.getElementById('modal-lead');
+      const backdrop = document.getElementById('modal-backdrop');
+      const panel = document.getElementById('modal-panel');
+      
+      modal.classList.remove('hidden');
+      
+      // Request animation frame to ensure display:block has applied before animating opacity
+      requestAnimationFrame(() => {
+        backdrop.classList.remove('opacity-0');
+        backdrop.classList.add('opacity-100');
+        
+        panel.classList.remove('translate-y-full');
+        panel.classList.remove('sm:scale-95');
+        panel.classList.remove('sm:opacity-0');
+      });
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modal-lead');
+      const backdrop = document.getElementById('modal-backdrop');
+      const panel = document.getElementById('modal-panel');
+      
+      backdrop.classList.remove('opacity-100');
+      backdrop.classList.add('opacity-0');
+      
+      panel.classList.add('translate-y-full');
+      panel.classList.add('sm:scale-95');
+      panel.classList.add('sm:opacity-0');
+      
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300); // match transition duration
+    }
+  </script>
+</body>
+</html>
