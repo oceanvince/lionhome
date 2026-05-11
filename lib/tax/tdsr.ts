@@ -35,7 +35,7 @@ function monthlyPayment(principal: number, annualRate: number, years: number): n
   return (principal * i * Math.pow(1 + i, N)) / (Math.pow(1 + i, N) - 1);
 }
 
-function getLtvCap(age: number, tenureYears: number, propertyCount: number, ltvRules: LtvRule[]): number {
+function getLtvCap(age: number, tenureYears: number, propertyCount: number, _ltvRules: LtvRule[]): number {
   // Property count >= 2 → lower LTV
   if (propertyCount >= 2) return 0.45;
   // Age + tenure > 65 → lower LTV

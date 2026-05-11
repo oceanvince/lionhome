@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useRouter, useSearchParams } from "next/navigation";
 
 // Handles the PKCE/implicit flow for magic links when Supabase redirects
 // to /verify with tokens in the URL fragment (#access_token=...).
 // The Supabase JS client picks up the fragment automatically on init.
-export default function VerifyPage() {
+function VerifyInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/calculator";
@@ -69,5 +69,22 @@ export default function VerifyPage() {
       <h1 className="mb-2 font-serif text-xl font-semibold">正在验证身份</h1>
       <p className="text-sm font-light text-gray-500">请稍候，即将为您完成登录…</p>
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center text-center">
+        <div className="relative mb-6 h-14 w-14">
+          <div className="absolute inset-0 rounded-full border border-[#E5E5E5]" />
+          <div className="absolute inset-0 animate-spin rounded-full border border-[#2F4F3D] border-t-transparent" />
+        </div>
+        <h1 className="mb-2 font-serif text-xl font-semibold">正在验证身份</h1>
+        <p className="text-sm font-light text-gray-500">请稍候，即将为您完成登录…</p>
+      </div>
+    }>
+      <VerifyInner />
+    </Suspense>
   );
 }
