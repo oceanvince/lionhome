@@ -1,12 +1,23 @@
 @import "tailwindcss";
 
 @theme {
+  /* ── Existing brand colors (marketing site) ─────────────────── */
   --color-brand-50: oklch(0.97 0.02 30);
   --color-brand-500: oklch(0.62 0.18 30);
   --color-brand-600: oklch(0.55 0.2 30);
   --color-brand-900: oklch(0.3 0.12 30);
 
-  --font-sans: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  /* ── Calculator / LionHome design system ────────────────────── */
+  --color-primary: #2F4F3D;
+  --color-primary-soft: #EAEFEB;
+  --color-charcoal: #1A1C1A;
+  --color-offwhite: #FCFBF9;
+  --color-cream: #F5F1E8;
+  --color-border: #E5E5E5;
+
+  /* ── Fonts ──────────────────────────────────────────────────── */
+  --font-sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --font-serif: "Noto Serif SC", Georgia, serif;
 }
 
 :root {
@@ -22,4 +33,45 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   iOS-style scroll picker items
+   Container, list, and suffix are inline-styled in ScrollPicker
+   to avoid Tailwind v4 box-sizing conflicts.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* height, display, align-items, scroll-snap-* are set inline in ScrollPicker */
+.picker-item {
+  font-size: 22px;
+  color: #9ca3af;
+  transition: color 0.15s, font-size 0.15s, font-weight 0.15s;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  cursor: default;
+  user-select: none;
+}
+.picker-item.is-center {
+  font-size: 34px;
+  font-weight: 600;
+  color: #1a1c1a;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Calculator view fade-in animation
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes calc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.calc-view-enter {
+  animation: calc-fade-in 0.4s ease-out forwards;
 }
