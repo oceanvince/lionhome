@@ -20,10 +20,7 @@ export function SegmentedControl<T extends string>({
   className,
 }: SegmentedControlProps<T>) {
   return (
-    <div
-      role="group"
-      className={cn("flex rounded-[4px] bg-gray-100 p-1 gap-1", className)}
-    >
+    <div role="group" className={cn("flex gap-1 rounded-[4px] bg-gray-100 p-1", className)}>
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -33,7 +30,7 @@ export function SegmentedControl<T extends string>({
             aria-pressed={active}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "flex-1 rounded-[4px] px-2 py-2.5 text-sm font-medium transition-all min-h-[44px]",
+              "min-h-[44px] flex-1 rounded-[4px] px-2 py-2.5 text-sm font-medium transition-all",
               active
                 ? "bg-white text-[#2F4F3D] shadow-sm ring-1 ring-[#E5E5E5]"
                 : "text-gray-500 hover:text-[#1A1C1A]"

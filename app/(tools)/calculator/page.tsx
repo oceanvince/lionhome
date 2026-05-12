@@ -1,11 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import type { CalcOutputs } from "@/lib/tax";
 import {
   buildApiPayload,
@@ -345,7 +340,7 @@ function ScrollPicker({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function markCenter(el: HTMLElement, idx: number) {
@@ -415,29 +410,33 @@ function ScrollPicker({
       <div
         ref={listRef}
         onScroll={handleScroll}
-        style={{
-          height: 220,
-          overflowY: "scroll",
-          scrollSnapType: "y mandatory",
-          WebkitOverflowScrolling: "touch",
-          scrollbarWidth: "none",
-          padding: "80px 0",
-          overscrollBehavior: "contain",
-        } as React.CSSProperties}
+        style={
+          {
+            height: 220,
+            overflowY: "scroll",
+            scrollSnapType: "y mandatory",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+            padding: "80px 0",
+            overscrollBehavior: "contain",
+          } as React.CSSProperties
+        }
       >
         {items.map((label, i) => (
           <div
             key={i}
             className="picker-item"
-            style={{
-              height: ITEM_H,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              scrollSnapAlign: "center",
-              scrollSnapStop: "always",
-            } as React.CSSProperties}
+            style={
+              {
+                height: ITEM_H,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                scrollSnapAlign: "center",
+                scrollSnapStop: "always",
+              } as React.CSSProperties
+            }
           >
             {label}
           </div>
@@ -572,10 +571,14 @@ function ConsultDrawer({
           if (data.ok) {
             try {
               localStorage.setItem("lh_run_id", data.data.run_id);
-            } catch { /* ignore */ }
+            } catch {
+              /* ignore */
+            }
           }
         })
-        .catch(() => { /* ignore */ });
+        .catch(() => {
+          /* ignore */
+        });
     }
 
     onClose();
@@ -964,7 +967,9 @@ export default function CalculatorPage() {
           sessionStorage.setItem("lh_calc_inputs", JSON.stringify(payload));
           sessionStorage.setItem("lh_tax_version", json.data.tax_rates_version);
           sessionStorage.setItem("lh_session_id", sessionId);
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
         goTo("result");
       } else {
         goTo("step3");
@@ -983,8 +988,11 @@ export default function CalculatorPage() {
     setSaving(true);
     try {
       const storedInputs = (() => {
-        try { return JSON.parse(sessionStorage.getItem("lh_calc_inputs") ?? "{}"); }
-        catch { return {}; }
+        try {
+          return JSON.parse(sessionStorage.getItem("lh_calc_inputs") ?? "{}");
+        } catch {
+          return {};
+        }
       })();
       const res = await fetch("/api/v1/calculator/save", {
         method: "POST",
@@ -1000,7 +1008,11 @@ export default function CalculatorPage() {
       if (data.ok) {
         const id = data.data.run_id as string;
         setRunId(id);
-        try { localStorage.setItem("lh_run_id", id); } catch { /* ignore */ }
+        try {
+          localStorage.setItem("lh_run_id", id);
+        } catch {
+          /* ignore */
+        }
         return id;
       }
       return null;
@@ -1014,7 +1026,7 @@ export default function CalculatorPage() {
   /* ─── WhatsApp CTA: save first, then open with run_id ───────── */
   async function handleWhatsAppCTA() {
     if (!outputs) return;
-    const id = runId ?? await saveReport();
+    const id = runId ?? (await saveReport());
     const text = id
       ? `Hi 狮城家，我的报告编号是 ${id}，请帮我生成定制购房参考报告。`
       : `Hi 狮城家，请帮我生成一份定制购房参考报告。`;
@@ -1140,9 +1152,7 @@ export default function CalculatorPage() {
           </h1>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 300 }}>3 分钟测算</span>
-            <span
-              style={{ width: 4, height: 4, borderRadius: "50%", background: "#D1D5DB" }}
-            />
+            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#D1D5DB" }} />
             <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 300 }}>无需注册</span>
           </div>
         </div>
@@ -1190,14 +1200,10 @@ export default function CalculatorPage() {
                 </svg>
               </div>
               <div>
-                <div
-                  style={{ fontSize: 14, fontWeight: 500, color: "#1A1C1A", marginBottom: 2 }}
-                >
+                <div style={{ fontSize: 14, fontWeight: 500, color: "#1A1C1A", marginBottom: 2 }}>
                   {title}
                 </div>
-                <div
-                  style={{ fontSize: 12, color: "#6B7280", fontWeight: 300, lineHeight: 1.6 }}
-                >
+                <div style={{ fontSize: 12, color: "#6B7280", fontWeight: 300, lineHeight: 1.6 }}>
                   {sub}
                 </div>
               </div>
@@ -1230,7 +1236,15 @@ export default function CalculatorPage() {
           >
             {/* lock icon */}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect x="2" y="6" width="10" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
+              <rect
+                x="2"
+                y="6"
+                width="10"
+                height="7"
+                rx="1"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              />
               <path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" stroke="currentColor" strokeWidth="1.2" />
             </svg>
             <span>您的数据已被加密处理</span>
@@ -1598,7 +1612,14 @@ export default function CalculatorPage() {
           margin: "0 auto",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+          }}
+        >
           <div style={{ position: "relative", width: 64, height: 64, marginBottom: 28 }}>
             <div
               style={{
@@ -1759,11 +1780,15 @@ export default function CalculatorPage() {
                       fontSize: 12,
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}>
+                    <div
+                      style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}
+                    >
                       <span>5% 现金（必须）</span>
                       <span>{fmtS(cash5)}</span>
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}>
+                    <div
+                      style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}
+                    >
                       <span>CPF OA 可付</span>
                       <span>{fmtS(downCpf)}</span>
                     </div>
@@ -2029,14 +2054,17 @@ export default function CalculatorPage() {
                       >
                         S$&nbsp;{fmt(monthlyBase)}
                       </span>
-                      <span style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 300, marginLeft: 4 }}>
+                      <span
+                        style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 300, marginLeft: 4 }}
+                      >
                         / 月
                       </span>
                     </div>
                   </div>
                   <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 300 }}>
                     ⓘ 实际批贷以 4% 压力测试月供{" "}
-                    <span style={{ color: "#1A1C1A" }}>S$ {fmt(monthlyStress)}</span> 为准 (MAS 要求){" "}
+                    <span style={{ color: "#1A1C1A" }}>S$ {fmt(monthlyStress)}</span> 为准 (MAS
+                    要求){" "}
                     <button
                       onClick={() =>
                         setInfo({
@@ -2140,9 +2168,7 @@ export default function CalculatorPage() {
                       style={{
                         display: "flex",
                         gap: 12,
-                        ...(idx > 0
-                          ? { borderTop: "1px solid #E5E5E5", paddingTop: 16 }
-                          : {}),
+                        ...(idx > 0 ? { borderTop: "1px solid #E5E5E5", paddingTop: 16 } : {}),
                       }}
                     >
                       <div
@@ -2224,7 +2250,9 @@ export default function CalculatorPage() {
               {saving ? "保存中…" : "保存并获取定制报告"}
             </BtnPrimary>
             {/* Secondary: 即刻咨询 → save to DB then open consult drawer */}
-            <BtnSecondary onClick={handleConsultCTA} disabled={saving}>即刻咨询</BtnSecondary>
+            <BtnSecondary onClick={handleConsultCTA} disabled={saving}>
+              即刻咨询
+            </BtnSecondary>
           </div>
         </div>
 

@@ -5,9 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 const PhoneSchema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+\d{7,15}$/, "手机号须为 E.164 格式，如 +6591234567"),
+  phone: z.string().regex(/^\+\d{7,15}$/, "手机号须为 E.164 格式，如 +6591234567"),
 });
 
 const EmailSchema = z.object({

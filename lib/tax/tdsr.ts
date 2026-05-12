@@ -35,7 +35,12 @@ function monthlyPayment(principal: number, annualRate: number, years: number): n
   return (principal * i * Math.pow(1 + i, N)) / (Math.pow(1 + i, N) - 1);
 }
 
-function getLtvCap(age: number, tenureYears: number, propertyCount: number, _ltvRules: LtvRule[]): number {
+function getLtvCap(
+  age: number,
+  tenureYears: number,
+  propertyCount: number,
+  _ltvRules: LtvRule[]
+): number {
   // Property count >= 2 → lower LTV
   if (propertyCount >= 2) return 0.45;
   // Age + tenure > 65 → lower LTV
@@ -78,7 +83,12 @@ interface SolveParams {
 
 function isFeasibleAtPrice(price: number, params: SolveParams): boolean {
   const ltvCap = getLtvCap(params.age, params.tenureYears, params.propertyCount, params.ltvRules);
-  const maxLoanTdsr = tdsrMaxLoan(params.annualIncome, params.existingMonthlyDebt, params.tdsr, params.tenureYears);
+  const maxLoanTdsr = tdsrMaxLoan(
+    params.annualIncome,
+    params.existingMonthlyDebt,
+    params.tdsr,
+    params.tenureYears
+  );
   const maxLoanLtv = price * ltvCap;
   const loan = Math.min(maxLoanTdsr, maxLoanLtv);
   const downPayment = price - loan;
@@ -160,7 +170,12 @@ function buildOutput(
   }
 
   const ltvCap = getLtvCap(params.age, params.tenureYears, params.propertyCount, params.ltvRules);
-  const maxLoanTdsr = tdsrMaxLoan(params.annualIncome, params.existingMonthlyDebt, params.tdsr, params.tenureYears);
+  const maxLoanTdsr = tdsrMaxLoan(
+    params.annualIncome,
+    params.existingMonthlyDebt,
+    params.tdsr,
+    params.tenureYears
+  );
   const loan = Math.min(maxLoanTdsr, price * ltvCap);
   const downPayment = price - loan;
   const cashMinimum = price * 0.05;
@@ -175,17 +190,16 @@ function buildOutput(
   const monthlyBase = monthlyPayment(loan, params.displayRate, params.tenureYears);
   const monthlyStress = monthlyPayment(loan, params.tdsr.stress_rate, params.tenureYears);
   const monthlyIncome = params.annualIncome / 12;
-  const tdsrUtil = monthlyIncome > 0
-    ? (monthlyStress + params.existingMonthlyDebt) / monthlyIncome
-    : 0;
+  const tdsrUtil =
+    monthlyIncome > 0 ? (monthlyStress + params.existingMonthlyDebt) / monthlyIncome : 0;
 
   // absd_rate for this profile
   const absdRate = price > 0 ? absd / price : 0;
-  const absdWarning = absdRate >= 0.60;
+  const absdWarning = absdRate >= 0.6;
 
   // Generate 3 price scenarios: -20%, main, +20%
   const scenarios: ScenarioRow[] = [0.8, 1.0, 1.2].map((factor) => {
-    const sp = Math.round(price * factor / 10_000) * 10_000;
+    const sp = Math.round((price * factor) / 10_000) * 10_000;
     const sl = Math.min(maxLoanTdsr, sp * ltvCap);
     const sbsd = calculateBsd(sp, params.bsdSlabs);
     const sabsd = calculateAbsd(sp, params.residency, params.propertyCount, params.absdMatrix);

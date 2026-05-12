@@ -19,7 +19,7 @@ export function BucketSelector({
   return (
     <div className={cn("space-y-1", className)}>
       {label && (
-        <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.2em] text-gray-500">
+        <p className="mb-2 text-[11px] font-medium tracking-[0.2em] text-gray-500 uppercase">
           {label}
         </p>
       )}
@@ -32,7 +32,7 @@ export function BucketSelector({
                 type="button"
                 onClick={() => onChange(i)}
                 className={cn(
-                  "flex w-full items-center rounded-[4px] border px-4 py-3 text-left text-sm transition-all min-h-14",
+                  "flex min-h-14 w-full items-center rounded-[4px] border px-4 py-3 text-left text-sm transition-all",
                   selected
                     ? "border-[#2F4F3D] bg-[#EAEFEB] font-medium text-[#2F4F3D] ring-1 ring-[#2F4F3D]"
                     : "border-[#E5E5E5] bg-white text-[#1A1C1A] hover:border-[#2F4F3D]/40"
@@ -44,9 +44,7 @@ export function BucketSelector({
                     selected ? "border-[#2F4F3D] bg-[#2F4F3D]" : "border-gray-300"
                   )}
                 >
-                  {selected && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                  )}
+                  {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
                 </span>
                 {bucket}
               </button>

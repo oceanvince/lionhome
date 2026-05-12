@@ -1,12 +1,12 @@
 # LionHome 后端技术设计文档
 
-| 字段 | 内容 |
-|---|---|
-| 文档版本 | 1.0 |
-| 状态 | Draft |
-| 技术栈 | Next.js 15 API Routes · Supabase Postgres · Supabase Auth · Resend · Twilio |
-| 覆盖范围 | MVP Phase 1–3 后端核心链路 |
-| 更新日期 | 2026-05-10 |
+| 字段     | 内容                                                                        |
+| -------- | --------------------------------------------------------------------------- |
+| 文档版本 | 1.0                                                                         |
+| 状态     | Draft                                                                       |
+| 技术栈   | Next.js 15 API Routes · Supabase Postgres · Supabase Auth · Resend · Twilio |
+| 覆盖范围 | MVP Phase 1–3 后端核心链路                                                  |
+| 更新日期 | 2026-05-10                                                                  |
 
 ---
 
@@ -65,30 +65,33 @@
 
 ## 2. Use Case 清单
 
-| ID | Use Case | 参与者 | 优先级 |
-|---|---|---|---|
-| UC-01 | 购房力测算（含匿名） | C 端用户（匿名/已登录） | P0 |
-| UC-02 | 买家体检 Quiz | C 端用户（匿名/已登录） | P0 |
-| UC-03 | 用户注册与身份认证 | C 端用户 | P0 |
-| UC-04 | 线索采集与分层 Consent | C 端用户 | P0 |
-| UC-05 | Lead 自动评分 | 系统（后台触发） | P1 |
-| UC-06 | Lead 分发与独占管理 | Admin、系统 | P1 |
-| UC-07 | 中介跟进状态更新 | Agent | P1 |
-| UC-08 | 成交归因（三方确认） | Agent、C 端用户、Admin | P1 |
-| UC-09 | 佣金结算 | Admin | P2 |
+| ID    | Use Case               | 参与者                  | 优先级 |
+| ----- | ---------------------- | ----------------------- | ------ |
+| UC-01 | 购房力测算（含匿名）   | C 端用户（匿名/已登录） | P0     |
+| UC-02 | 买家体检 Quiz          | C 端用户（匿名/已登录） | P0     |
+| UC-03 | 用户注册与身份认证     | C 端用户                | P0     |
+| UC-04 | 线索采集与分层 Consent | C 端用户                | P0     |
+| UC-05 | Lead 自动评分          | 系统（后台触发）        | P1     |
+| UC-06 | Lead 分发与独占管理    | Admin、系统             | P1     |
+| UC-07 | 中介跟进状态更新       | Agent                   | P1     |
+| UC-08 | 成交归因（三方确认）   | Agent、C 端用户、Admin  | P1     |
+| UC-09 | 佣金结算               | Admin                   | P2     |
 
 ---
 
 ## UC-01 购房力测算
 
 ### 参与者
+
 - 主角：C 端用户（匿名或已登录）
 - 系统：税率引擎（`lib/tax/`）、税率同步服务（`lib/tax/sync`）、Supabase DB
 
 ### 业务目标
+
 以免费工具吸引用户，同时采集身份、收入、预算等核心 Lead 评分字段。**计算本身完全无状态**，不写 DB；仅当用户主动留下联系方式（Layer 1）或完成登录后，才将本次计算结果持久化，关联到该用户。
 
 ### 前置条件
+
 - 用户已到达 `/calculator` 页面（可从 UTM 链接进入）
 - `tax_rates` 表有有效行是**期望**状态；为空时系统自动触发同步（见异常流程）
 
@@ -120,12 +123,12 @@
 
 **UC-01 业务错误码清单**：
 
-| 错误码 | 触发场景 | 建议 retryAfter |
-|---|---|---|
-| `INVALID_INPUT` | zod 校验失败，附 `fields` 字段列出具体字段 | — |
-| `TAX_RATES_UNAVAILABLE` | 税率表为空，同步已触发，等待结果 | 15 |
-| `TAX_RATES_SYNC_FAILED` | 税率表为空，同步失败，无法计算 | 300 |
-| `CALC_INTERNAL_ERROR` | 税率引擎抛出意外异常 | — |
+| 错误码                  | 触发场景                                   | 建议 retryAfter |
+| ----------------------- | ------------------------------------------ | --------------- |
+| `INVALID_INPUT`         | zod 校验失败，附 `fields` 字段列出具体字段 | —               |
+| `TAX_RATES_UNAVAILABLE` | 税率表为空，同步已触发，等待结果           | 15              |
+| `TAX_RATES_SYNC_FAILED` | 税率表为空，同步失败，无法计算             | 300             |
+| `CALC_INTERNAL_ERROR`   | 税率引擎抛出意外异常                       | —               |
 
 ---
 
@@ -238,12 +241,12 @@ sequenceDiagram
 
 ### 其他异常流程
 
-| 场景 | 处理 |
-|---|---|
+| 场景                    | 处理                                                                                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | TDSR 无法覆盖任何购房价 | `outputs.max_price = 0`，`outputs.infeasible_reason = 'TDSR_EXCEEDED'`；HTTP 200 + `ok:true`，前端按此字段渲染引导内容 |
-| 外籍人士 ABSD 60% | 正常计算，`outputs.absd_warning = true`，前端展示醒目提示；不视为错误 |
-| 税率引擎抛出异常 | `{ ok:false, error:{ code:'CALC_INTERNAL_ERROR' } }`；同时写后端错误日志 |
-| 重复提交相同输入 | `/compute` 无状态，幂等；`/save` 每次生成新 `run_id` |
+| 外籍人士 ABSD 60%       | 正常计算，`outputs.absd_warning = true`，前端展示醒目提示；不视为错误                                                  |
+| 税率引擎抛出异常        | `{ ok:false, error:{ code:'CALC_INTERNAL_ERROR' } }`；同时写后端错误日志                                               |
+| 重复提交相同输入        | `/compute` 无状态，幂等；`/save` 每次生成新 `run_id`                                                                   |
 
 ---
 
@@ -268,6 +271,7 @@ sequenceDiagram
 ```
 
 ### 后置条件
+
 - `/compute` 不写 DB，结果存于前端 sessionStorage
 - 用户留资或登录后，`/save` 将结果持久化到 `calculator_runs`，`run_id` 存入 localStorage
 - Quiz 提交和 Lead 提交时携带 `run_id` 关联
@@ -277,13 +281,16 @@ sequenceDiagram
 ## UC-02 买家体检 Quiz
 
 ### 参与者
+
 - 主角：C 端用户（匿名或已登录）
 - 系统：评分引擎（`lib/scoring/`）
 
 ### 业务目标
+
 对用户进行买家类型分类（5 种 archetype）和购买准备度评分（0–100），驱动个性化结果页，并作为 Lead 评分的核心输入。
 
 ### 前置条件
+
 - 用户已完成 8 道题（Q1–Q7 必填，Q8 选填）
 - 可选：已有关联的 `calculator_run_id`（用于加分）
 
@@ -343,6 +350,7 @@ flowchart TD
 ```
 
 ### 后置条件
+
 - `quiz_runs` 写入成功
 - `quiz_run_id` 返回前端，存入 localStorage
 - 结果页 `/result/{quiz_run_id}` 可直接渲染，无需登录
@@ -352,10 +360,12 @@ flowchart TD
 ## UC-03 用户注册与身份认证
 
 ### 参与者
+
 - 主角：C 端用户
 - 系统：Supabase Auth（OTP），`users` 表
 
 ### 业务目标
+
 采用"先体验，后注册"策略，注册仅在用户需要保存结果、预约顾问时触发。支持 WhatsApp 手机号 OTP 和 Email Magic Link 两种方式。
 
 ### 注册触发时机
@@ -409,18 +419,19 @@ stateDiagram-v2
 
 ### 异常流程
 
-| 场景 | 处理 |
-|---|---|
-| 手机号已注册 | Supabase Auth 直接发新 OTP（同一 auth.user 复用） |
-| OTP 错误 3 次 | Supabase Auth 内置限速，返回 429 |
-| 用户取消注册 | 历史匿名 `calculator_runs`/`quiz_runs` 保留在 session，下次登录再关联 |
-| Email Magic Link 方式 | 同流程，替换 `signInWithOtp({ email })` |
+| 场景                  | 处理                                                                  |
+| --------------------- | --------------------------------------------------------------------- |
+| 手机号已注册          | Supabase Auth 直接发新 OTP（同一 auth.user 复用）                     |
+| OTP 错误 3 次         | Supabase Auth 内置限速，返回 429                                      |
+| 用户取消注册          | 历史匿名 `calculator_runs`/`quiz_runs` 保留在 session，下次登录再关联 |
+| Email Magic Link 方式 | 同流程，替换 `signInWithOtp({ email })`                               |
 
 ---
 
 ## UC-04 线索采集与分层 Consent
 
 ### 参与者
+
 - 主角：C 端用户（已登录）
 - 系统：`leads`、`consent_log`、`lead_journey_events`
 
@@ -522,10 +533,12 @@ stateDiagram-v2
 ## UC-05 Lead 自动评分
 
 ### 参与者
+
 - 系统（由 Lead 创建/更新事件触发）
 - `lib/scoring/computeScore`
 
 ### 触发时机
+
 1. `leads` 行首次插入时（INSERT trigger 或 API 层调用）
 2. `quiz_runs` 关联完成时
 3. `calculator_runs` 关联完成时
@@ -549,31 +562,32 @@ sequenceDiagram
 
 ### 评分组件与权重
 
-| 维度 | 最高分 | 数据来源 |
-|---|---|---|
-| timeline | 30 | quiz Q2 |
-| budget_clarity | 20 | calculator_run 完成度 |
-| income_alignment | 15 | calc tdsr_utilization |
-| confidence | 15 | quiz Q7 × 3 |
-| agent_history | 10 | quiz Q5 |
-| concern_specificity | 5 | quiz Q6 |
-| free_text_quality | 5 | quiz Q8 |
-| **总计** | **100** | |
+| 维度                | 最高分  | 数据来源              |
+| ------------------- | ------- | --------------------- |
+| timeline            | 30      | quiz Q2               |
+| budget_clarity      | 20      | calculator_run 完成度 |
+| income_alignment    | 15      | calc tdsr_utilization |
+| confidence          | 15      | quiz Q7 × 3           |
+| agent_history       | 10      | quiz Q5               |
+| concern_specificity | 5       | quiz Q6               |
+| free_text_quality   | 5       | quiz Q8               |
+| **总计**            | **100** |                       |
 
 ### Band 分级与路由动作
 
-| Band | 分数区间 | 后续动作 |
-|---|---|---|
-| hot | 85–100 | 2 小时内强制路由给 agent |
-| warm | 60–84 | 进入路由队列，ops 审核 |
-| cool | 40–59 | 推送内容，30 天后重评 |
-| cold | 0–39 | 仅保留邮件列表，不路由 |
+| Band | 分数区间 | 后续动作                 |
+| ---- | -------- | ------------------------ |
+| hot  | 85–100   | 2 小时内强制路由给 agent |
+| warm | 60–84    | 进入路由队列，ops 审核   |
+| cool | 40–59    | 推送内容，30 天后重评    |
+| cold | 0–39     | 仅保留邮件列表，不路由   |
 
 ---
 
 ## UC-06 Lead 分发与独占管理
 
 ### 参与者
+
 - Admin（手动触发或系统自动）
 - Agent
 
@@ -638,6 +652,7 @@ flowchart TD
 ## UC-07 中介跟进状态更新
 
 ### 参与者
+
 - Agent（通过 Agent Lite Portal）
 
 ### 状态流转限制
@@ -674,19 +689,20 @@ sequenceDiagram
 
 ### Agent 可见字段权限
 
-| 字段 | 分配前 | 接受后 |
-|---|---|---|
-| 买家姓名 | 脱敏（仅首字） | 完整 |
-| 手机号 | 隐藏 | 显示 |
-| 预算区间 | 显示 | 显示 |
-| 买家类型/评分 | 显示 | 显示 |
-| 完整 quiz 回答 | 隐藏 | 显示 |
+| 字段           | 分配前         | 接受后 |
+| -------------- | -------------- | ------ |
+| 买家姓名       | 脱敏（仅首字） | 完整   |
+| 手机号         | 隐藏           | 显示   |
+| 预算区间       | 显示           | 显示   |
+| 买家类型/评分  | 显示           | 显示   |
+| 完整 quiz 回答 | 隐藏           | 显示   |
 
 ---
 
 ## UC-08 成交归因（三方确认）
 
 ### 参与者
+
 - Agent（申报成交）
 - 买家（确认）
 - Admin（最终验证）
@@ -738,9 +754,11 @@ deals.agent_confirmed_at     ← Admin 最终验证时间
 ## UC-09 佣金结算
 
 ### 参与者
+
 - Admin
 
 ### 结算触发条件
+
 `deals.settlement_status = 'verified'` 且 `deals.buyer_confirmed_at IS NOT NULL`
 
 ### 主流程
@@ -1056,25 +1074,25 @@ content_status:        draft | scheduled | published | archived
 
 ### 12.4 RLS 访问矩阵
 
-| 表 | anon | authenticated (自己) | agent (自己) | service-role |
-|---|---|---|---|---|
-| users | ✗ | R/W | ✗ | R/W |
-| user_profile | ✗ | R/W | ✗ | R/W |
-| calculator_runs | INSERT(user_id=null) | R/INSERT | ✗ | R/W |
-| quiz_runs | INSERT(user_id=null) | R/INSERT | ✗ | R/W |
-| leads | ✗ | R(自己) | R(assigned) | R/W |
-| lead_scores | ✗ | R(自己) | ✗ | R/W |
-| lead_assignments | ✗ | R(自己) | R/W(自己) | R/W |
-| lead_journey_events | ✗ | R(自己) | ✗ | R/W |
-| consent_log | INSERT(null) | INSERT/R | ✗ | R |
-| agents | ✗ | ✗ | R/W(自己) | R/W |
-| agent_profile | ✗ | ✗ | R/W(自己) | R/W |
-| deals | ✗ | ✗ | R/W(自己) | R/W |
-| settlements | ✗ | ✗ | R(自己) | R/W |
-| projects | R | R | R | R/W |
-| content | R(published) | R(published) | R(published) | R/W |
-| tax_rates | R(active) | R(active) | R(active) | R/W |
-| config | R(active) | R(active) | R(active) | R/W |
+| 表                  | anon                 | authenticated (自己) | agent (自己) | service-role |
+| ------------------- | -------------------- | -------------------- | ------------ | ------------ |
+| users               | ✗                    | R/W                  | ✗            | R/W          |
+| user_profile        | ✗                    | R/W                  | ✗            | R/W          |
+| calculator_runs     | INSERT(user_id=null) | R/INSERT             | ✗            | R/W          |
+| quiz_runs           | INSERT(user_id=null) | R/INSERT             | ✗            | R/W          |
+| leads               | ✗                    | R(自己)              | R(assigned)  | R/W          |
+| lead_scores         | ✗                    | R(自己)              | ✗            | R/W          |
+| lead_assignments    | ✗                    | R(自己)              | R/W(自己)    | R/W          |
+| lead_journey_events | ✗                    | R(自己)              | ✗            | R/W          |
+| consent_log         | INSERT(null)         | INSERT/R             | ✗            | R            |
+| agents              | ✗                    | ✗                    | R/W(自己)    | R/W          |
+| agent_profile       | ✗                    | ✗                    | R/W(自己)    | R/W          |
+| deals               | ✗                    | ✗                    | R/W(自己)    | R/W          |
+| settlements         | ✗                    | ✗                    | R(自己)      | R/W          |
+| projects            | R                    | R                    | R            | R/W          |
+| content             | R(published)         | R(published)         | R(published) | R/W          |
+| tax_rates           | R(active)            | R(active)            | R(active)    | R/W          |
+| config              | R(active)            | R(active)            | R(active)    | R/W          |
 
 ---
 
@@ -1082,48 +1100,48 @@ content_status:        draft | scheduled | published | archived
 
 ### C 端 API（`/api/v1/`）
 
-| Method | Path | Auth | UC |
-|---|---|---|---|
-| POST | `/api/v1/calculator/compute` | anon/auth | UC-01（无状态计算，不写 DB） |
-| POST | `/api/v1/calculator/save` | anon/auth | UC-01（留资或登录后持久化） |
-| GET | `/api/v1/calculator/:run_id` | auth | UC-01 |
-| POST | `/api/v1/quiz` | anon/auth | UC-02 |
-| GET | `/api/v1/quiz/:run_id` | auth | UC-02 |
-| POST | `/api/v1/auth/otp-send` | anon | UC-03 |
-| POST | `/api/v1/leads` | auth | UC-04 |
-| POST | `/api/v1/consent` | anon/auth | UC-04 |
-| GET | `/api/v1/leads/:id` | auth | UC-04 |
-| POST | `/api/v1/deals/:id/confirm` | auth | UC-08 |
-| GET | `/api/v1/health` | anon | — |
-| GET | `/api/v1/health/db` | anon | — |
+| Method | Path                         | Auth      | UC                           |
+| ------ | ---------------------------- | --------- | ---------------------------- |
+| POST   | `/api/v1/calculator/compute` | anon/auth | UC-01（无状态计算，不写 DB） |
+| POST   | `/api/v1/calculator/save`    | anon/auth | UC-01（留资或登录后持久化）  |
+| GET    | `/api/v1/calculator/:run_id` | auth      | UC-01                        |
+| POST   | `/api/v1/quiz`               | anon/auth | UC-02                        |
+| GET    | `/api/v1/quiz/:run_id`       | auth      | UC-02                        |
+| POST   | `/api/v1/auth/otp-send`      | anon      | UC-03                        |
+| POST   | `/api/v1/leads`              | auth      | UC-04                        |
+| POST   | `/api/v1/consent`            | anon/auth | UC-04                        |
+| GET    | `/api/v1/leads/:id`          | auth      | UC-04                        |
+| POST   | `/api/v1/deals/:id/confirm`  | auth      | UC-08                        |
+| GET    | `/api/v1/health`             | anon      | —                            |
+| GET    | `/api/v1/health/db`          | anon      | —                            |
 
 ### Admin API（`/api/admin/v1/`）
 
-| Method | Path | Auth | UC |
-|---|---|---|---|
-| GET | `/api/admin/v1/leads` | admin | UC-05/06 |
-| GET | `/api/admin/v1/leads/:id` | admin | UC-05 |
-| POST | `/api/admin/v1/leads/:id/assign` | admin | UC-06 |
-| POST | `/api/admin/v1/leads/:id/score` | admin | UC-05 |
-| GET | `/api/admin/v1/agents` | admin | UC-06 |
-| POST | `/api/admin/v1/agents` | admin | — |
-| GET | `/api/admin/v1/deals` | admin | UC-08 |
-| PATCH | `/api/admin/v1/deals/:id` | admin | UC-08 |
-| POST | `/api/admin/v1/settlements` | admin | UC-09 |
-| PATCH | `/api/admin/v1/settlements/:id` | admin | UC-09 |
-| GET | `/api/admin/v1/health` | admin | — |
+| Method | Path                             | Auth  | UC       |
+| ------ | -------------------------------- | ----- | -------- |
+| GET    | `/api/admin/v1/leads`            | admin | UC-05/06 |
+| GET    | `/api/admin/v1/leads/:id`        | admin | UC-05    |
+| POST   | `/api/admin/v1/leads/:id/assign` | admin | UC-06    |
+| POST   | `/api/admin/v1/leads/:id/score`  | admin | UC-05    |
+| GET    | `/api/admin/v1/agents`           | admin | UC-06    |
+| POST   | `/api/admin/v1/agents`           | admin | —        |
+| GET    | `/api/admin/v1/deals`            | admin | UC-08    |
+| PATCH  | `/api/admin/v1/deals/:id`        | admin | UC-08    |
+| POST   | `/api/admin/v1/settlements`      | admin | UC-09    |
+| PATCH  | `/api/admin/v1/settlements/:id`  | admin | UC-09    |
+| GET    | `/api/admin/v1/health`           | admin | —        |
 
 ### Agent API（`/api/agent/v1/`）
 
-| Method | Path | Auth | UC |
-|---|---|---|---|
-| GET | `/api/agent/v1/leads` | agent | UC-07 |
-| GET | `/api/agent/v1/leads/:id` | agent | UC-07 |
-| POST | `/api/agent/v1/leads/:id/accept` | agent | UC-06 |
-| POST | `/api/agent/v1/leads/:id/decline` | agent | UC-06 |
-| PATCH | `/api/agent/v1/leads/:id/status` | agent | UC-07 |
-| POST | `/api/agent/v1/deals` | agent | UC-08 |
-| GET | `/api/agent/v1/settlements` | agent | UC-09 |
+| Method | Path                              | Auth  | UC    |
+| ------ | --------------------------------- | ----- | ----- |
+| GET    | `/api/agent/v1/leads`             | agent | UC-07 |
+| GET    | `/api/agent/v1/leads/:id`         | agent | UC-07 |
+| POST   | `/api/agent/v1/leads/:id/accept`  | agent | UC-06 |
+| POST   | `/api/agent/v1/leads/:id/decline` | agent | UC-06 |
+| PATCH  | `/api/agent/v1/leads/:id/status`  | agent | UC-07 |
+| POST   | `/api/agent/v1/deals`             | agent | UC-08 |
+| GET    | `/api/agent/v1/settlements`       | agent | UC-09 |
 
 ---
 

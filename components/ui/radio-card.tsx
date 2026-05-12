@@ -27,15 +27,13 @@ export function RadioCard({ title, subtitle, selected, onClick, className }: Rad
     >
       <span
         className={cn(
-          "text-sm font-medium leading-tight",
+          "text-sm leading-tight font-medium",
           selected ? "text-[#2F4F3D]" : "text-[#1A1C1A]"
         )}
       >
         {title}
       </span>
-      {subtitle && (
-        <span className="mt-0.5 text-[11px] font-light text-gray-500">{subtitle}</span>
-      )}
+      {subtitle && <span className="mt-0.5 text-[11px] font-light text-gray-500">{subtitle}</span>}
     </button>
   );
 }

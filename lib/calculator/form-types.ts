@@ -11,10 +11,10 @@ export interface CalculatorFormState {
   existingProperties: 0 | 1 | 2; // 2 = "2+"
 
   // Step 2
-  incomeBucket: number;  // 0-7 index into INCOME_BUCKETS
-  cashBucket: number;    // 0-4
-  cpfBucket: number;     // 0-4
-  debtBucket: number;    // 0-4
+  incomeBucket: number; // 0-7 index into INCOME_BUCKETS
+  cashBucket: number; // 0-4
+  cpfBucket: number; // 0-4
+  debtBucket: number; // 0-4
 
   // Step 3
   purpose: PropertyPurpose | null;

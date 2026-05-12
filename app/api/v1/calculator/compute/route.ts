@@ -101,7 +101,8 @@ export async function POST(req: NextRequest) {
     taxRates = SEED_TAX_RATES;
     taxRatesVersion = `seed-${SEED_TAX_RATES.effective_from}`;
   } else {
-    taxRatesVersion = (taxRates as TaxRatesConfig & { version?: string }).version ??
+    taxRatesVersion =
+      (taxRates as TaxRatesConfig & { version?: string }).version ??
       `db-${taxRates.effective_from}`;
   }
 

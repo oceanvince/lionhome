@@ -19,7 +19,10 @@ function db(client: ReturnType<typeof getSupabaseServiceRoleClient>): any {
 
 export async function POST(req: NextRequest) {
   const supabase = await getSupabaseServerClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
     return NextResponse.json(

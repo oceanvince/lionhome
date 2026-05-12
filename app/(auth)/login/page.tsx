@@ -7,7 +7,10 @@ type Mode = "phone" | "email";
 type Step = "input" | "otp";
 
 function PrimaryBtn({
-  children, onClick, disabled, loading,
+  children,
+  onClick,
+  disabled,
+  loading,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
@@ -57,9 +60,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const body =
-      mode === "phone"
-        ? { phone: phone.startsWith("+") ? phone : `+65${phone}` }
-        : { email };
+      mode === "phone" ? { phone: phone.startsWith("+") ? phone : `+65${phone}` } : { email };
 
     try {
       const res = await fetch("/api/v1/auth/otp-send", {
@@ -108,13 +109,19 @@ export default function LoginPage() {
 
     // Sync user row and associate session data
     const sessionId = (() => {
-      try { return sessionStorage.getItem("lh_session_id") ?? undefined; } catch { return undefined; }
+      try {
+        return sessionStorage.getItem("lh_session_id") ?? undefined;
+      } catch {
+        return undefined;
+      }
     })();
     const utmSource = (() => {
       try {
         const p = new URLSearchParams(window.location.search);
         return p.get("utm_source") ?? undefined;
-      } catch { return undefined; }
+      } catch {
+        return undefined;
+      }
     })();
 
     await fetch("/api/v1/auth/sync-user", {
@@ -134,13 +141,23 @@ export default function LoginPage() {
       <div className="flex flex-col items-center text-center">
         <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#EAEFEB]">
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <path d="M6 14L11 19L22 9" stroke="#2F4F3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M6 14L11 19L22 9"
+              stroke="#2F4F3D"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
         <h1 className="mb-3 font-serif text-2xl font-semibold">邮件已发送</h1>
-        <p className="mb-6 text-sm font-light leading-relaxed text-gray-500">{successMsg}</p>
+        <p className="mb-6 text-sm leading-relaxed font-light text-gray-500">{successMsg}</p>
         <button
-          onClick={() => { setSuccessMsg(null); setStep("input"); setEmail(""); }}
+          onClick={() => {
+            setSuccessMsg(null);
+            setStep("input");
+            setEmail("");
+          }}
           className="text-sm text-[#2F4F3D] underline"
         >
           返回重新发送
@@ -156,11 +173,21 @@ export default function LoginPage() {
         {/* Header */}
         <div className="mb-8 flex items-center gap-4">
           <button
-            onClick={() => { setStep("input"); setOtp(""); setError(null); }}
+            onClick={() => {
+              setStep("input");
+              setOtp("");
+              setError(null);
+            }}
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[#E5E5E5]"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M12.5 15L7.5 10L12.5 5" stroke="#1A1C1A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M12.5 15L7.5 10L12.5 5"
+                stroke="#1A1C1A"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
           <div>
@@ -173,7 +200,7 @@ export default function LoginPage() {
 
         <div className="space-y-6">
           <div>
-            <label className="mb-3 block text-xs font-medium uppercase tracking-[0.2em] text-gray-500">
+            <label className="mb-3 block text-xs font-medium tracking-[0.2em] text-gray-500 uppercase">
               验证码
             </label>
             <input
@@ -181,9 +208,12 @@ export default function LoginPage() {
               inputMode="numeric"
               maxLength={6}
               value={otp}
-              onChange={(e) => { setOtp(e.target.value.replace(/\D/g, "")); setError(null); }}
+              onChange={(e) => {
+                setOtp(e.target.value.replace(/\D/g, ""));
+                setError(null);
+              }}
               placeholder="000000"
-              className="w-full border-b border-[#E5E5E5] py-3 text-center text-2xl font-serif tracking-[0.3em] transition-colors focus:border-[#2F4F3D] focus:outline-none"
+              className="w-full border-b border-[#E5E5E5] py-3 text-center font-serif text-2xl tracking-[0.3em] transition-colors focus:border-[#2F4F3D] focus:outline-none"
             />
             {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
           </div>
@@ -200,7 +230,10 @@ export default function LoginPage() {
               </span>
             ) : (
               <button
-                onClick={() => { setOtp(""); handleSend(); }}
+                onClick={() => {
+                  setOtp("");
+                  handleSend();
+                }}
                 className="text-[#2F4F3D] underline"
               >
                 重新发送验证码
@@ -218,14 +251,19 @@ export default function LoginPage() {
       {/* Brand */}
       <div className="mb-8 flex items-center gap-2">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M12 3L20 8V19C20 19.6 19.6 20 19 20H5C4.4 20 4 19.6 4 19V8Z" stroke="#2F4F3D" strokeWidth="1.5" strokeLinejoin="round" />
+          <path
+            d="M12 3L20 8V19C20 19.6 19.6 20 19 20H5C4.4 20 4 19.6 4 19V8Z"
+            stroke="#2F4F3D"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
           <path d="M8 20V13H16V20" stroke="#2F4F3D" strokeWidth="1.5" />
         </svg>
         <span className="text-sm font-medium tracking-wide text-[#1A1C1A]">狮城家 LionHome</span>
       </div>
 
       <h1 className="mb-2 font-serif text-2xl font-semibold">登录 / 注册</h1>
-      <p className="mb-7 text-sm font-light leading-relaxed text-gray-500">
+      <p className="mb-7 text-sm leading-relaxed font-light text-gray-500">
         无需密码，手机号或邮箱即可安全登录。
       </p>
 
@@ -235,11 +273,15 @@ export default function LoginPage() {
           <button
             key={m}
             type="button"
-            onClick={() => { setMode(m); setError(null); }}
-            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-[4px] text-sm font-medium transition-all ${mode === m
-              ? "bg-white text-[#2F4F3D] shadow-sm"
-              : "text-gray-500 hover:text-[#1A1C1A]"
-              }`}
+            onClick={() => {
+              setMode(m);
+              setError(null);
+            }}
+            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-[4px] text-sm font-medium transition-all ${
+              mode === m
+                ? "bg-white text-[#2F4F3D] shadow-sm"
+                : "text-gray-500 hover:text-[#1A1C1A]"
+            }`}
           >
             {m === "phone" ? "手机号 OTP" : "邮箱魔术链接"}
           </button>
@@ -249,7 +291,7 @@ export default function LoginPage() {
       <div className="space-y-6">
         {mode === "phone" ? (
           <div>
-            <label className="mb-3 block text-xs font-medium uppercase tracking-[0.2em] text-gray-500">
+            <label className="mb-3 block text-xs font-medium tracking-[0.2em] text-gray-500 uppercase">
               新加坡手机号
             </label>
             <div className="flex items-center border-b border-[#E5E5E5] transition-colors focus-within:border-[#2F4F3D]">
@@ -258,25 +300,31 @@ export default function LoginPage() {
                 type="tel"
                 inputMode="tel"
                 value={phone}
-                onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "")); setError(null); }}
+                onChange={(e) => {
+                  setPhone(e.target.value.replace(/\D/g, ""));
+                  setError(null);
+                }}
                 placeholder="8123 4567"
                 maxLength={8}
-                className="flex-1 py-3 text-base font-sans focus:outline-none"
+                className="flex-1 py-3 font-sans text-base focus:outline-none"
               />
             </div>
             {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
           </div>
         ) : (
           <div>
-            <label className="mb-3 block text-xs font-medium uppercase tracking-[0.2em] text-gray-500">
+            <label className="mb-3 block text-xs font-medium tracking-[0.2em] text-gray-500 uppercase">
               电子邮箱
             </label>
             <input
               type="email"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); setError(null); }}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError(null);
+              }}
               placeholder="you@example.com"
-              className="w-full border-b border-[#E5E5E5] py-3 text-base font-sans transition-colors focus:border-[#2F4F3D] focus:outline-none"
+              className="w-full border-b border-[#E5E5E5] py-3 font-sans text-base transition-colors focus:border-[#2F4F3D] focus:outline-none"
             />
             {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
           </div>
@@ -290,11 +338,16 @@ export default function LoginPage() {
           {mode === "phone" ? "发送验证码" : "发送魔术链接"}
         </PrimaryBtn>
 
-        <p className="text-center text-[11px] font-light leading-relaxed text-gray-400">
+        <p className="text-center text-[11px] leading-relaxed font-light text-gray-400">
           登录即表示您同意我们的{" "}
-          <a href="/privacy" className="text-[#2F4F3D] underline">隐私政策</a>
-          {" "}与{" "}
-          <a href="/terms" className="text-[#2F4F3D] underline">使用条款</a>。
+          <a href="/privacy" className="text-[#2F4F3D] underline">
+            隐私政策
+          </a>{" "}
+          与{" "}
+          <a href="/terms" className="text-[#2F4F3D] underline">
+            使用条款
+          </a>
+          。
         </p>
       </div>
     </div>

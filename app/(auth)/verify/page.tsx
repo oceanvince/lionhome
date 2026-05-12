@@ -19,7 +19,9 @@ function VerifyInner() {
 
   useEffect(() => {
     // Listen for SIGNED_IN which fires when the client processes the fragment tokens
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session) {
         // Sync user row
         try {
@@ -29,7 +31,9 @@ function VerifyInner() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ session_id: sessionId }),
           });
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
 
         router.replace(next);
       }
@@ -46,7 +50,12 @@ function VerifyInner() {
       <div className="flex flex-col items-center text-center">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" />
+            <path
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              stroke="#ef4444"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
         </div>
         <h1 className="mb-2 font-serif text-xl font-semibold">链接已失效</h1>
@@ -74,16 +83,18 @@ function VerifyInner() {
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={
-      <div className="flex flex-col items-center text-center">
-        <div className="relative mb-6 h-14 w-14">
-          <div className="absolute inset-0 rounded-full border border-[#E5E5E5]" />
-          <div className="absolute inset-0 animate-spin rounded-full border border-[#2F4F3D] border-t-transparent" />
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center text-center">
+          <div className="relative mb-6 h-14 w-14">
+            <div className="absolute inset-0 rounded-full border border-[#E5E5E5]" />
+            <div className="absolute inset-0 animate-spin rounded-full border border-[#2F4F3D] border-t-transparent" />
+          </div>
+          <h1 className="mb-2 font-serif text-xl font-semibold">正在验证身份</h1>
+          <p className="text-sm font-light text-gray-500">请稍候，即将为您完成登录…</p>
         </div>
-        <h1 className="mb-2 font-serif text-xl font-semibold">正在验证身份</h1>
-        <p className="text-sm font-light text-gray-500">请稍候，即将为您完成登录…</p>
-      </div>
-    }>
+      }
+    >
       <VerifyInner />
     </Suspense>
   );

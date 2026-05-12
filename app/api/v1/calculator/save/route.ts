@@ -51,7 +51,9 @@ export async function POST(req: NextRequest) {
   const { inputs, outputs, tax_rates_version, session_id, run_id, layer1 } = parsed.data;
 
   const anonClient = await getSupabaseServerClient();
-  const { data: { user } } = await anonClient.auth.getUser();
+  const {
+    data: { user },
+  } = await anonClient.auth.getUser();
 
   const serviceClient = getSupabaseServiceRoleClient();
 
@@ -99,10 +101,7 @@ export async function POST(req: NextRequest) {
   // If run_id provided, link the existing run to the resolved user and return
   if (run_id) {
     if (userId) {
-      await db(serviceClient)
-        .from("calculator_runs")
-        .update({ user_id: userId })
-        .eq("id", run_id);
+      await db(serviceClient).from("calculator_runs").update({ user_id: userId }).eq("id", run_id);
     }
     return NextResponse.json({ ok: true, data: { run_id } });
   }
