@@ -44,7 +44,7 @@ body {
 
 /* height, display, align-items, scroll-snap-* are set inline in ScrollPicker */
 .picker-item {
-  font-size: 22px;
+  font-size: 18px;
   color: #9ca3af;
   transition:
     color 0.15s,
@@ -56,9 +56,9 @@ body {
   user-select: none;
 }
 .picker-item.is-center {
-  font-size: 34px;
+  font-size: 26px;
   font-weight: 600;
-  color: #1a1c1a;
+  color: #2f4f3d;
 }
 
 /* ═══════════════════════════════════════════════════════════════
