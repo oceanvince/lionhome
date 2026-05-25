@@ -25,7 +25,7 @@ export interface CalculatorFormState {
 
 export const INITIAL_FORM: CalculatorFormState = {
   residency: null,
-  age: 35,
+  age: 30,
   existingProperties: 0,
   incomeBucket: 3,
   cashBucket: 1,
@@ -34,5 +34,5 @@ export const INITIAL_FORM: CalculatorFormState = {
   purpose: null,
   propertyType: null,
   timeline: null,
-  tenure: 25,
+  tenure: 30,
 };

@@ -320,7 +320,7 @@ function ScrollPicker({
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const ITEM_H = 60; // fallback; actual height read from DOM where possible
+  const ITEM_H = 48; // fallback; actual height read from DOM where possible
 
   // Read the rendered height of the first picker-item (inline height wins over CSS class).
   // Using actual DOM height prevents ITEM_H mismatch from causing wrong snap corrections.
@@ -377,15 +377,28 @@ function ScrollPicker({
           "linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%)",
       }}
     >
-      {/* Selection band lines — ±30px = ITEM_H/2 = 60/2 */}
+      {/* Selection band highlight + lines — ±24px = ITEM_H/2 = 48/2 */}
+      <div
+        style={{
+          position: "absolute",
+          left: 8,
+          right: 8,
+          top: "calc(50% - 24px)",
+          height: 48,
+          background: "#EAEFEB",
+          borderRadius: 6,
+          zIndex: 1,
+          pointerEvents: "none",
+        }}
+      />
       <div
         style={{
           position: "absolute",
           left: 0,
           right: 0,
-          top: "calc(50% - 30px)",
+          top: "calc(50% - 24px)",
           height: 1,
-          background: "#E5E5E5",
+          background: "#D1D5D1",
           zIndex: 2,
           pointerEvents: "none",
         }}
@@ -395,29 +408,31 @@ function ScrollPicker({
           position: "absolute",
           left: 0,
           right: 0,
-          top: "calc(50% + 30px)",
+          top: "calc(50% + 24px)",
           height: 1,
-          background: "#E5E5E5",
+          background: "#D1D5D1",
           zIndex: 2,
           pointerEvents: "none",
         }}
       />
 
       {/* Scrollable list.
-          height: 220, padding: 80px → content area = 60px = ITEM_H (border-box).
-          maxScrollTop = (n−1)×60, every item reachable.
+          height: 220, padding: 86px → content area = 48px = ITEM_H (border-box).
+          maxScrollTop = (n−1)×48, every item reachable.
           Items also get height inline to guarantee it regardless of CSS class resolution. */}
       <div
         ref={listRef}
         onScroll={handleScroll}
         style={
           {
+            position: "relative",
+            zIndex: 3,
             height: 220,
             overflowY: "scroll",
             scrollSnapType: "y mandatory",
             WebkitOverflowScrolling: "touch",
             scrollbarWidth: "none",
-            padding: "80px 0",
+            padding: "86px 0",
             overscrollBehavior: "contain",
           } as React.CSSProperties
         }
@@ -908,7 +923,7 @@ const SECTION_TITLE: React.CSSProperties = {
 export default function CalculatorPage() {
   const [view, setView] = useState<View>("hero");
   const [form, setForm] = useState<CalculatorFormState>(INITIAL_FORM);
-  const [ageBucket, setAgeBucket] = useState(14); // age 35
+  const [ageBucket, setAgeBucket] = useState(9); // age 30
   const [outputs, setOutputs] = useState<CalcOutputs | null>(null);
   const [taxVersion, setTaxVersion] = useState("");
   const [loadingIdx, setLoadingIdx] = useState(0);
@@ -1562,8 +1577,8 @@ export default function CalculatorPage() {
             <InputLabel>购入预期时间</InputLabel>
             <SegWrap<Timeline>
               options={[
-                { label: "3 个月内", value: "3m" },
-                { label: "6 个月内", value: "6m" },
+                { label: "3 月内", value: "3m" },
+                { label: "6 月内", value: "6m" },
                 { label: "1 年内", value: "1y" },
                 { label: "仅了解", value: "explore" },
               ]}

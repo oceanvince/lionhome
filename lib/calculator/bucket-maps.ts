@@ -1,29 +1,46 @@
 import type { CalculatorFormState, ResidencyOption } from "./form-types";
 
 export const INCOME_BUCKETS = [
-  { label: "15 万以下", mid: 120_000 },
-  { label: "15 – 25 万", mid: 200_000 },
-  { label: "25 – 35 万", mid: 300_000 },
-  { label: "35 – 50 万", mid: 425_000 },
-  { label: "50 – 75 万", mid: 625_000 },
-  { label: "75 – 100 万", mid: 875_000 },
-  { label: "100 – 150 万", mid: 1_250_000 },
-  { label: "150 万以上", mid: 1_800_000 },
+  { label: "10 万以下", mid: 50_000 },
+  { label: "10 – 20 万", mid: 150_000 },
+  { label: "20 – 30 万", mid: 250_000 },
+  { label: "30 – 40 万", mid: 350_000 },
+  { label: "40 – 50 万", mid: 450_000 },
+  { label: "50 – 60 万", mid: 550_000 },
+  { label: "60 – 70 万", mid: 650_000 },
+  { label: "70 – 80 万", mid: 750_000 },
+  { label: "80 – 90 万", mid: 850_000 },
+  { label: "90 – 100 万", mid: 950_000 },
+  { label: "100 万以上", mid: 1_250_000 },
 ] as const;
 
 export const CASH_BUCKETS = [
-  { label: "20 万以下", mid: 150_000 },
-  { label: "20 – 50 万", mid: 350_000 },
-  { label: "50 – 100 万", mid: 750_000 },
-  { label: "100 – 200 万", mid: 1_500_000 },
+  { label: "10 万以下", mid: 50_000 },
+  { label: "10 – 20 万", mid: 150_000 },
+  { label: "20 – 30 万", mid: 250_000 },
+  { label: "30 – 40 万", mid: 350_000 },
+  { label: "40 – 50 万", mid: 450_000 },
+  { label: "50 – 60 万", mid: 550_000 },
+  { label: "60 – 70 万", mid: 650_000 },
+  { label: "70 – 80 万", mid: 750_000 },
+  { label: "80 – 90 万", mid: 850_000 },
+  { label: "90 – 100 万", mid: 950_000 },
+  { label: "100 – 150 万", mid: 1_250_000 },
+  { label: "150 – 200 万", mid: 1_750_000 },
   { label: "200 万以上", mid: 2_500_000 },
 ] as const;
 
 export const CPF_BUCKETS = [
   { label: "10 万以下", mid: 50_000 },
-  { label: "10 – 30 万", mid: 200_000 },
-  { label: "30 – 60 万", mid: 450_000 },
-  { label: "60 – 100 万", mid: 800_000 },
+  { label: "10 – 20 万", mid: 150_000 },
+  { label: "20 – 30 万", mid: 250_000 },
+  { label: "30 – 40 万", mid: 350_000 },
+  { label: "40 – 50 万", mid: 450_000 },
+  { label: "50 – 60 万", mid: 550_000 },
+  { label: "60 – 70 万", mid: 650_000 },
+  { label: "70 – 80 万", mid: 750_000 },
+  { label: "80 – 90 万", mid: 850_000 },
+  { label: "90 – 100 万", mid: 950_000 },
   { label: "100 万以上", mid: 1_250_000 },
 ] as const;
 
