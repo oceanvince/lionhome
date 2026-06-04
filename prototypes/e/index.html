@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#FCFBF9">
+  <title>狮城家 · 我看中了一套房</title>
+
+  <!-- Tailwind CSS v4 via CDN -->
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Phosphor Icons (Thin) -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary: #2F4F3D;
+      --color-primary-soft: #EAEFEB;
+      --color-charcoal: #1A1C1A;
+      --color-offwhite: #FCFBF9;
+      --color-cream: #F5F1E8;
+      --color-border: #E5E5E5;
+      --color-warn: #8B3A1F;
+      --color-warn-soft: #F8EFE8;
+      --font-serif: 'Noto Serif SC', serif;
+      --font-sans: 'Noto Sans SC', sans-serif;
+    }
+
+    body { @apply bg-offwhite text-charcoal font-sans antialiased selection:bg-primary/20; }
+    h1, h2, h3, h4, h5, h6 { @apply font-serif; }
+
+    /* Buttons — 56px tap target */
+    .btn-primary {
+      @apply w-full bg-primary text-white py-4 px-6 rounded-[4px] font-medium text-base hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 cursor-pointer;
+      min-height: 56px;
+      border: none;
+    }
+    .btn-secondary {
+      @apply w-full bg-white border border-border text-charcoal py-4 px-6 rounded-[4px] font-medium text-base hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer;
+      min-height: 56px;
+    }
+
+    /* Identity grid card */
+    .identity-card {
+      @apply flex flex-col items-start justify-center p-4 border border-border rounded-[4px] cursor-pointer transition-all hover:border-gray-300 bg-white text-left;
+      min-height: 88px;
+    }
+    .identity-card.active { @apply border-primary bg-primary-soft ring-1 ring-primary; }
+    .identity-card .title { @apply text-base font-medium text-charcoal; }
+    .identity-card.active .title { @apply text-primary; }
+    .identity-card .sub { @apply text-xs font-light text-gray-500 mt-0.5; }
+
+    /* Radio cards */
+    .radio-card {
+      @apply flex items-center justify-between p-4 border border-border rounded-[4px] cursor-pointer transition-all hover:border-gray-300 bg-white;
+      min-height: 56px;
+    }
+    .radio-card.active { @apply border-primary bg-primary-soft ring-1 ring-primary; }
+
+    /* Segmented control */
+    .seg-wrap { @apply flex bg-gray-100 rounded-[4px] p-1; }
+    .seg {
+      @apply flex-1 py-3 px-4 text-center text-sm font-medium text-gray-500 rounded-[4px] cursor-pointer transition-all;
+    }
+    .seg.active { @apply bg-white text-primary shadow-sm; }
+
+    /* View layout (mobile-first 430px max) */
+    .view-section {
+      display: none;
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      flex-direction: column;
+      position: relative;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding-left: 20px;
+      padding-right: 20px;
+      padding-top: max(24px, env(safe-area-inset-top));
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+    .view-section.active {
+      display: flex;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Step header */
+    .step-header { @apply w-full flex items-center justify-between mb-7; }
+    .step-back-btn {
+      @apply w-10 h-10 flex items-center justify-center border border-border rounded-full text-charcoal hover:bg-white transition-colors cursor-pointer bg-transparent;
+    }
+    .step-indicator { @apply text-xs font-sans tracking-widest text-gray-400 uppercase; }
+
+    .question-title { @apply text-2xl font-semibold mb-2 leading-snug; }
+    .question-sub { @apply text-sm text-gray-500 mb-7 font-light; }
+
+    .input-group { @apply mb-6; }
+    .input-label { @apply block text-xs font-medium text-gray-500 mb-3; }
+
+    /* Price slider — big number + range */
+    .price-display {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 600;
+      color: var(--color-charcoal);
+      font-size: 56px;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .price-display-unit { font-size: 18px; color: #6B7280; font-weight: 400; margin-left: 8px; }
+
+    input[type="range"].lh-range {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--color-border);
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type="range"].lh-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      cursor: pointer;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    input[type="range"].lh-range::-moz-range-thumb {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      cursor: pointer;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    /* Result page hero */
+    .result-hero {
+      padding: max(48px, env(safe-area-inset-top)) 24px 32px;
+    }
+    .result-hero.good { background: var(--color-cream); }
+    .result-hero.warn { background: var(--color-warn-soft); }
+    .result-eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      font-weight: 500;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .result-hero.good .result-eyebrow { color: var(--color-primary); }
+    .result-hero.warn .result-eyebrow { color: var(--color-warn); }
+    .result-value {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 600;
+      color: var(--color-charcoal);
+      line-height: 1.15;
+      font-size: 38px;
+      white-space: nowrap;
+    }
+    .result-sub { margin-top: 12px; font-size: 12px; color: #6B7280; font-weight: 300; }
+
+    /* Brand logo dot */
+    .brand-dot { @apply inline-flex items-center gap-2; }
+    .brand-dot::before {
+      content: '';
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--color-primary);
+    }
+
+    /* Cost breakdown rows */
+    .cost-row { @apply flex justify-between text-sm py-2; }
+    .cost-row + .cost-row { border-top: 1px solid #F3F4F6; }
+    .cost-label { @apply text-gray-500 font-light; }
+    .cost-value { @apply font-medium text-charcoal; font-variant-numeric: tabular-nums; }
+
+    /* Demo helper (toggle between result states) */
+    .demo-bar {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1A1C1A;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 999px;
+      display: flex;
+      gap: 4px;
+      font-size: 11px;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .demo-bar button {
+      background: transparent;
+      color: #9CA3AF;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    .demo-bar button.active {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       VIEW 1 — HERO  (二选一入口)
+       ============================================================ -->
+  <main id="view-hero" class="view-section active" style="background:#FCFBF9; padding-left:0; padding-right:0;">
+    <div style="flex-shrink:0; padding: max(20px, env(safe-area-inset-top)) 20px 0;">
+      <span class="brand-dot text-sm font-medium tracking-wide">狮城家 LionHome</span>
+    </div>
+
+    <!-- Visual hero cream block -->
+    <div style="flex-shrink:0; padding: 48px 20px 40px; margin: 24px 20px 0; border-radius: 6px; position: relative; overflow: hidden; background: var(--color-cream);">
+      <div style="position:absolute; top:24px; right:24px; opacity:0.3;">
+        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="38" stroke="#2F4F3D" stroke-width="0.5"/>
+          <circle cx="40" cy="40" r="26" stroke="#2F4F3D" stroke-width="0.5"/>
+          <circle cx="40" cy="40" r="14" stroke="#2F4F3D" stroke-width="0.5"/>
+        </svg>
+      </div>
+      <p style="font-size:11px; letter-spacing:0.2em; color:var(--color-primary); font-weight:500; text-transform:uppercase; margin-bottom:12px;">购房力测算</p>
+      <h1 class="font-serif font-semibold text-charcoal leading-[1.05] mb-4" style="font-size:38px;">
+        您现在<br>处于哪一步？
+      </h1>
+      <p class="text-xs text-gray-500 font-light">选择更贴近您当下的状态</p>
+    </div>
+
+    <!-- Two CTAs -->
+    <div style="flex:1; padding: 32px 20px 16px; display:flex; flex-direction:column; gap:12px;">
+      <button class="btn-primary" onclick="goTo('view-target-price')">
+        <i class="ph-thin ph-house-line text-lg"></i>
+        我看中了一套房，看够不够
+      </button>
+      <button class="btn-secondary" onclick="alert('场景 B 已在 prototype c/d 实现，本原型专注场景 A。')">
+        <i class="ph-thin ph-chart-line-up text-lg"></i>
+        我不知道能买多少
+      </button>
+      <p class="text-xs text-gray-400 text-center font-light mt-4 leading-relaxed">
+        选第一项 → 输入心仪房价 → 3 步问卷<br>
+        告诉您：买这套大概要多少现金、月供多少
+      </p>
+    </div>
+
+    <div style="flex-shrink:0; padding: 16px 20px max(24px, env(safe-area-inset-bottom));">
+      <div class="flex items-center justify-center gap-2 text-xs text-gray-400 font-light">
+        <i class="ph-thin ph-lock-simple"></i>
+        <span>您的数据已被加密处理</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW 2 — TARGET PRICE  (滑块选目标房价)
+       ============================================================ -->
+  <main id="view-target-price" class="view-section">
+    <div class="step-header">
+      <button class="step-back-btn" onclick="goTo('view-hero')" aria-label="返回">
+        <i class="ph-thin ph-arrow-left text-lg"></i>
+      </button>
+      <span class="step-indicator">目标房价</span>
+    </div>
+
+    <div style="flex:1;">
+      <h2 class="question-title">您看中的房子<br>大概多少钱？</h2>
+      <p class="question-sub">后续会告诉您：买这套大概要多少现金、月供多少、占月收入多少。</p>
+
+      <div class="input-group" style="margin-top: 40px;">
+        <div class="flex items-baseline justify-center" style="margin-bottom: 32px;">
+          <span class="price-display"><span id="tp-display">180</span></span>
+          <span class="price-display-unit">万 SGD</span>
+        </div>
+
+        <input
+          id="tp-range"
+          type="range"
+          class="lh-range"
+          min="50" max="500" step="5" value="180"
+          oninput="onTpChange(this.value)"
+        />
+        <div class="flex justify-between text-xs text-gray-400 font-light mt-2">
+          <span>50 万</span>
+          <span>500 万</span>
+        </div>
+
+        <!-- Quick presets -->
+        <div class="flex gap-2 mt-6 flex-wrap">
+          <button class="text-xs px-3 py-1.5 rounded-full border border-border bg-white hover:bg-gray-50" onclick="setTp(120)">120 万</button>
+          <button class="text-xs px-3 py-1.5 rounded-full border border-border bg-white hover:bg-gray-50" onclick="setTp(150)">150 万</button>
+          <button class="text-xs px-3 py-1.5 rounded-full border border-border bg-white hover:bg-gray-50" onclick="setTp(180)">180 万</button>
+          <button class="text-xs px-3 py-1.5 rounded-full border border-border bg-white hover:bg-gray-50" onclick="setTp(220)">220 万</button>
+          <button class="text-xs px-3 py-1.5 rounded-full border border-border bg-white hover:bg-gray-50" onclick="setTp(260)">260 万</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; padding-top:16px;">
+      <button class="btn-primary" onclick="goTo('view-step-1')">
+        下一步
+        <i class="ph-thin ph-arrow-right text-lg"></i>
+      </button>
+      <p class="text-xs text-gray-400 text-center font-light mt-3">接下来 3 步：身份 · 收入 · 现金</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW 3 — STEP 1 (身份)
+       ============================================================ -->
+  <main id="view-step-1" class="view-section">
+    <div class="step-header">
+      <button class="step-back-btn" onclick="goTo('view-target-price')"><i class="ph-thin ph-arrow-left text-lg"></i></button>
+      <span class="step-indicator">步骤 1 / 3 · 个人信息</span>
+    </div>
+
+    <div style="flex:1;">
+      <h2 class="question-title">关于您的身份</h2>
+      <p class="question-sub">这三项决定您的印花税率和贷款成数。</p>
+
+      <div class="input-group">
+        <label class="input-label">主申请人身份</label>
+        <div class="grid grid-cols-2 gap-3">
+          <button class="identity-card active" data-id="sc" onclick="pickIdentity('sc', this)">
+            <span class="title">新加坡公民</span>
+            <span class="sub">ABSD 0% 起</span>
+          </button>
+          <button class="identity-card" data-id="pr" onclick="pickIdentity('pr', this)">
+            <span class="title">永久居民 (PR)</span>
+            <span class="sub">ABSD 5% 起</span>
+          </button>
+          <button class="identity-card" data-id="foreigner_wp" onclick="pickIdentity('foreigner_wp', this)">
+            <span class="title">外籍·有工作许可</span>
+            <span class="sub">EP/SP/WP/DP · ABSD 60%</span>
+          </button>
+          <button class="identity-card" data-id="foreigner_none" onclick="pickIdentity('foreigner_none', this)">
+            <span class="title">外籍·无在新身份</span>
+            <span class="sub">仅访客 · ABSD 60%</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">目前持有住宅数（含全球）</label>
+        <div class="flex flex-col gap-2">
+          <button class="radio-card active" data-prop="0" onclick="pickProp(0, this)">
+            <span><span class="font-medium">0 套</span> <span class="text-xs text-gray-400 font-light ml-2">首次置业</span></span>
+            <i class="ph-thin ph-check text-primary text-lg check-mark"></i>
+          </button>
+          <button class="radio-card" data-prop="1" onclick="pickProp(1, this)">
+            <span><span class="font-medium">1 套</span> <span class="text-xs text-gray-400 font-light ml-2">第二套买家</span></span>
+            <i class="ph-thin ph-check text-primary text-lg check-mark" style="display:none"></i>
+          </button>
+          <button class="radio-card" data-prop="2" onclick="pickProp(2, this)">
+            <span><span class="font-medium">2 套及以上</span> <span class="text-xs text-gray-400 font-light ml-2">多套持有</span></span>
+            <i class="ph-thin ph-check text-primary text-lg check-mark" style="display:none"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; padding-top:16px;">
+      <button class="btn-primary" onclick="goTo('view-step-2')">下一步 <i class="ph-thin ph-arrow-right text-lg"></i></button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW 4 — STEP 2 (收入 + 现金 简化)
+       ============================================================ -->
+  <main id="view-step-2" class="view-section">
+    <div class="step-header">
+      <button class="step-back-btn" onclick="goTo('view-step-1')"><i class="ph-thin ph-arrow-left text-lg"></i></button>
+      <span class="step-indicator">步骤 2 / 3 · 收入与现金</span>
+    </div>
+
+    <div style="flex:1;">
+      <h2 class="question-title">您的收入与现金</h2>
+      <p class="question-sub">这两项决定您能借多少、能凑多少首付。</p>
+
+      <div class="input-group">
+        <label class="input-label">家庭税前月收入（含配偶）</label>
+        <div class="flex flex-col gap-2">
+          <button class="radio-card" onclick="pickRow(this, 'income')">15,000 以下</button>
+          <button class="radio-card active" onclick="pickRow(this, 'income')">15,000 – 20,000</button>
+          <button class="radio-card" onclick="pickRow(this, 'income')">20,000 – 30,000</button>
+          <button class="radio-card" onclick="pickRow(this, 'income')">30,000 – 50,000</button>
+          <button class="radio-card" onclick="pickRow(this, 'income')">50,000 以上</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">可动用现金（不含 CPF）</label>
+        <div class="flex flex-col gap-2">
+          <button class="radio-card" onclick="pickRow(this, 'cash')">20 万以下</button>
+          <button class="radio-card active" onclick="pickRow(this, 'cash')">20 – 50 万</button>
+          <button class="radio-card" onclick="pickRow(this, 'cash')">50 – 100 万</button>
+          <button class="radio-card" onclick="pickRow(this, 'cash')">100 – 200 万</button>
+          <button class="radio-card" onclick="pickRow(this, 'cash')">200 万以上</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">CPF OA 余额（外籍可跳过）</label>
+        <div class="flex flex-col gap-2">
+          <button class="radio-card active" onclick="pickRow(this, 'cpf')">10 – 30 万</button>
+          <button class="radio-card" onclick="pickRow(this, 'cpf')">30 – 60 万</button>
+          <button class="radio-card" onclick="pickRow(this, 'cpf')">60 万以上</button>
+          <button class="radio-card" onclick="pickRow(this, 'cpf')">10 万以下 / 我不清楚</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; padding-top:16px;">
+      <button class="btn-primary" onclick="goTo('view-step-3')">下一步 <i class="ph-thin ph-arrow-right text-lg"></i></button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW 5 — STEP 3 (年龄 + 贷款年限)
+       ============================================================ -->
+  <main id="view-step-3" class="view-section">
+    <div class="step-header">
+      <button class="step-back-btn" onclick="goTo('view-step-2')"><i class="ph-thin ph-arrow-left text-lg"></i></button>
+      <span class="step-indicator">步骤 3 / 3 · 贷款</span>
+    </div>
+
+    <div style="flex:1;">
+      <h2 class="question-title">您的年龄和贷款年限</h2>
+      <p class="question-sub">年龄 + 年限 ≤ 65 可享 75% LTV。</p>
+
+      <div class="input-group">
+        <label class="input-label">主申请人年龄</label>
+        <div class="flex items-baseline gap-2">
+          <span style="font-family:'Noto Serif SC', serif; font-size:48px; font-weight:600;" id="age-display">35</span>
+          <span class="text-gray-500">岁</span>
+        </div>
+        <input type="range" class="lh-range mt-4" min="21" max="65" value="35" oninput="document.getElementById('age-display').textContent=this.value" />
+      </div>
+
+      <div class="input-group" style="margin-top:32px;">
+        <label class="input-label">期望贷款年限</label>
+        <div class="seg-wrap">
+          <button class="seg" onclick="pickSeg(this)">20 年</button>
+          <button class="seg active" onclick="pickSeg(this)">25 年</button>
+          <button class="seg" onclick="pickSeg(this)">30 年</button>
+        </div>
+        <p class="text-xs text-gray-400 font-light mt-3">年龄 + 年限 ≤ 65 时可享 75% LTV，超过则降至 55%。</p>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; padding-top:16px;">
+      <button class="btn-primary" onclick="goToLoading()">
+        生成评估
+        <i class="ph-thin ph-sparkle text-lg"></i>
+      </button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW 6 — LOADING
+       ============================================================ -->
+  <main id="view-loading" class="view-section" style="justify-content:center; align-items:center;">
+    <div class="flex flex-col items-center text-center">
+      <div style="position:relative; width:64px; height:64px; margin-bottom:28px;">
+        <div style="position:absolute; inset:0; border:1px solid #E5E5E5; border-radius:50%;"></div>
+        <div style="position:absolute; inset:0; border:1px solid #2F4F3D; border-top:1px solid transparent; border-radius:50%; animation: spin 1s linear infinite;"></div>
+      </div>
+      <h3 class="text-xl font-serif font-semibold mb-2">正在测算这套房</h3>
+      <p class="text-sm text-gray-500 font-light" id="loading-text">计算 BSD/ABSD 印花税...</p>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  </main>
+
+  <!-- ============================================================
+       VIEW 7 — RESULT  (三种状态)
+       ============================================================ -->
+  <main id="view-result" class="view-section" style="background:#FCFBF9; padding-left:0; padding-right:0; padding-top:0;">
+
+    <!-- Result Hero (动态切换) -->
+    <div id="result-hero" class="result-hero good">
+      <div class="result-eyebrow" id="res-eyebrow">买这套房需要的现金</div>
+      <div class="result-value" id="res-value">S$ 282,600</div>
+      <div class="result-sub" id="res-sub">目标房价 S$ 1,800,000 · 含首付现金、BSD、ABSD</div>
+    </div>
+
+    <!-- Body sections -->
+    <div style="padding: 28px 20px 100px;">
+
+      <!-- 关键数据卡片 -->
+      <section class="mb-6" id="res-summary-section">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-white border border-border rounded-[4px] p-4">
+            <div class="text-xs text-gray-500 font-light mb-1">月供（实际 1.65%）</div>
+            <div class="font-serif font-semibold text-charcoal text-xl" id="res-monthly">S$ 5,490</div>
+            <div class="text-xs text-gray-400 font-light mt-1">占月收入 <span id="res-monthly-pct">33%</span></div>
+          </div>
+          <div class="bg-white border border-border rounded-[4px] p-4">
+            <div class="text-xs text-gray-500 font-light mb-1">压力测试（4%）</div>
+            <div class="font-serif font-semibold text-charcoal text-xl" id="res-stress">S$ 7,200</div>
+            <div class="text-xs text-gray-400 font-light mt-1">MAS 监管要求</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 现金需求拆解 -->
+      <section class="mb-6">
+        <h4 class="text-sm font-semibold mb-3" style="font-family:'Noto Serif SC', serif;">现金需求拆解</h4>
+        <div class="bg-white border border-border rounded-[4px] p-4">
+          <div class="cost-row">
+            <span class="cost-label">25% 首付（现金部分）</span>
+            <span class="cost-value" id="cost-cash-down">S$ 130,000</span>
+          </div>
+          <div class="cost-row">
+            <span class="cost-label">BSD 买方印花税（累进）</span>
+            <span class="cost-value" id="cost-bsd">S$ 60,100</span>
+          </div>
+          <div class="cost-row">
+            <span class="cost-label">ABSD 额外印花税（PR · 5%）</span>
+            <span class="cost-value" id="cost-absd">S$ 90,000</span>
+          </div>
+          <div class="cost-row">
+            <span class="cost-label">律师 + 估价 + 杂费</span>
+            <span class="cost-value">S$ 4,000</span>
+          </div>
+          <div class="cost-row" style="border-top:1px solid var(--color-border); padding-top:12px; margin-top:4px;">
+            <span class="font-medium">总现金需求</span>
+            <span class="font-semibold text-primary" id="cost-total">S$ 282,600</span>
+          </div>
+          <p class="text-xs text-gray-400 font-light mt-3 leading-relaxed">
+            CPF 可补 <span id="cost-cpf">S$ 200,000</span>，已扣除。<br>
+            BSD 与 ABSD 必须现金 / 支票支付。
+          </p>
+        </div>
+      </section>
+
+      <!-- 建议留多少应急金 -->
+      <section class="mb-6">
+        <div class="bg-primary-soft rounded-[4px] p-4">
+          <div class="flex items-start gap-3">
+            <i class="ph-thin ph-info text-primary text-xl" style="margin-top:2px;"></i>
+            <div>
+              <div class="text-sm font-medium text-primary mb-1">买完之后您还应该留多少现金？</div>
+              <p class="text-xs text-gray-600 font-light leading-relaxed">
+                建议至少 <span class="font-semibold text-charcoal">12 个月家庭总开销</span> 作为应急金。<br>
+                按您的画像估算 ≈ <span class="font-semibold text-charcoal">S$ 96,000</span>。
+              </p>
+              <p class="text-xs text-gray-500 font-light mt-2">
+                所以您实际应该有现金 ≈ <span class="font-semibold text-primary" id="cost-suggested-cash">S$ 378,600</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 不可行时的诊断面板（仅 warn 状态显示） -->
+      <section class="mb-6 hidden" id="res-diagnosis">
+        <h4 class="text-sm font-semibold mb-3 text-warn" style="font-family:'Noto Serif SC', serif;">怎么办？</h4>
+        <div class="bg-white border border-warn-soft rounded-[4px] p-4">
+          <div class="space-y-3 text-sm">
+            <div class="flex items-start gap-2">
+              <i class="ph-thin ph-arrow-right text-warn mt-0.5"></i>
+              <span class="text-gray-700" id="diag-tip-1">再攒 <span class="font-semibold">S$ XX,XXX</span> 现金，或父母赞助补足这部分</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <i class="ph-thin ph-arrow-right text-warn mt-0.5"></i>
+              <span class="text-gray-700" id="diag-tip-2">考虑降低预算到 <span class="font-semibold">S$ 1.4M – 1.5M</span> 区间</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <i class="ph-thin ph-arrow-right text-warn mt-0.5"></i>
+              <span class="text-gray-700" id="diag-tip-3">延长贷款年限到 30 年（如可）能略微减少首付压力</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="mt-8">
+        <button class="btn-primary" onclick="alert('在真实产品里：会带着报告编号跳转到 WhatsApp 联系顾问')">
+          <i class="ph-thin ph-whatsapp-logo text-lg"></i>
+          找顾问帮我看这套房
+        </button>
+        <button class="btn-secondary mt-3" onclick="goTo('view-target-price')">
+          <i class="ph-thin ph-pencil-simple text-lg"></i>
+          换一套房价再算
+        </button>
+      </section>
+
+      <!-- Identity-aware note -->
+      <section class="mt-6 border-l-2 border-primary pl-4 py-1">
+        <p class="text-xs text-gray-500 font-light leading-relaxed">
+          基于您 <span class="font-medium text-charcoal">PR · 首套</span> 的身份测算。<br>
+          ABSD 5% · LTV 75% · TDSR 55% · 利率 1.65% / 压力 4%（MAS 标准）。
+          税率与法规以 IRAS / MAS 最新公告为准。
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       DEMO BAR — 切换 3 种结果状态（仅原型演示用，正式版本删除）
+       ============================================================ -->
+  <div class="demo-bar" id="demo-bar" style="display:none;">
+    <button class="active" onclick="showResult('feasible')">可行</button>
+    <button onclick="showResult('cash_gap')">现金不足</button>
+    <button onclick="showResult('tdsr_exceeded')">月供超标</button>
+  </div>
+
+  <script>
+    /* ──────────────────────────────────────────────────────────────
+       原型导航 + 演示数据
+       ────────────────────────────────────────────────────────────── */
+
+    let currentView = 'view-hero';
+
+    function goTo(viewId) {
+      const cur = document.getElementById(currentView);
+      if (cur) cur.classList.remove('active');
+      const next = document.getElementById(viewId);
+      if (next) next.classList.add('active');
+      currentView = viewId;
+      window.scrollTo(0, 0);
+
+      // demo bar 只在 result 显示
+      const demoBar = document.getElementById('demo-bar');
+      demoBar.style.display = viewId === 'view-result' ? 'flex' : 'none';
+    }
+
+    function goToLoading() {
+      goTo('view-loading');
+      const texts = [
+        '计算 BSD/ABSD 印花税...',
+        '测算最高贷款成数 (LTV)...',
+        '评估总偿债比率 (TDSR)...',
+        '生成现金需求拆解...',
+      ];
+      let i = 0;
+      const el = document.getElementById('loading-text');
+      const t = setInterval(() => {
+        i = Math.min(i + 1, texts.length - 1);
+        el.textContent = texts[i];
+      }, 700);
+      setTimeout(() => {
+        clearInterval(t);
+        goTo('view-result');
+        showResult('feasible');   // 默认展示可行
+      }, 2400);
+    }
+
+    /* ──── 滑块：目标房价 ──── */
+    function onTpChange(v) {
+      document.getElementById('tp-display').textContent = v;
+    }
+    function setTp(v) {
+      document.getElementById('tp-range').value = v;
+      onTpChange(v);
+    }
+
+    /* ──── 通用：identity / radio / seg 选中态切换 ──── */
+    function pickIdentity(id, el) {
+      const cards = el.parentElement.querySelectorAll('.identity-card');
+      cards.forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+    }
+    function pickProp(n, el) {
+      const cards = el.parentElement.querySelectorAll('.radio-card');
+      cards.forEach(c => {
+        c.classList.remove('active');
+        const mark = c.querySelector('.check-mark');
+        if (mark) mark.style.display = 'none';
+      });
+      el.classList.add('active');
+      const mark = el.querySelector('.check-mark');
+      if (mark) mark.style.display = '';
+    }
+    function pickRow(el, group) {
+      const cards = el.parentElement.querySelectorAll('.radio-card');
+      cards.forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+    }
+    function pickSeg(el) {
+      const segs = el.parentElement.querySelectorAll('.seg');
+      segs.forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    /* ──── 结果页 3 种状态 (硬编码 demo 数据) ──── */
+    const RESULT_STATES = {
+      feasible: {
+        hero_class: 'good',
+        eyebrow: '买这套房需要的现金',
+        value: 'S$ 282,600',
+        sub: '目标房价 S$ 1,800,000 · 含首付现金、BSD、ABSD',
+        monthly: 'S$ 5,490',
+        monthly_pct: '33%',
+        stress: 'S$ 7,200',
+        cash_down: 'S$ 130,000',
+        bsd: 'S$ 60,100',
+        absd: 'S$ 90,000',
+        cpf: 'S$ 200,000',
+        total: 'S$ 282,600',
+        suggested: 'S$ 378,600',
+        show_diag: false,
+      },
+      cash_gap: {
+        hero_class: 'warn',
+        eyebrow: '现金不足',
+        value: '还差 S$ 67,100',
+        sub: '这套 S$ 1,850,000 的房子，所需现金超过您当前可用额度',
+        monthly: 'S$ 5,640',
+        monthly_pct: '33%',
+        stress: 'S$ 7,320',
+        cash_down: 'S$ 142,500',
+        bsd: 'S$ 62,100',
+        absd: 'S$ 92,500',
+        cpf: 'S$ 200,000',
+        total: 'S$ 417,100',
+        suggested: 'S$ 513,100',
+        show_diag: true,
+        tips: [
+          '再攒 <span class="font-semibold">S$ 67,100</span> 现金，或父母赞助补足这部分',
+          '考虑降低预算到 <span class="font-semibold">S$ 1.4M – 1.5M</span> 区间',
+          '延长贷款年限到 30 年（如可）能略微减少首付压力',
+        ],
+      },
+      tdsr_exceeded: {
+        hero_class: 'warn',
+        eyebrow: '月供超出 TDSR 上限',
+        value: '月供超 S$ 1,820',
+        sub: '这套 S$ 2,400,000 的房子，按当前收入难以通过银行 TDSR',
+        monthly: 'S$ 7,320',
+        monthly_pct: '43%',
+        stress: 'S$ 9,540',
+        cash_down: 'S$ 184,000',
+        bsd: 'S$ 84,600',
+        absd: 'S$ 120,000',
+        cpf: 'S$ 200,000',
+        total: 'S$ 392,600',
+        suggested: 'S$ 488,600',
+        show_diag: true,
+        tips: [
+          '收入需提升约 <span class="font-semibold">SGD 4,000/月</span>（含配偶合并申请）',
+          '降低预算到 <span class="font-semibold">S$ 1.7M</span> 以内可通过 TDSR',
+          '延长贷款年限到 30 年能提升 TDSR 可贷额',
+        ],
+      },
+    };
+
+    function showResult(stateName) {
+      const s = RESULT_STATES[stateName];
+      if (!s) return;
+      const hero = document.getElementById('result-hero');
+      hero.classList.remove('good', 'warn');
+      hero.classList.add(s.hero_class);
+      document.getElementById('res-eyebrow').textContent = s.eyebrow;
+      document.getElementById('res-value').textContent = s.value;
+      document.getElementById('res-sub').textContent = s.sub;
+      document.getElementById('res-monthly').textContent = s.monthly;
+      document.getElementById('res-monthly-pct').textContent = s.monthly_pct;
+      document.getElementById('res-stress').textContent = s.stress;
+      document.getElementById('cost-cash-down').textContent = s.cash_down;
+      document.getElementById('cost-bsd').textContent = s.bsd;
+      document.getElementById('cost-absd').textContent = s.absd;
+      document.getElementById('cost-cpf').textContent = s.cpf;
+      document.getElementById('cost-total').textContent = s.total;
+      document.getElementById('cost-suggested-cash').textContent = s.suggested;
+
+      const diag = document.getElementById('res-diagnosis');
+      if (s.show_diag) {
+        diag.classList.remove('hidden');
+        document.getElementById('diag-tip-1').innerHTML = s.tips[0];
+        document.getElementById('diag-tip-2').innerHTML = s.tips[1];
+        document.getElementById('diag-tip-3').innerHTML = s.tips[2];
+      } else {
+        diag.classList.add('hidden');
+      }
+
+      // demo bar 按钮状态
+      document.querySelectorAll('.demo-bar button').forEach(b => {
+        b.classList.toggle('active', b.textContent.trim() === (
+          stateName === 'feasible' ? '可行' :
+          stateName === 'cash_gap' ? '现金不足' : '月供超标'
+        ));
+      });
+    }
+  </script>
+
+</body>
+</html>
