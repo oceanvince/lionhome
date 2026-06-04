@@ -227,7 +227,7 @@
         </div>
         <div>
           <div class="text-sm font-medium mb-0.5">我该看多少钱档次的房</div>
-          <div class="text-xs text-gray-500 font-light leading-relaxed">舒适 · 平衡 · 极限 三档区间，避免月供吃紧</div>
+          <div class="text-xs text-gray-500 font-light leading-relaxed">舒适 · 平衡 · 压力 三档区间，避免月供吃紧</div>
         </div>
       </div>
       <div class="flex items-start gap-3">
@@ -347,9 +347,12 @@
       <div class="input-group">
         <label class="input-label">家庭税前月收入（含配偶）</label>
         <div class="flex flex-col gap-2">
-          <button class="radio-card" data-income="10000" onclick="pickIncome(10000, '5,000 – 15,000', this)">5,000 – 15,000</button>
-          <button class="radio-card" data-income="17500" onclick="pickIncome(17500, '15,000 – 20,000', this)">15,000 – 20,000</button>
-          <button class="radio-card" data-income="25000" onclick="pickIncome(25000, '20,000 – 30,000', this)">20,000 – 30,000</button>
+          <button class="radio-card" data-income="6500" onclick="pickIncome(6500, '5,000 – 8,000', this)">5,000 – 8,000</button>
+          <button class="radio-card" data-income="10000" onclick="pickIncome(10000, '8,000 – 12,000', this)">8,000 – 12,000</button>
+          <button class="radio-card" data-income="14000" onclick="pickIncome(14000, '12,000 – 16,000', this)">12,000 – 16,000</button>
+          <button class="radio-card" data-income="18000" onclick="pickIncome(18000, '16,000 – 20,000', this)">16,000 – 20,000</button>
+          <button class="radio-card" data-income="22500" onclick="pickIncome(22500, '20,000 – 25,000', this)">20,000 – 25,000</button>
+          <button class="radio-card" data-income="27500" onclick="pickIncome(27500, '25,000 – 30,000', this)">25,000 – 30,000</button>
           <button class="radio-card" data-income="40000" onclick="pickIncome(40000, '30,000 – 50,000', this)">30,000 – 50,000</button>
           <button class="radio-card" data-income="65000" onclick="pickIncome(65000, '50,000 以上', this)">50,000 以上</button>
         </div>
@@ -358,11 +361,14 @@
       <div class="input-group">
         <label class="input-label">可动用现金（不含 CPF，含父母赞助）</label>
         <div class="flex flex-col gap-2">
-          <button class="radio-card" data-cash="150000" onclick="pickCash(150000, '20 万以下', this)">20 万以下</button>
-          <button class="radio-card" data-cash="350000" onclick="pickCash(350000, '20 – 50 万', this)">20 – 50 万</button>
-          <button class="radio-card" data-cash="750000" onclick="pickCash(750000, '50 – 100 万', this)">50 – 100 万</button>
-          <button class="radio-card" data-cash="1500000" onclick="pickCash(1500000, '100 – 200 万', this)">100 – 200 万</button>
-          <button class="radio-card" data-cash="2500000" onclick="pickCash(2500000, '200 万以上', this)">200 万以上</button>
+          <button class="radio-card" data-cash="70000" onclick="pickCash(70000, '10 万以下', this)">10 万以下</button>
+          <button class="radio-card" data-cash="150000" onclick="pickCash(150000, '10 – 20 万', this)">10 – 20 万</button>
+          <button class="radio-card" data-cash="250000" onclick="pickCash(250000, '20 – 30 万', this)">20 – 30 万</button>
+          <button class="radio-card" data-cash="400000" onclick="pickCash(400000, '30 – 50 万', this)">30 – 50 万</button>
+          <button class="radio-card" data-cash="650000" onclick="pickCash(650000, '50 – 80 万', this)">50 – 80 万</button>
+          <button class="radio-card" data-cash="1000000" onclick="pickCash(1000000, '80 – 120 万', this)">80 – 120 万</button>
+          <button class="radio-card" data-cash="1600000" onclick="pickCash(1600000, '120 – 200 万', this)">120 – 200 万</button>
+          <button class="radio-card" data-cash="2800000" onclick="pickCash(2800000, '200 万以上', this)">200 万以上</button>
         </div>
       </div>
 
@@ -370,8 +376,10 @@
         <label class="input-label">CPF OA 余额（可粗估）</label>
         <p class="text-xs text-gray-400 font-light mb-3 leading-relaxed">登录 cpf.gov.sg 可查精确数额，估个大概也行。</p>
         <div class="flex flex-col gap-2">
-          <button class="radio-card" data-cpf="50000" onclick="pickCpf(50000, '10 万以下', this)">10 万以下 / 不清楚</button>
-          <button class="radio-card" data-cpf="200000" onclick="pickCpf(200000, '10 – 30 万', this)">10 – 30 万</button>
+          <button class="radio-card" data-cpf="30000" onclick="pickCpf(30000, '5 万以下', this)">5 万以下 / 不清楚</button>
+          <button class="radio-card" data-cpf="80000" onclick="pickCpf(80000, '5 – 10 万', this)">5 – 10 万</button>
+          <button class="radio-card" data-cpf="150000" onclick="pickCpf(150000, '10 – 20 万', this)">10 – 20 万</button>
+          <button class="radio-card" data-cpf="250000" onclick="pickCpf(250000, '20 – 30 万', this)">20 – 30 万</button>
           <button class="radio-card" data-cpf="450000" onclick="pickCpf(450000, '30 – 60 万', this)">30 – 60 万</button>
           <button class="radio-card" data-cpf="800000" onclick="pickCpf(800000, '60 万以上', this)">60 万以上</button>
         </div>
@@ -477,7 +485,7 @@
             <div class="tier-sub">月供占月收入 ≤ 35%</div>
           </div>
           <div class="tier-card" data-tier="aggressive" onclick="pickTier('aggressive')">
-            <div class="tier-label">极限区 <span class="tier-badge warn">MAS 上限</span></div>
+            <div class="tier-label">压力区 <span class="tier-badge warn">MAS 上限</span></div>
             <div class="tier-range" id="tier-aggressive-range">S$ 150 – 170 万</div>
             <div class="tier-sub">月供占月收入 ≤ 55% · 日常生活会吃紧</div>
           </div>
@@ -494,11 +502,11 @@
             按 <span class="font-medium text-charcoal" id="cash-tier-price">S$ 140 万</span>（区间中点）测算。
           </p>
           <div class="cost-row">
-            <span class="cost-label">首付现金部分（5% 必须）</span>
+            <span class="cost-label">首付现金部分</span>
             <span class="cost-value" id="cost-cash-down">S$ 70,000</span>
           </div>
           <div class="cost-row" id="row-cpf">
-            <span class="cost-label">CPF 可补（首付的 20%）</span>
+            <span class="cost-label">CPF 抵扣</span>
             <span class="cost-value" id="cost-cpf">S$ 200,000</span>
           </div>
           <div class="cost-row">
@@ -526,6 +534,7 @@
             <span class="font-semibold text-primary text-base" id="cost-total">S$ 279,600</span>
           </div>
           <p class="text-xs text-gray-400 font-light mt-4 leading-relaxed">
+            首付 = 房价 × 25%。CPF 最多可抵扣房价的 20%，剩下房价的 5% 必须现金。<br>
             BSD 与 ABSD 必须现金 / 支票支付，CPF 不可。
           </p>
         </div>
@@ -582,18 +591,15 @@
         </p>
 
         <div class="bg-white border border-border rounded-[4px] p-5">
-          <!-- 同档位市场月租 -->
+          <!-- 租房预算 -->
           <div class="mb-5">
             <div class="flex items-center justify-between mb-2">
-              <label class="input-label" style="margin-bottom:0;">同档位市场月租（可改）</label>
-              <span class="text-xs text-gray-400 font-light">
-                <i class="ph-thin ph-info"></i> URA 估算
-              </span>
+              <label class="input-label" style="margin-bottom:0;">如果不买，您打算每月花多少租房？</label>
             </div>
             <input type="text" class="rent-input" id="rent-input" value="4,500"
                    onfocus="this.select()" oninput="onRentChange()" />
             <p class="text-xs text-gray-400 font-light mt-2">
-              系统按"平衡区"房价估算；如果您打算租别的，直接改。
+              默认按当前选中区间估算，直接填您的真实数字会更准。
             </p>
           </div>
 
@@ -927,7 +933,7 @@
     return Math.round(((lo + hi) / 2) * 10000) / 100; // 返回百分数，保留 2 位
   }
 
-  // 估算同档位市场月租（粗略：房价 × 0.027 / 12，即年化租金回报 ~2.7%）
+  // 默认租房预算估算（粗略：房价 × 0.027 / 12，即年化租金回报 ~2.7%）
   function estimateMedianRent(price) {
     const annualYield = 0.027;
     return Math.round(price * annualYield / 12 / 100) * 100;
@@ -1112,7 +1118,7 @@
     const tier = state.result[state.selectedTier];
     const midPrice = (tier.low + tier.high) / 2;
     const ev = evaluatePrice(midPrice);
-    const tierLabel = { comfortable: '"舒适区"', balanced: '"平衡区"', aggressive: '"极限区"' }[state.selectedTier];
+    const tierLabel = { comfortable: '"舒适区"', balanced: '"平衡区"', aggressive: '"压力区"' }[state.selectedTier];
     document.getElementById('cash-tier-label').textContent = tierLabel;
     document.getElementById('cash-tier-price').textContent = `S$ ${(midPrice/10_000).toFixed(0)} 万`;
 
