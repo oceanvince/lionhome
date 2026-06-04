@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#FCFBF9">
+  <title>狮城家 · 我该花多少钱买房？</title>
+
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary: #2F4F3D;
+      --color-primary-soft: #EAEFEB;
+      --color-charcoal: #1A1C1A;
+      --color-offwhite: #FCFBF9;
+      --color-cream: #F5F1E8;
+      --color-border: #E5E5E5;
+      --color-warn: #8B3A1F;
+      --color-warn-soft: #F8EFE8;
+      --font-serif: 'Noto Serif SC', serif;
+      --font-sans: 'Noto Sans SC', sans-serif;
+    }
+
+    body { @apply bg-offwhite text-charcoal font-sans antialiased selection:bg-primary/20; }
+    h1, h2, h3, h4, h5, h6 { @apply font-serif; }
+
+    .btn-primary {
+      @apply w-full bg-primary text-white py-4 px-6 rounded-[4px] font-medium text-base hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 cursor-pointer;
+      min-height: 56px; border: none;
+    }
+    .btn-secondary {
+      @apply w-full bg-white border border-border text-charcoal py-4 px-6 rounded-[4px] font-medium text-base hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer;
+      min-height: 56px;
+    }
+
+    .identity-card {
+      @apply flex flex-col items-start justify-center p-4 border border-border rounded-[4px] cursor-pointer transition-all hover:border-gray-300 bg-white text-left;
+      min-height: 88px;
+    }
+    .identity-card.active { @apply border-primary bg-primary-soft ring-1 ring-primary; }
+    .identity-card .title { @apply text-base font-medium text-charcoal; }
+    .identity-card.active .title { @apply text-primary; }
+    .identity-card .sub { @apply text-xs font-light text-gray-500 mt-0.5; }
+
+    .radio-card {
+      @apply flex items-center justify-between p-4 border border-border rounded-[4px] cursor-pointer transition-all hover:border-gray-300 bg-white text-left w-full;
+      min-height: 56px;
+    }
+    .radio-card.active { @apply border-primary bg-primary-soft ring-1 ring-primary; }
+
+    .seg-wrap { @apply flex bg-gray-100 rounded-[4px] p-1; }
+    .seg {
+      @apply flex-1 py-2.5 px-3 text-center text-sm font-medium text-gray-500 rounded-[4px] cursor-pointer transition-all;
+    }
+    .seg.active { @apply bg-white text-primary shadow-sm; }
+
+    .view-section {
+      display: none;
+      width: 100%;
+      max-width: 430px;
+      margin: 0 auto;
+      flex-direction: column;
+      position: relative;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding-left: 20px;
+      padding-right: 20px;
+      padding-top: max(24px, env(safe-area-inset-top));
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+    .view-section.active {
+      display: flex;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-header { @apply w-full flex items-center justify-between mb-7; }
+    .step-back-btn {
+      @apply w-10 h-10 flex items-center justify-center border border-border rounded-full text-charcoal hover:bg-white transition-colors cursor-pointer bg-transparent;
+    }
+    .step-indicator { @apply text-xs font-sans tracking-widest text-gray-400 uppercase; }
+
+    .question-title { @apply text-2xl font-semibold mb-2 leading-snug; }
+    .question-sub { @apply text-sm text-gray-500 mb-7 font-light; }
+
+    .input-group { @apply mb-6; }
+    .input-label { @apply block text-xs font-medium text-gray-500 mb-3; }
+
+    input[type="range"].lh-range {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px; background: var(--color-border);
+      border-radius: 2px; outline: none;
+    }
+    input[type="range"].lh-range::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--color-primary); cursor: pointer;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    input[type="range"].lh-range::-moz-range-thumb {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--color-primary); cursor: pointer;
+      border: 3px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    /* Tier card (result block 1) */
+    .tier-card {
+      @apply bg-white border border-border rounded-[4px] p-5 cursor-pointer transition-all hover:border-gray-300;
+    }
+    .tier-card.active {
+      @apply border-primary ring-1 ring-primary bg-primary-soft;
+    }
+    .tier-card .tier-label {
+      font-size: 11px; letter-spacing: 0.2em;
+      font-weight: 500; text-transform: uppercase;
+      color: var(--color-primary);
+    }
+    .tier-card .tier-range {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 22px; font-weight: 600; color: var(--color-charcoal);
+      margin-top: 4px; font-variant-numeric: tabular-nums;
+    }
+    .tier-card .tier-sub {
+      font-size: 12px; color: #6B7280; font-weight: 300; margin-top: 4px;
+    }
+    .tier-badge {
+      display: inline-block; margin-left: 8px;
+      font-size: 10px; padding: 2px 8px; border-radius: 999px;
+      background: var(--color-primary); color: #fff; font-weight: 500;
+      vertical-align: middle;
+    }
+    .tier-badge.warn {
+      background: var(--color-warn);
+    }
+
+    .result-hero {
+      padding: max(40px, env(safe-area-inset-top)) 20px 28px;
+      background: var(--color-cream);
+    }
+    .result-eyebrow {
+      font-size: 11px; letter-spacing: 0.2em; font-weight: 500;
+      text-transform: uppercase; color: var(--color-primary); margin-bottom: 8px;
+    }
+    .result-title {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 28px; font-weight: 600; line-height: 1.2;
+      color: var(--color-charcoal);
+    }
+
+    .cost-row { @apply flex justify-between text-sm py-2.5; }
+    .cost-row + .cost-row { border-top: 1px solid #F3F4F6; }
+    .cost-label { @apply text-gray-500 font-light; }
+    .cost-value { @apply font-medium text-charcoal; font-variant-numeric: tabular-nums; }
+
+    .break-even-bignum {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 40px; font-weight: 600;
+      color: var(--color-primary); line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .brand-dot { @apply inline-flex items-center gap-2; }
+    .brand-dot::before {
+      content: ''; display: inline-block;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--color-primary);
+    }
+
+    /* Editable rent input */
+    .rent-input {
+      width: 100%; padding: 12px 16px;
+      border: 1px solid var(--color-border); border-radius: 4px;
+      font-family: 'Noto Serif SC', serif;
+      font-size: 22px; font-weight: 600; color: var(--color-charcoal);
+      text-align: center; background: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .rent-input:focus { outline: 2px solid var(--color-primary); }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       VIEW · HERO
+       ============================================================ -->
+  <main id="view-hero" class="view-section active" style="background:#FCFBF9; padding-left:0; padding-right:0;">
+    <div style="flex-shrink:0; padding: max(20px, env(safe-area-inset-top)) 20px 0;">
+      <span class="brand-dot text-sm font-medium tracking-wide">狮城家 LionHome</span>
+    </div>
+
+    <div style="flex-shrink:0; padding: 48px 20px 40px; margin: 24px 20px 0; border-radius: 6px; position: relative; overflow: hidden; background: var(--color-cream);">
+      <div style="position:absolute; top:24px; right:24px; opacity:0.3;">
+        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="38" stroke="#2F4F3D" stroke-width="0.5"/>
+          <circle cx="40" cy="40" r="26" stroke="#2F4F3D" stroke-width="0.5"/>
+          <circle cx="40" cy="40" r="14" stroke="#2F4F3D" stroke-width="0.5"/>
+        </svg>
+      </div>
+      <p style="font-size:11px; letter-spacing:0.2em; color:var(--color-primary); font-weight:500; text-transform:uppercase; margin-bottom:12px;">理性购房决策</p>
+      <h1 class="font-serif font-semibold text-charcoal leading-[1.05] mb-4" style="font-size:36px;">
+        新加坡买房，<br>我该花多少钱？
+      </h1>
+      <div class="flex items-baseline gap-2">
+        <span class="text-xs text-gray-500 font-light">3 分钟理性决策</span>
+        <span style="width:4px; height:4px; border-radius:50%; background:#D1D5DB;"></span>
+        <span class="text-xs text-gray-500 font-light">无需注册</span>
+      </div>
+    </div>
+
+    <div style="flex:1; padding: 32px 28px 8px; display:flex; flex-direction:column; gap:20px;">
+      <div class="flex items-start gap-3">
+        <div style="width:28px; height:28px; border-radius:50%; background:var(--color-primary-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="#2F4F3D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="text-sm font-medium mb-0.5">我该看多少钱档次的房</div>
+          <div class="text-xs text-gray-500 font-light leading-relaxed">舒适 · 平衡 · 极限 三档区间，避免月供吃紧</div>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <div style="width:28px; height:28px; border-radius:50%; background:var(--color-primary-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="#2F4F3D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="text-sm font-medium mb-0.5">手里应该攒多少现金</div>
+          <div class="text-xs text-gray-500 font-light leading-relaxed">首付 · 印花税 · 应急金，一笔笔拆给您看</div>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <div style="width:28px; height:28px; border-radius:50%; background:var(--color-primary-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="#2F4F3D" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="text-sm font-medium mb-0.5">买还是租，到底哪个划算</div>
+          <div class="text-xs text-gray-500 font-light leading-relaxed">告诉您 break-even 涨幅，赌注一目了然</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-shrink:0; padding: 24px 20px max(24px, env(safe-area-inset-bottom));">
+      <button class="btn-primary" onclick="goTo('view-step-1')">
+        开始测算
+        <i class="ph-thin ph-arrow-right text-lg"></i>
+      </button>
+      <div class="flex items-center justify-center gap-2 text-xs text-gray-400 font-light mt-3">
+        <i class="ph-thin ph-lock-simple"></i>
+        <span>您的数据已被加密处理</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW · STEP 1 (身份 · 套数 · 年龄)
+       ============================================================ -->
+  <main id="view-step-1" class="view-section">
+    <div class="step-header">
+      <button class="step-back-btn" onclick="goTo('view-hero')"><i class="ph-thin ph-arrow-left text-lg"></i></button>
+      <span class="step-indicator">步骤 1 / 3 · 您和这次买房</span>
+    </div>
+
+    <div style="flex:1;">
+      <h2 class="question-title">关于您的身份</h2>
+      <p class="question-sub">这三项决定您的印花税率、贷款成数与 CPF 可用性。</p>
+
+      <div class="input-group">
+        <label class="input-label">主申请人身份</label>
+        <div class="grid grid-cols-2 gap-3">
+          <button class="identity-card" data-residency="sc" onclick="pickResidency('sc', this)">
+            <span class="title">新加坡公民</span>
+            <span class="sub">ABSD 0% 起</span>
+          </button>
+          <button class="identity-card" data-residency="pr" onclick="pickResidency('pr', this)">
+            <span class="title">永久居民 (PR)</span>
+            <span class="sub">ABSD 5% 起</span>
+          </button>
+          <button class="identity-card" data-residency="foreigner_wp" onclick="pickResidency('foreigner_wp', this)">
+            <span class="title">外籍·有工作许可</span>
+            <span class="sub">EP/SP/WP · ABSD 60%</span>
+          </button>
+          <button class="identity-card" data-residency="foreigner_none" onclick="pickResidency('foreigner_none', this)">
+            <span class="title">外籍·无在新身份</span>
+            <span class="sub">仅访客 · ABSD 60%</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">名下已有几套住宅（含全球）</label>
+        <div class="flex flex-col gap-2">
+          <button class="radio-card" data-props="0" onclick="pickProps(0, this)">
+            <span><span class="font-medium">0 套</span> <span class="text-xs text-gray-400 font-light ml-2">首次置业</span></span>
+          </button>
+          <button class="radio-card" data-props="1" onclick="pickProps(1, this)">
+            <span><span class="font-medium">1 套</span> <span class="text-xs text-gray-400 font-light ml-2">第二套买家</span></span>
+          </button>
+          <button class="radio-card" data-props="2" onclick="pickProps(2, this)">
+            <span><span class="font-medium">2 套及以上</span> <span class="text-xs text-gray-400 font-light ml-2">多套持有</span></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">主申请人年龄</label>
+        <div class="flex items-baseline gap-2 mb-3">
+          <span style="font-family:'Noto Serif SC', serif; font-size:36px; font-weight:600;" id="age-display">35</span>
+          <span class="text-gray-500">岁</span>
+          <span class="text-xs text-gray-400 font-light ml-auto" id="age-note">年龄 + 30 年 = 65，正好维持 75% LTV</span>
+        </div>
+        <input type="range" class="lh-range" min="21" max="65" value="35"
+               oninput="onAgeChange(this.value)" id="age-range" />
+      </div>
+    </div>
+
+    <div style="margin-top:24px; padding-top:16px;">
+      <button class="btn-primary" id="step1-next" onclick="goTo('view-step-2')" disabled style="opacity:0.4;">
+        下一步 <i class="ph-thin ph-arrow-right text-lg"></i>
+      </button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW · STEP 2 (收入 · 现金 · CPF)
+       ============================================================ -->
+  <main id="view-step-2" class="view-section">
+    <div class="step-header">
+      <button class="step-back-btn" onclick="goTo('view-step-1')"><i class="ph-thin ph-arrow-left text-lg"></i></button>
+      <span class="step-indicator">步骤 2 / 3 · 您的钱</span>
+    </div>
+
+    <div style="flex:1;">
+      <h2 class="question-title">您的收入与现金</h2>
+      <p class="question-sub">这两项决定您能借多少、能凑多少首付。区间档即可，无需精确。</p>
+
+      <div class="input-group">
+        <label class="input-label">家庭税前月收入（含配偶）</label>
+        <div class="flex flex-col gap-2">
+          <button class="radio-card" data-income="10000" onclick="pickIncome(10000, '5,000 – 15,000', this)">5,000 – 15,000</button>
+          <button class="radio-card" data-income="17500" onclick="pickIncome(17500, '15,000 – 20,000', this)">15,000 – 20,000</button>
+          <button class="radio-card" data-income="25000" onclick="pickIncome(25000, '20,000 – 30,000', this)">20,000 – 30,000</button>
+          <button class="radio-card" data-income="40000" onclick="pickIncome(40000, '30,000 – 50,000', this)">30,000 – 50,000</button>
+          <button class="radio-card" data-income="65000" onclick="pickIncome(65000, '50,000 以上', this)">50,000 以上</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">可动用现金（不含 CPF，含父母赞助）</label>
+        <div class="flex flex-col gap-2">
+          <button class="radio-card" data-cash="150000" onclick="pickCash(150000, '20 万以下', this)">20 万以下</button>
+          <button class="radio-card" data-cash="350000" onclick="pickCash(350000, '20 – 50 万', this)">20 – 50 万</button>
+          <button class="radio-card" data-cash="750000" onclick="pickCash(750000, '50 – 100 万', this)">50 – 100 万</button>
+          <button class="radio-card" data-cash="1500000" onclick="pickCash(1500000, '100 – 200 万', this)">100 – 200 万</button>
+          <button class="radio-card" data-cash="2500000" onclick="pickCash(2500000, '200 万以上', this)">200 万以上</button>
+        </div>
+      </div>
+
+      <div class="input-group" id="cpf-group">
+        <label class="input-label">CPF OA 余额（可粗估）</label>
+        <p class="text-xs text-gray-400 font-light mb-3 leading-relaxed">登录 cpf.gov.sg 可查精确数额，估个大概也行。</p>
+        <div class="flex flex-col gap-2">
+          <button class="radio-card" data-cpf="50000" onclick="pickCpf(50000, '10 万以下', this)">10 万以下 / 不清楚</button>
+          <button class="radio-card" data-cpf="200000" onclick="pickCpf(200000, '10 – 30 万', this)">10 – 30 万</button>
+          <button class="radio-card" data-cpf="450000" onclick="pickCpf(450000, '30 – 60 万', this)">30 – 60 万</button>
+          <button class="radio-card" data-cpf="800000" onclick="pickCpf(800000, '60 万以上', this)">60 万以上</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; padding-top:16px;">
+      <button class="btn-primary" id="step2-next" onclick="goTo('view-step-3')" disabled style="opacity:0.4;">
+        下一步 <i class="ph-thin ph-arrow-right text-lg"></i>
+      </button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW · STEP 3 (购入时间线)
+       ============================================================ -->
+  <main id="view-step-3" class="view-section">
+    <div class="step-header">
+      <button class="step-back-btn" onclick="goTo('view-step-2')"><i class="ph-thin ph-arrow-left text-lg"></i></button>
+      <span class="step-indicator">步骤 3 / 3 · 您的计划</span>
+    </div>
+
+    <div style="flex:1;">
+      <h2 class="question-title">您打算何时买？</h2>
+      <p class="question-sub">这一项不影响计算，只用于后续匹配合适节奏的顾问。</p>
+
+      <div class="input-group">
+        <div class="flex flex-col gap-2">
+          <button class="radio-card" data-timeline="6m" onclick="pickTimeline('6m', this)">半年内</button>
+          <button class="radio-card" data-timeline="1y" onclick="pickTimeline('1y', this)">1 年内</button>
+          <button class="radio-card" data-timeline="explore" onclick="pickTimeline('explore', this)">1 年以上 / 仅了解</button>
+        </div>
+      </div>
+
+      <!-- 默认值说明 -->
+      <div style="background:#FAF8F2; border-radius:4px; padding:16px; margin-top:24px;">
+        <div class="flex items-start gap-2">
+          <i class="ph-thin ph-info text-gray-400 text-base" style="margin-top:2px;"></i>
+          <div>
+            <p class="text-xs text-gray-600 font-light leading-relaxed">
+              系统默认按 <span class="font-medium text-charcoal">贷款 30 年 · 持有 7 年 · 利率 1.65%</span> 测算。
+              结果页可调，看不同情境下的数字。
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px; padding-top:16px;">
+      <button class="btn-primary" id="step3-next" onclick="goToLoading()" disabled style="opacity:0.4;">
+        生成评估
+        <i class="ph-thin ph-sparkle text-lg"></i>
+      </button>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       VIEW · LOADING
+       ============================================================ -->
+  <main id="view-loading" class="view-section" style="justify-content:center; align-items:center;">
+    <div class="flex flex-col items-center text-center">
+      <div style="position:relative; width:64px; height:64px; margin-bottom:28px;">
+        <div style="position:absolute; inset:0; border:1px solid #E5E5E5; border-radius:50%;"></div>
+        <div style="position:absolute; inset:0; border:1px solid #2F4F3D; border-top:1px solid transparent; border-radius:50%; animation: spin 1s linear infinite;"></div>
+      </div>
+      <h3 class="text-xl font-serif font-semibold mb-2">正在为您理性决策</h3>
+      <p class="text-sm text-gray-500 font-light" id="loading-text">计算 BSD/ABSD 印花税...</p>
+    </div>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+  </main>
+
+  <!-- ============================================================
+       VIEW · RESULT
+       ============================================================ -->
+  <main id="view-result" class="view-section" style="padding-left:0; padding-right:0; padding-top:0;">
+
+    <!-- Hero -->
+    <div class="result-hero">
+      <div class="result-eyebrow">您的理性购房决策</div>
+      <div class="result-title" id="result-title-line1">基于您 <span id="hero-residency">PR · 首套</span> 的画像</div>
+      <p class="text-xs text-gray-500 font-light mt-3" id="hero-sub">
+        以下三档房价对应不同月供压力，平衡区为推荐。
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding: 28px 20px 100px;">
+
+      <!-- ===== Block 1 · 三档房价区间 ===== -->
+      <section class="mb-8">
+        <h3 class="text-sm font-semibold mb-4" style="font-family:'Noto Serif SC', serif;">
+          ① 您理性可支持的房价
+        </h3>
+        <div class="flex flex-col gap-3">
+          <div class="tier-card" data-tier="comfortable" onclick="pickTier('comfortable')">
+            <div class="tier-label">舒适区</div>
+            <div class="tier-range" id="tier-comfortable-range">S$ 100 – 130 万</div>
+            <div class="tier-sub">月供占月收入 ≤ 30%</div>
+          </div>
+          <div class="tier-card active" data-tier="balanced" onclick="pickTier('balanced')">
+            <div class="tier-label">平衡区 <span class="tier-badge">推荐</span></div>
+            <div class="tier-range" id="tier-balanced-range">S$ 130 – 150 万</div>
+            <div class="tier-sub">月供占月收入 ≤ 35%</div>
+          </div>
+          <div class="tier-card" data-tier="aggressive" onclick="pickTier('aggressive')">
+            <div class="tier-label">极限区 <span class="tier-badge warn">MAS 上限</span></div>
+            <div class="tier-range" id="tier-aggressive-range">S$ 150 – 170 万</div>
+            <div class="tier-sub">月供占月收入 ≤ 55% · 日常生活会吃紧</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Block 2 · 现金需求拆解 ===== -->
+      <section class="mb-8">
+        <h3 class="text-sm font-semibold mb-4" style="font-family:'Noto Serif SC', serif;">
+          ② 买 <span id="cash-tier-label" class="text-primary">"平衡区"</span> 的房需要准备的现金
+        </h3>
+        <div class="bg-white border border-border rounded-[4px] p-5">
+          <p class="text-xs text-gray-400 font-light mb-4 leading-relaxed">
+            按 <span class="font-medium text-charcoal" id="cash-tier-price">S$ 140 万</span>（区间中点）测算。
+          </p>
+          <div class="cost-row">
+            <span class="cost-label">首付现金部分（5% 必须）</span>
+            <span class="cost-value" id="cost-cash-down">S$ 70,000</span>
+          </div>
+          <div class="cost-row" id="row-cpf">
+            <span class="cost-label">CPF 可补（首付的 20%）</span>
+            <span class="cost-value" id="cost-cpf">S$ 200,000</span>
+          </div>
+          <div class="cost-row">
+            <span class="cost-label">BSD 买方印花税（累进）</span>
+            <span class="cost-value" id="cost-bsd">S$ 39,600</span>
+          </div>
+          <div class="cost-row">
+            <span class="cost-label">ABSD 额外印花税（<span id="cost-absd-rate">PR 5%</span>）</span>
+            <span class="cost-value" id="cost-absd">S$ 70,000</span>
+          </div>
+          <div class="cost-row">
+            <span class="cost-label">律师 / 估价 / 杂费</span>
+            <span class="cost-value">S$ 4,000</span>
+          </div>
+          <div class="cost-row" style="border-top:1px solid var(--color-border); padding-top:12px; margin-top:4px;">
+            <span class="font-medium">交易现金需求</span>
+            <span class="font-semibold text-charcoal" id="cost-transaction">S$ 183,600</span>
+          </div>
+          <div class="cost-row" style="border-top:none;">
+            <span class="cost-label">+ 应急金（12 个月家庭开销）</span>
+            <span class="cost-value" id="cost-emergency">S$ 96,000</span>
+          </div>
+          <div class="cost-row" style="border-top:1px solid var(--color-border); padding-top:12px; margin-top:4px;">
+            <span class="font-medium">您实际应有现金 ≥</span>
+            <span class="font-semibold text-primary text-base" id="cost-total">S$ 279,600</span>
+          </div>
+          <p class="text-xs text-gray-400 font-light mt-4 leading-relaxed">
+            BSD 与 ABSD 必须现金 / 支票支付，CPF 不可。
+          </p>
+        </div>
+
+        <!-- Feasibility / Diagnosis (conditional) -->
+        <div id="feasibility-good" class="mt-4" style="display:none;">
+          <div class="bg-primary-soft rounded-[4px] p-4 flex items-start gap-3">
+            <i class="ph-thin ph-check-circle text-primary text-xl" style="margin-top:2px;"></i>
+            <div>
+              <div class="text-sm font-medium text-primary mb-1">您的现金充足</div>
+              <p class="text-xs text-gray-600 font-light leading-relaxed" id="feasibility-good-text">
+                您当前现金 S$ 350,000 ≥ 应有现金 S$ 279,600，可以放心进场看房。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div id="feasibility-warn" class="mt-4" style="display:none;">
+          <div style="background:var(--color-warn-soft); border-radius:4px; padding:16px;">
+            <div class="flex items-start gap-3">
+              <i class="ph-thin ph-warning-circle text-warn text-xl" style="margin-top:2px;"></i>
+              <div>
+                <div class="text-sm font-medium text-warn mb-1" id="feasibility-warn-title">还差 S$ 70,000 现金</div>
+                <p class="text-xs text-gray-600 font-light leading-relaxed mb-3" id="feasibility-warn-text">
+                  您当前现金不足以买这档房。可选方案：
+                </p>
+                <div class="space-y-2 text-xs">
+                  <div class="flex items-start gap-2" id="diag-tip-1">
+                    <i class="ph-thin ph-arrow-right text-warn mt-0.5"></i>
+                    <span class="text-gray-700">再攒约 <span class="font-semibold" id="diag-amount">S$ 70,000</span></span>
+                  </div>
+                  <div class="flex items-start gap-2" id="diag-tip-2">
+                    <i class="ph-thin ph-arrow-right text-warn mt-0.5"></i>
+                    <span class="text-gray-700">降一档到 <span class="font-semibold" id="diag-lower">舒适区</span></span>
+                  </div>
+                  <div class="flex items-start gap-2" id="diag-tip-3">
+                    <i class="ph-thin ph-arrow-right text-warn mt-0.5"></i>
+                    <span class="text-gray-700" id="diag-third">父母赞助补足</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Block 3 · 买 vs 租 break-even（仅首套）===== -->
+      <section class="mb-8" id="break-even-section">
+        <h3 class="text-sm font-semibold mb-1" style="font-family:'Noto Serif SC', serif;">
+          ③ 那这套房买不买划算？
+        </h3>
+        <p class="text-xs text-gray-500 font-light mb-4">
+          买房 vs 继续租 + 把首付投资，哪个 7 年后净资产更高？
+        </p>
+
+        <div class="bg-white border border-border rounded-[4px] p-5">
+          <!-- 同档位市场月租 -->
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <label class="input-label" style="margin-bottom:0;">同档位市场月租（可改）</label>
+              <span class="text-xs text-gray-400 font-light">
+                <i class="ph-thin ph-info"></i> URA 估算
+              </span>
+            </div>
+            <input type="text" class="rent-input" id="rent-input" value="4,500"
+                   onfocus="this.select()" oninput="onRentChange()" />
+            <p class="text-xs text-gray-400 font-light mt-2">
+              系统按"平衡区"房价估算；如果您打算租别的，直接改。
+            </p>
+          </div>
+
+          <!-- 4 个微调参数 -->
+          <div class="mb-5">
+            <label class="input-label">打算住几年？</label>
+            <div class="seg-wrap">
+              <button class="seg" data-years="5" onclick="pickYears(5, this)">5 年</button>
+              <button class="seg active" data-years="7" onclick="pickYears(7, this)">7 年</button>
+              <button class="seg" data-years="10" onclick="pickYears(10, this)">10 年</button>
+              <button class="seg" data-years="15" onclick="pickYears(15, this)">15 年</button>
+            </div>
+          </div>
+
+          <div class="mb-5">
+            <label class="input-label">贷款年限</label>
+            <div class="seg-wrap">
+              <button class="seg" data-tenure="20" onclick="pickTenure(20, this)">20 年</button>
+              <button class="seg" data-tenure="25" onclick="pickTenure(25, this)">25 年</button>
+              <button class="seg active" data-tenure="30" onclick="pickTenure(30, this)">30 年</button>
+            </div>
+          </div>
+
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <label class="input-label" style="margin-bottom:0;">房贷利率</label>
+              <span class="text-sm font-medium text-charcoal"><span id="rate-display">1.65</span>%</span>
+            </div>
+            <input type="range" class="lh-range" min="1.5" max="4.0" step="0.05" value="1.65"
+                   oninput="onRateChange(this.value)" id="rate-range" />
+            <div class="flex justify-between text-xs text-gray-400 font-light mt-1">
+              <span>1.5%</span><span>4.0%</span>
+            </div>
+          </div>
+
+          <!-- Break-even bignum -->
+          <div style="background:var(--color-primary-soft); border-radius:4px; padding:20px; text-align:center; margin-top:20px;">
+            <div class="text-xs text-primary font-medium tracking-widest uppercase mb-2">这套房年涨 ≥</div>
+            <div class="break-even-bignum"><span id="break-even-pct">2.0</span>%</div>
+            <div class="text-xs text-primary font-medium mt-2">买才比租划算</div>
+          </div>
+
+          <!-- 历史涨幅参考 -->
+          <div class="mt-4 pl-4" style="border-left: 2px solid var(--color-primary);">
+            <p class="text-xs text-gray-600 font-light leading-relaxed">
+              <span class="font-medium text-charcoal" id="historical-ref">新加坡私宅过去 10 年实际涨 2.8% / 年</span><br>
+              <span class="text-gray-500">您怎么看未来 <span id="years-ref">7</span> 年这套房的涨幅？</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 二套以上的替代提示 -->
+      <section class="mb-8 hidden" id="multi-property-note">
+        <div class="bg-white border border-border rounded-[4px] p-4 flex items-start gap-3">
+          <i class="ph-thin ph-info text-gray-400 text-lg" style="margin-top:2px;"></i>
+          <p class="text-xs text-gray-500 font-light leading-relaxed">
+            二套及以上不显示"买 vs 租"对比 —— 您的决策逻辑是投资回报率而非居住成本，
+            建议结合租金回报率 + 增值预期单独评估。
+          </p>
+        </div>
+      </section>
+
+      <!-- ===== CTA ===== -->
+      <section class="mt-8">
+        <button class="btn-primary" onclick="alert('在真实产品里：会带着报告编号跳转到 WhatsApp 联系顾问')">
+          <i class="ph-thin ph-whatsapp-logo text-lg"></i>
+          找顾问帮我看这个区间的房
+        </button>
+        <button class="btn-secondary mt-3" onclick="goTo('view-hero'); resetForm();">
+          <i class="ph-thin ph-arrow-counter-clockwise text-lg"></i>
+          换一组参数再测
+        </button>
+      </section>
+
+      <!-- ===== 身份与法规注脚 ===== -->
+      <section class="mt-6 border-l-2 border-primary pl-4 py-1">
+        <p class="text-xs text-gray-500 font-light leading-relaxed" id="result-note">
+          基于 PR · 首套 · 35 岁 · 月入 17.5K · 现金 35 万 · CPF 20 万 测算。<br>
+          ABSD 5% · LTV 75% · TDSR 55% · 利率 1.65% / 压力 4%（MAS 标准）。
+          税率与法规以 IRAS / MAS 最新公告为准。
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       MOCK ENGINE
+       ============================================================ -->
+  <script>
+  /* ──────────────────────────────────────────────────────────────
+     全局状态
+     ────────────────────────────────────────────────────────────── */
+  const state = {
+    residency: null,        // 'sc' | 'pr' | 'foreigner_wp' | 'foreigner_none'
+    propertyCount: null,    // 0 | 1 | 2
+    age: 35,
+    incomeMonthly: null,
+    incomeLabel: null,
+    cash: null,
+    cashLabel: null,
+    cpf: null,
+    cpfLabel: null,
+    timeline: null,
+
+    // 结果页可调参数
+    selectedTier: 'balanced',
+    years: 7,
+    tenure: 30,
+    rate: 1.65,             // %
+    rent: 4500,             // S$/月
+
+    // 计算缓存
+    result: null,
+  };
+
+  /* ──────────────────────────────────────────────────────────────
+     Mock 引擎 —— 按 V2 spec 实现简化版（前端 demo 用）
+     ────────────────────────────────────────────────────────────── */
+
+  const TAX = {
+    bsdSlabs: [
+      { from: 0, rate: 0.01 },
+      { from: 180_000, rate: 0.02 },
+      { from: 360_000, rate: 0.03 },
+      { from: 1_000_000, rate: 0.04 },
+      { from: 1_500_000, rate: 0.05 },
+      { from: 3_000_000, rate: 0.06 },
+    ],
+    absd: {  // 1=首套，2=第二套，3=第三套及以上
+      sc:             [0,    0.20, 0.30],
+      pr:             [0.05, 0.30, 0.35],
+      foreigner_wp:   [0.60, 0.60, 0.60],
+      foreigner_none: [0.60, 0.60, 0.60],
+    },
+    stressRate: 0.04,
+    tdsrCap: 0.55,
+  };
+
+  function bsd(price) {
+    if (price <= 0) return 0;
+    let total = 0;
+    for (let i = 0; i < TAX.bsdSlabs.length; i++) {
+      const cur = TAX.bsdSlabs[i];
+      const next = TAX.bsdSlabs[i + 1];
+      if (price <= cur.from) break;
+      const upper = next ? Math.min(price, next.from) : price;
+      total += (upper - cur.from) * cur.rate;
+    }
+    return Math.round(total);
+  }
+
+  function absdRate(residency, propertyCount) {
+    const buyingCount = Math.min(propertyCount + 1, 3); // 0+1=1（首套）
+    const arr = TAX.absd[residency] || TAX.absd.sc;
+    return arr[buyingCount - 1];
+  }
+
+  function absd(price, residency, propertyCount) {
+    return Math.round(price * absdRate(residency, propertyCount));
+  }
+
+  function ltvCap(age, tenureYears, propertyCount) {
+    if (propertyCount >= 1) return 0.45;       // 第二套
+    if (age + tenureYears > 65) return 0.55;   // 老龄/长贷
+    return 0.75;
+  }
+
+  // 月供（PMT 公式）
+  function pmt(principal, annualRate, years) {
+    if (principal <= 0) return 0;
+    const i = annualRate / 12;
+    const n = years * 12;
+    if (i === 0) return principal / n;
+    return principal * i * Math.pow(1 + i, n) / (Math.pow(1 + i, n) - 1);
+  }
+
+  // 反算贷款：已知月供上限，反推本金（按压力利率）
+  function maxLoanFromMonthly(monthlyCap, years) {
+    if (monthlyCap <= 0) return 0;
+    const i = TAX.stressRate / 12;
+    const n = years * 12;
+    return monthlyCap * (Math.pow(1 + i, n) - 1) / (i * Math.pow(1 + i, n));
+  }
+
+  // 给定"月供占月收入"比例，求最大可买房价
+  function solveAtRatio(ratio) {
+    const monthlyIncome = state.incomeMonthly;
+    const monthlyCap = monthlyIncome * ratio;
+    const ltv = ltvCap(state.age, state.tenure, state.propertyCount);
+    const maxLoanByTdsr = maxLoanFromMonthly(monthlyCap, state.tenure);
+
+    // 二分搜索最大房价：满足首付 + BSD + ABSD ≤ 可用现金
+    let lo = 0, hi = 30_000_000;
+    for (let iter = 0; iter < 60; iter++) {
+      const mid = (lo + hi) / 2;
+      const maxLoanByLtv = mid * ltv;
+      const loan = Math.min(maxLoanByTdsr, maxLoanByLtv);
+      const down = mid - loan;
+      const cashMin = mid * 0.05;
+      if (down < cashMin) { hi = mid; continue; }
+      const cpfUse = Math.min(state.cpf, down - cashMin);
+      const cashDown = down - cpfUse;
+      const cashNeeded = cashDown + bsd(mid) + absd(mid, state.residency, state.propertyCount) + 4000;
+      if (cashNeeded <= state.cash) lo = mid; else hi = mid;
+      if (hi - lo < 1000) break;
+    }
+    return Math.floor(lo / 10_000) * 10_000;
+  }
+
+  // 给定房价，输出完整数字（用于 block 2 拆解）
+  function evaluatePrice(price) {
+    const ltv = ltvCap(state.age, state.tenure, state.propertyCount);
+    const maxLoanByTdsr = maxLoanFromMonthly(state.incomeMonthly * TAX.tdsrCap, state.tenure);
+    const loan = Math.min(maxLoanByTdsr, price * ltv);
+    const down = price - loan;
+    const cashMin = price * 0.05;
+    const cpfUse = Math.min(state.cpf, Math.max(0, down - cashMin));
+    const cashDown = down - cpfUse;
+    const b = bsd(price);
+    const a = absd(price, state.residency, state.propertyCount);
+    const fees = 4000;
+    const txCash = Math.round(cashDown + b + a + fees);
+    const monthlyBase = pmt(loan, state.rate / 100, state.tenure);
+    const monthlyStress = pmt(loan, TAX.stressRate, state.tenure);
+    return {
+      price,
+      loan: Math.round(loan),
+      ltv,
+      cashMin: Math.round(cashMin),
+      cashDown: Math.round(cashDown),
+      cpfUse: Math.round(cpfUse),
+      bsd: b,
+      absd: a,
+      fees,
+      txCash,
+      monthlyBase: Math.round(monthlyBase),
+      monthlyStress: Math.round(monthlyStress),
+    };
+  }
+
+  // 三档区间
+  function computeTiers() {
+    const comfortMax = solveAtRatio(0.30);
+    const balanceMax = solveAtRatio(0.35);
+    const aggressiveMax = solveAtRatio(0.55);
+
+    // 区间下界 = 上一档上限（粗略），最低 50 万
+    return {
+      comfortable: {
+        low: Math.max(500_000, comfortMax * 0.80),
+        high: comfortMax,
+        ratio: 0.30,
+      },
+      balanced: {
+        low: comfortMax,
+        high: balanceMax,
+        ratio: 0.35,
+      },
+      aggressive: {
+        low: balanceMax,
+        high: aggressiveMax,
+        ratio: 0.55,
+      },
+    };
+  }
+
+  // Break-even 涨幅：给定 price/rent/years/rate/tenure，求 g*
+  // 简化模型：买房 7 年后净资产 vs 租房 7 年后净资产
+  function computeBreakEven(price) {
+    const r_alt = 0.05;              // 替代投资回报（5%/年）
+    const propertyTaxRate = 0.004;   // 自住房产税 ~0.4%
+    const mcstMonthly = 450;         // 物业费 ~$450/月
+    const maintRate = 0.01;          // 维护 + 折旧 ~1%/年
+    const sellingCost = 0.02;        // 卖出佣金 2%
+    const ltv = ltvCap(state.age, state.tenure, state.propertyCount);
+    const maxLoanByTdsr = maxLoanFromMonthly(state.incomeMonthly * TAX.tdsrCap, state.tenure);
+    const loan = Math.min(maxLoanByTdsr, price * ltv);
+    const down = price - loan;
+    const totalUpfront = down + bsd(price) + absd(price, state.residency, state.propertyCount) + 4000;
+    const i = state.rate / 100;
+    const monthly = pmt(loan, i, state.tenure);
+    const H = state.years;
+    const rent = state.rent * 12;    // 年化
+
+    // 计算 H 年后剩余贷款（线性近似：剩余本金）
+    // 标准摊还公式
+    const monthsTotal = state.tenure * 12;
+    const monthsPaid = H * 12;
+    let remaining = loan;
+    if (i > 0) {
+      const m_i = i / 12;
+      const FV = loan * Math.pow(1 + m_i, monthsPaid);
+      const PMT_FV = monthly * (Math.pow(1 + m_i, monthsPaid) - 1) / m_i;
+      remaining = Math.max(0, FV - PMT_FV);
+    } else {
+      remaining = Math.max(0, loan - monthly * monthsPaid);
+    }
+
+    // 7 年累计支出
+    const totalInterestPaid = monthly * monthsPaid - (loan - remaining);
+    const totalMcst = mcstMonthly * monthsPaid;
+    const totalPropertyTax = propertyTaxRate * price * H;
+    const totalMaintenance = maintRate * price * H;
+    const totalRent = rent * H;
+
+    // 租房方案：H 年后资产 = 初始投资 × (1+r)^H + 每月省下钱 × 滚动收益
+    // 每月"省下"= monthly + mcst + propTax/12 + maint/12 - rent/12
+    const monthlySaving = monthly + mcstMonthly + propertyTaxRate * price / 12 + maintRate * price / 12 - rent / 12;
+    let rentNet = totalUpfront * Math.pow(1 + r_alt, H);
+    if (monthlySaving > 0) {
+      // 月度滚动投资，按 r_alt 复利
+      const m_r = r_alt / 12;
+      rentNet += monthlySaving * (Math.pow(1 + m_r, monthsPaid) - 1) / m_r;
+    }
+    rentNet -= totalRent;
+
+    // 买房方案：H 年后净资产 = 卖房价 × (1-销售费) − 剩余贷款 − 累计养房成本
+    // 求 g* 使得两边相等
+    // 买房净资产(g) = price × (1+g)^H × (1-sellingCost) - remaining - totalMcst - totalPropertyTax - totalMaintenance - totalInterestPaid
+    // 等于 rentNet
+    // 二分搜 g
+    let lo = -0.10, hi = 0.15;
+    for (let it = 0; it < 80; it++) {
+      const g = (lo + hi) / 2;
+      const sellValue = price * Math.pow(1 + g, H) * (1 - sellingCost);
+      const buyNet = sellValue - remaining - totalMcst - totalPropertyTax - totalMaintenance - totalInterestPaid;
+      if (buyNet < rentNet) lo = g; else hi = g;
+      if (hi - lo < 1e-5) break;
+    }
+    return Math.round(((lo + hi) / 2) * 10000) / 100; // 返回百分数，保留 2 位
+  }
+
+  // 估算同档位市场月租（粗略：房价 × 0.027 / 12，即年化租金回报 ~2.7%）
+  function estimateMedianRent(price) {
+    const annualYield = 0.027;
+    return Math.round(price * annualYield / 12 / 100) * 100;
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     视图切换
+     ────────────────────────────────────────────────────────────── */
+  let currentView = 'view-hero';
+  function goTo(viewId) {
+    const cur = document.getElementById(currentView);
+    if (cur) cur.classList.remove('active');
+    const next = document.getElementById(viewId);
+    if (next) next.classList.add('active');
+    currentView = viewId;
+    window.scrollTo(0, 0);
+  }
+
+  function goToLoading() {
+    goTo('view-loading');
+    const texts = [
+      '计算 BSD/ABSD 印花税...',
+      '测算 LTV 与 TDSR...',
+      '生成三档房价区间...',
+      '计算 break-even 涨幅...',
+    ];
+    let i = 0;
+    const el = document.getElementById('loading-text');
+    const t = setInterval(() => {
+      i = Math.min(i + 1, texts.length - 1);
+      el.textContent = texts[i];
+    }, 600);
+    setTimeout(() => {
+      clearInterval(t);
+      runAndRender();
+      goTo('view-result');
+    }, 2200);
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     问卷交互
+     ────────────────────────────────────────────────────────────── */
+  function checkStep1Ready() {
+    const ok = state.residency && state.propertyCount !== null;
+    const btn = document.getElementById('step1-next');
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '0.4';
+    // 年龄+30 提示
+    const ageSum = state.age + 30;
+    const note = document.getElementById('age-note');
+    if (ageSum > 65) {
+      note.textContent = `年龄 + 30 年 = ${ageSum}（>65），LTV 降至 55%`;
+      note.style.color = '#8B3A1F';
+    } else {
+      note.textContent = `年龄 + 30 年 = ${ageSum}，可享 75% LTV`;
+      note.style.color = '#9CA3AF';
+    }
+  }
+
+  function checkStep2Ready() {
+    const isForeigner = state.residency && state.residency.startsWith('foreigner');
+    const ok = state.incomeMonthly && state.cash && (isForeigner || state.cpf);
+    const btn = document.getElementById('step2-next');
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '0.4';
+  }
+
+  function checkStep3Ready() {
+    const ok = !!state.timeline;
+    const btn = document.getElementById('step3-next');
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '0.4';
+  }
+
+  function pickResidency(r, el) {
+    state.residency = r;
+    document.querySelectorAll('[data-residency]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    // 外籍隐藏 CPF
+    const isForeigner = r.startsWith('foreigner');
+    document.getElementById('cpf-group').style.display = isForeigner ? 'none' : '';
+    if (isForeigner) state.cpf = 0;
+    checkStep1Ready();
+    checkStep2Ready();
+  }
+
+  function pickProps(n, el) {
+    state.propertyCount = n;
+    document.querySelectorAll('[data-props]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    checkStep1Ready();
+  }
+
+  function onAgeChange(v) {
+    state.age = Number(v);
+    document.getElementById('age-display').textContent = v;
+    checkStep1Ready();
+  }
+
+  function pickIncome(v, label, el) {
+    state.incomeMonthly = v;
+    state.incomeLabel = label;
+    document.querySelectorAll('[data-income]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    checkStep2Ready();
+  }
+  function pickCash(v, label, el) {
+    state.cash = v;
+    state.cashLabel = label;
+    document.querySelectorAll('[data-cash]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    checkStep2Ready();
+  }
+  function pickCpf(v, label, el) {
+    state.cpf = v;
+    state.cpfLabel = label;
+    document.querySelectorAll('[data-cpf]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    checkStep2Ready();
+  }
+  function pickTimeline(t, el) {
+    state.timeline = t;
+    document.querySelectorAll('[data-timeline]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    checkStep3Ready();
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     结果页：计算 + 渲染
+     ────────────────────────────────────────────────────────────── */
+  function runAndRender() {
+    const tiers = computeTiers();
+    state.result = tiers;
+    renderHero();
+    renderTiers(tiers);
+    renderCashAndBreakEven();
+    // 二套以上隐藏 break-even
+    const isFirst = state.propertyCount === 0;
+    document.getElementById('break-even-section').style.display = isFirst ? '' : 'none';
+    document.getElementById('multi-property-note').classList.toggle('hidden', isFirst);
+  }
+
+  function residencyLabel() {
+    const map = {
+      sc: '新加坡公民',
+      pr: 'PR',
+      foreigner_wp: '外籍 (WP)',
+      foreigner_none: '外籍 (无身份)',
+    };
+    const r = map[state.residency] || 'PR';
+    const props = state.propertyCount === 0 ? '首套' : state.propertyCount === 1 ? '第二套' : '第三套+';
+    return `${r} · ${props}`;
+  }
+
+  function renderHero() {
+    document.getElementById('hero-residency').textContent = residencyLabel();
+  }
+
+  function fmt(n) {
+    return Math.round(n).toLocaleString('en-US');
+  }
+  function fmtRange(low, high) {
+    const lowM = (low / 10_000).toFixed(0);
+    const highM = (high / 10_000).toFixed(0);
+    return `S$ ${lowM} – ${highM} 万`;
+  }
+
+  function renderTiers(tiers) {
+    document.getElementById('tier-comfortable-range').textContent = fmtRange(tiers.comfortable.low, tiers.comfortable.high);
+    document.getElementById('tier-balanced-range').textContent = fmtRange(tiers.balanced.low, tiers.balanced.high);
+    document.getElementById('tier-aggressive-range').textContent = fmtRange(tiers.aggressive.low, tiers.aggressive.high);
+  }
+
+  function pickTier(tier) {
+    state.selectedTier = tier;
+    document.querySelectorAll('.tier-card').forEach(c => c.classList.remove('active'));
+    document.querySelector(`.tier-card[data-tier="${tier}"]`).classList.add('active');
+    renderCashAndBreakEven();
+  }
+
+  function renderCashAndBreakEven() {
+    const tier = state.result[state.selectedTier];
+    const midPrice = (tier.low + tier.high) / 2;
+    const ev = evaluatePrice(midPrice);
+    const tierLabel = { comfortable: '"舒适区"', balanced: '"平衡区"', aggressive: '"极限区"' }[state.selectedTier];
+    document.getElementById('cash-tier-label').textContent = tierLabel;
+    document.getElementById('cash-tier-price').textContent = `S$ ${(midPrice/10_000).toFixed(0)} 万`;
+
+    document.getElementById('cost-cash-down').textContent = `S$ ${fmt(ev.cashDown)}`;
+    document.getElementById('cost-cpf').textContent = `S$ ${fmt(ev.cpfUse)}`;
+    document.getElementById('cost-bsd').textContent = `S$ ${fmt(ev.bsd)}`;
+    document.getElementById('cost-absd').textContent = `S$ ${fmt(ev.absd)}`;
+    const absdRateMap = { sc: 'SC 0%', pr: 'PR 5%', foreigner_wp: '外籍 60%', foreigner_none: '外籍 60%' };
+    document.getElementById('cost-absd-rate').textContent = absdRateMap[state.residency] || '5%';
+    document.getElementById('cost-transaction').textContent = `S$ ${fmt(ev.txCash)}`;
+    // 应急金按月入 × 0.6（估算月支出）× 12
+    const emergency = Math.round(state.incomeMonthly * 0.55 * 12);
+    document.getElementById('cost-emergency').textContent = `S$ ${fmt(emergency)}`;
+    const total = ev.txCash + emergency;
+    document.getElementById('cost-total').textContent = `S$ ${fmt(total)}`;
+
+    // CPF 行：外籍隐藏
+    document.getElementById('row-cpf').style.display = state.cpf > 0 ? '' : 'none';
+
+    // 可行性
+    const cashGap = total - state.cash;
+    if (cashGap <= 0) {
+      document.getElementById('feasibility-good').style.display = '';
+      document.getElementById('feasibility-warn').style.display = 'none';
+      document.getElementById('feasibility-good-text').textContent =
+        `您当前现金 S$ ${fmt(state.cash)} ≥ 应有现金 S$ ${fmt(total)}，可以放心进场看房。`;
+    } else {
+      document.getElementById('feasibility-good').style.display = 'none';
+      document.getElementById('feasibility-warn').style.display = '';
+      document.getElementById('feasibility-warn-title').textContent = `还差 S$ ${fmt(cashGap)} 现金`;
+      document.getElementById('diag-amount').textContent = `S$ ${fmt(cashGap)}`;
+      const lowerTier = state.selectedTier === 'aggressive' ? '平衡区' : state.selectedTier === 'balanced' ? '舒适区' : '更低预算';
+      document.getElementById('diag-lower').textContent = lowerTier;
+      // 外籍特殊建议
+      if (state.residency && state.residency.startsWith('foreigner')) {
+        document.getElementById('diag-third').textContent = '拿到 PR 后再买，ABSD 从 60% 降到 5%';
+      } else {
+        document.getElementById('diag-third').textContent = '父母赞助补足';
+      }
+    }
+
+    // 默认按平衡区估算租金
+    const balancePrice = (state.result.balanced.low + state.result.balanced.high) / 2;
+    const estRent = estimateMedianRent(balancePrice);
+    // 仅在首次渲染时填默认值（用户改过就保留）
+    const rentInput = document.getElementById('rent-input');
+    if (!rentInput.dataset.userEdited) {
+      rentInput.value = estRent.toLocaleString('en-US');
+      state.rent = estRent;
+    }
+
+    renderBreakEven();
+    renderFooterNote();
+  }
+
+  function renderBreakEven() {
+    if (state.propertyCount !== 0) return;
+    const tier = state.result[state.selectedTier];
+    const midPrice = (tier.low + tier.high) / 2;
+    const g = computeBreakEven(midPrice);
+    document.getElementById('break-even-pct').textContent = g.toFixed(1);
+    document.getElementById('years-ref').textContent = state.years;
+  }
+
+  function renderFooterNote() {
+    const ageStr = `${state.age} 岁`;
+    const incomeStr = state.incomeLabel ? state.incomeLabel.replace('SGD', 'S$') : '';
+    const cashStr = state.cashLabel || '';
+    const cpfStr = state.cpf > 0 ? state.cpfLabel : 'CPF=0';
+    const note = `基于 ${residencyLabel()} · ${ageStr} · 月入 ${incomeStr} · 现金 ${cashStr} · ${cpfStr} 测算。\nABSD ${(absdRate(state.residency, state.propertyCount)*100).toFixed(0)}% · LTV ${(ltvCap(state.age, state.tenure, state.propertyCount)*100).toFixed(0)}% · TDSR 55% · 利率 ${state.rate}% / 压力 4%（MAS 标准）。\n税率与法规以 IRAS / MAS 最新公告为准。`;
+    document.getElementById('result-note').innerHTML = note.replace(/\n/g, '<br>');
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     结果页 4 个微调参数
+     ────────────────────────────────────────────────────────────── */
+  function onRentChange() {
+    const raw = document.getElementById('rent-input').value.replace(/[^\d]/g, '');
+    if (raw) {
+      state.rent = Number(raw);
+      document.getElementById('rent-input').dataset.userEdited = '1';
+      renderBreakEven();
+    }
+  }
+  function pickYears(y, el) {
+    state.years = y;
+    document.querySelectorAll('[data-years]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderBreakEven();
+  }
+  function pickTenure(t, el) {
+    state.tenure = t;
+    document.querySelectorAll('[data-tenure]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    // 改变贷款年限会触发 LTV 边界 + 整套数字重算
+    if (state.result) {
+      const tiers = computeTiers();
+      state.result = tiers;
+      renderTiers(tiers);
+      renderCashAndBreakEven();
+    }
+  }
+  function onRateChange(v) {
+    state.rate = Number(v);
+    document.getElementById('rate-display').textContent = v;
+    renderBreakEven();
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     重置
+     ────────────────────────────────────────────────────────────── */
+  function resetForm() {
+    state.residency = null;
+    state.propertyCount = null;
+    state.age = 35;
+    state.incomeMonthly = null;
+    state.cash = null;
+    state.cpf = null;
+    state.timeline = null;
+    state.selectedTier = 'balanced';
+    state.years = 7;
+    state.tenure = 30;
+    state.rate = 1.65;
+    state.rent = 4500;
+    document.querySelectorAll('.identity-card, .radio-card, .tier-card, .seg').forEach(b => b.classList.remove('active'));
+    document.querySelector('.tier-card[data-tier="balanced"]').classList.add('active');
+    document.querySelector('[data-years="7"]').classList.add('active');
+    document.querySelector('[data-tenure="30"]').classList.add('active');
+    document.getElementById('age-range').value = 35;
+    document.getElementById('age-display').textContent = 35;
+    document.getElementById('rate-range').value = 1.65;
+    document.getElementById('rate-display').textContent = 1.65;
+    document.getElementById('rent-input').value = '4,500';
+    delete document.getElementById('rent-input').dataset.userEdited;
+    checkStep1Ready();
+    checkStep2Ready();
+    checkStep3Ready();
+  }
+
+  // 初始化
+  checkStep1Ready();
+  checkStep2Ready();
+  checkStep3Ready();
+  </script>
+
+</body>
+</html>
