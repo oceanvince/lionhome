@@ -1,23 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { solveMaxPurchasePrice, SEED_TAX_RATES } from "@/lib/tax";
+import { SEED_TAX_RATES } from "@/lib/tax";
 import type { TaxRatesConfig } from "@/lib/tax";
+import { computeV2 } from "@/lib/calculator/v2-compute";
 
 export const runtime = "nodejs";
 
-const DISPLAY_RATE = 0.0165; // Default market rate shown to user
+const DEFAULT_DISPLAY_RATE = 0.0165; // Default market rate shown to user
 
 const ComputeSchema = z.object({
   residency: z.enum(["citizen", "pr", "foreigner", "company"]),
   existing_properties: z.number().int().min(0).max(10),
   annual_income: z.number().positive(),
-  age: z.number().int().min(18).max(80),
-  existing_monthly_debt: z.number().min(0),
+  age: z.number().int().min(21).max(80),
   available_cash: z.number().min(0),
-  available_cpf: z.number().min(0),
-  loan_tenure_years: z.number().int().min(5).max(30),
-  // Optional fields — not used in core calc but stored with result
+  available_cpf: z.number().min(0), // foreigners send 0
+  // V2: these now carry defaults so the trimmed questionnaire can omit them
+  loan_tenure_years: z.number().int().min(5).max(30).default(30),
+  existing_monthly_debt: z.number().min(0).default(0),
+  holding_years: z.number().int().min(1).max(30).default(7),
+  display_rate: z.number().min(0.005).max(0.06).default(DEFAULT_DISPLAY_RATE),
+  // Lead label — not used in calculation
+  timeline: z.enum(["6m", "1y", "explore"]).optional(),
+  // Optional legacy fields — accepted but unused
   marital_status: z.enum(["single", "married", "married_foreign_spouse"]).optional(),
   spouse_residency: z.enum(["citizen", "pr", "foreigner"]).optional(),
   employment_type: z.enum(["salaried", "self_employed", "commission"]).optional(),
@@ -107,26 +113,29 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const outputs = solveMaxPurchasePrice({
-      annualIncome: input.annual_income,
-      existingMonthlyDebt: input.existing_monthly_debt,
-      availableCash: input.available_cash,
-      availableCpf: input.available_cpf,
-      age: input.age,
-      tenureYears: input.loan_tenure_years,
-      propertyCount: Math.min(input.existing_properties + 1, 3), // buying = current + 1
-      residency: input.residency,
-      bsdSlabs: taxRates.bsd_slabs,
-      absdMatrix: taxRates.absd_matrix,
-      ltvRules: taxRates.ltv_rules,
-      tdsr: taxRates.tdsr,
-      displayRate: DISPLAY_RATE,
+    const data = computeV2({
+      solveParams: {
+        annualIncome: input.annual_income,
+        existingMonthlyDebt: input.existing_monthly_debt,
+        availableCash: input.available_cash,
+        availableCpf: input.available_cpf,
+        age: input.age,
+        tenureYears: input.loan_tenure_years,
+        propertyCount: Math.min(input.existing_properties + 1, 3), // buying = current + 1
+        residency: input.residency,
+        bsdSlabs: taxRates.bsd_slabs,
+        absdMatrix: taxRates.absd_matrix,
+        ltvRules: taxRates.ltv_rules,
+        tdsr: taxRates.tdsr,
+        displayRate: input.display_rate,
+      },
+      isFirstProperty: input.existing_properties === 0,
+      holdingYears: input.holding_years,
+      rate: input.display_rate,
+      taxRatesVersion,
     });
 
-    return NextResponse.json({
-      ok: true,
-      data: { outputs, tax_rates_version: taxRatesVersion },
-    });
+    return NextResponse.json({ ok: true, data });
   } catch (err) {
     console.error("[/api/v1/calculator/compute] Engine error:", err);
     return NextResponse.json({

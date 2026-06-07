@@ -25,36 +25,36 @@
 
 ### 1.1 V2 要交付的能力
 
-| 能力 | 现版本（V1） | V2 |
-|---|---|---|
-| 输入字段 | 11 项 | **7 项**（外籍 6 项） |
-| 输出 | 1 个 `max_price` | **3 档区间** + 现金需求 + break-even（首套） |
-| 月供占比 | 隐含 55%（MAS） | **3 档可选**：30% / 35% / 55% |
-| 买 vs 租 | 无 | **有**，首套显示 |
-| 结果页参数微调 | 利率、年限可调 | **租金/年数/年限/利率**全可调，实时联动 |
+| 能力           | 现版本（V1）     | V2                                           |
+| -------------- | ---------------- | -------------------------------------------- |
+| 输入字段       | 11 项            | **7 项**（外籍 6 项）                        |
+| 输出           | 1 个 `max_price` | **3 档区间** + 现金需求 + break-even（首套） |
+| 月供占比       | 隐含 55%（MAS）  | **3 档可选**：30% / 35% / 55%                |
+| 买 vs 租       | 无               | **有**，首套显示                             |
+| 结果页参数微调 | 利率、年限可调   | **租金/年数/年限/利率**全可调，实时联动      |
 
 ### 1.2 复用的现有代码
 
-| 文件 | 现状 | V2 中怎么用 |
-|---|---|---|
-| [lib/tax/tdsr.ts](../lib/tax/tdsr.ts) | `solveMaxPurchasePrice()` 隐含 ratio=55% | **改造**为可参数化 `solveByMonthlyRatio(ratio, params)` |
-| [lib/tax/tdsr.ts](../lib/tax/tdsr.ts) | `isFeasibleAtPrice()` (file-local) | **export**，break-even 模块要用 |
-| [lib/tax/tdsr.ts](../lib/tax/tdsr.ts) | `buildOutput(price, params, reason)` (file-local) | **export**，给定房价输出全数字 |
-| [lib/tax/bsd.ts](../lib/tax/bsd.ts) | `calculateBsd()` | 完全复用 |
-| [lib/tax/absd.ts](../lib/tax/absd.ts) | `calculateAbsd()` | 完全复用 |
-| [lib/tax/seed.ts](../lib/tax/seed.ts) | `SEED_TAX_RATES` | 完全复用 |
-| [db/migrations/...core_tables.sql](../db/migrations/20260430000002_core_tables.sql) | `calculator_runs` 表 | 复用，`inputs/outputs` jsonb 结构变化 |
-| [app/api/v1/calculator/compute/route.ts](../app/api/v1/calculator/compute/route.ts) | 返回 `outputs: CalcOutputs` | **响应结构改造**为三档 + break-even |
-| [app/api/v1/calculator/save/route.ts](../app/api/v1/calculator/save/route.ts) | 保存 inputs/outputs jsonb | **不动**，jsonb 自动兼容 |
+| 文件                                                                                | 现状                                              | V2 中怎么用                                             |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
+| [lib/tax/tdsr.ts](../lib/tax/tdsr.ts)                                               | `solveMaxPurchasePrice()` 隐含 ratio=55%          | **改造**为可参数化 `solveByMonthlyRatio(ratio, params)` |
+| [lib/tax/tdsr.ts](../lib/tax/tdsr.ts)                                               | `isFeasibleAtPrice()` (file-local)                | **export**，break-even 模块要用                         |
+| [lib/tax/tdsr.ts](../lib/tax/tdsr.ts)                                               | `buildOutput(price, params, reason)` (file-local) | **export**，给定房价输出全数字                          |
+| [lib/tax/bsd.ts](../lib/tax/bsd.ts)                                                 | `calculateBsd()`                                  | 完全复用                                                |
+| [lib/tax/absd.ts](../lib/tax/absd.ts)                                               | `calculateAbsd()`                                 | 完全复用                                                |
+| [lib/tax/seed.ts](../lib/tax/seed.ts)                                               | `SEED_TAX_RATES`                                  | 完全复用                                                |
+| [db/migrations/...core_tables.sql](../db/migrations/20260430000002_core_tables.sql) | `calculator_runs` 表                              | 复用，`inputs/outputs` jsonb 结构变化                   |
+| [app/api/v1/calculator/compute/route.ts](../app/api/v1/calculator/compute/route.ts) | 返回 `outputs: CalcOutputs`                       | **响应结构改造**为三档 + break-even                     |
+| [app/api/v1/calculator/save/route.ts](../app/api/v1/calculator/save/route.ts)       | 保存 inputs/outputs jsonb                         | **不动**，jsonb 自动兼容                                |
 
 ### 1.3 必须新增
 
-| 新增 | 位置 | 用途 |
-|---|---|---|
-| `solveByMonthlyRatio(ratio, params)` | `lib/tax/tdsr.ts` | 三档房价区间核心算法 |
-| `computeBreakEven(input)` | **新文件** `lib/finance/break-even.ts` | 买 vs 租 break-even 涨幅 g* |
+| 新增                                       | 位置                                      | 用途                                    |
+| ------------------------------------------ | ----------------------------------------- | --------------------------------------- |
+| `solveByMonthlyRatio(ratio, params)`       | `lib/tax/tdsr.ts`                         | 三档房价区间核心算法                    |
+| `computeBreakEven(input)`                  | **新文件** `lib/finance/break-even.ts`    | 买 vs 租 break-even 涨幅 g\*            |
 | `estimateMedianRent(price, propertyType?)` | **新文件** `lib/finance/rent-estimate.ts` | 租金中位数（MVP hard-code，未来接 URA） |
-| `regionalAppreciationLookup()` | 同上 | 区域历史涨幅参考（MVP 全市均值） |
+| `regionalAppreciationLookup()`             | 同上                                      | 区域历史涨幅参考（MVP 全市均值）        |
 
 ---
 
@@ -170,7 +170,7 @@ CPF 抵扣 ≤ min(CPF 余额, 房价 × 20%)
 ```ts
 // 新签名（V2）
 export function solveByMonthlyRatio(
-  monthlyRatio: number,   // 0.30 / 0.35 / 0.55
+  monthlyRatio: number, // 0.30 / 0.35 / 0.55
   params: SolveParams
 ): CalcOutputs;
 
@@ -191,7 +191,7 @@ function maxLoanByRatio(annualIncome, existingMonthlyDebt, tdsr, tenureYears, ra
   const monthlyIncome = annualIncome / 12;
   const allowed = monthlyIncome * ratio - existingMonthlyDebt;
   if (allowed <= 0) return 0;
-  const i = tdsr.stress_rate / 12;  // 注意：stress_rate 不变，永远 4%
+  const i = tdsr.stress_rate / 12; // 注意：stress_rate 不变，永远 4%
   const N = tenureYears * 12;
   return (allowed * (Math.pow(1 + i, N) - 1)) / (i * Math.pow(1 + i, N));
 }
@@ -206,27 +206,27 @@ PRD 第 5 节说"舒适区低端 = 上一档上限的下移"。具体实现：
 ```ts
 // 区间结构
 interface PriceTier {
-  low: number;       // 区间下界
-  high: number;      // 区间上界 = solveByMonthlyRatio(ratio).max_price
-  ratio: number;     // 0.30 / 0.35 / 0.55
-  midpoint: number;  // (low + high) / 2，用于 Block 2 现金拆解
+  low: number; // 区间下界
+  high: number; // 区间上界 = solveByMonthlyRatio(ratio).max_price
+  ratio: number; // 0.30 / 0.35 / 0.55
+  midpoint: number; // (low + high) / 2，用于 Block 2 现金拆解
 }
 
 // 算法
 function computeTiers(params: SolveParams) {
-  const comfortMax = solveByMonthlyRatio(0.30, params).max_price;
+  const comfortMax = solveByMonthlyRatio(0.3, params).max_price;
   const balancedMax = solveByMonthlyRatio(0.35, params).max_price;
   const aggressiveMax = solveByMonthlyRatio(0.55, params).max_price;
 
   return {
     comfortable: {
-      low: Math.max(500_000, comfortMax * 0.80),   // 80% of upper, 不低于 50 万
+      low: Math.max(500_000, comfortMax * 0.8), // 80% of upper, 不低于 50 万
       high: comfortMax,
-      ratio: 0.30,
-      midpoint: (Math.max(500_000, comfortMax * 0.80) + comfortMax) / 2,
+      ratio: 0.3,
+      midpoint: (Math.max(500_000, comfortMax * 0.8) + comfortMax) / 2,
     },
     balanced: {
-      low: comfortMax,        // 紧邻舒适区上界
+      low: comfortMax, // 紧邻舒适区上界
       high: balancedMax,
       ratio: 0.35,
       midpoint: (comfortMax + balancedMax) / 2,
@@ -242,6 +242,7 @@ function computeTiers(params: SolveParams) {
 ```
 
 **边界 case：** 当现金严重不足时，三个 max 可能收敛到同一个数（被现金封顶）。此时三档退化为一档：
+
 - 如果 `aggressiveMax === comfortMax` → 三档同值
 - UI 显示时仍显示三个卡片，**但 sub 文案改为"您的现金封顶限制了三档统一收敛"**
 
@@ -300,16 +301,18 @@ totalRent(H) = monthlyRent × H × 12
 
 **说明：** `monthlySaving` 可能为负（租金高于月供）—— 这种情况下 monthly cashflow 是租房方反过来"亏"，公式自然处理。
 
-#### 4.3.3 二分搜索 g*
+#### 4.3.3 二分搜索 g\*
 
 ```ts
 function findBreakEven(price, params, costs) {
-  let lo = -0.10, hi = 0.15;        // 搜索范围 -10% ~ +15%/年
+  let lo = -0.1,
+    hi = 0.15; // 搜索范围 -10% ~ +15%/年
   for (let i = 0; i < 80; i++) {
     const g = (lo + hi) / 2;
     const buyNet = buyNetWorth(g, price, params, costs);
     const rentNet = rentNetWorth(price, params, costs);
-    if (buyNet < rentNet) lo = g;   // 买的太少，g 还要更大
+    if (buyNet < rentNet)
+      lo = g; // 买的太少，g 还要更大
     else hi = g;
     if (hi - lo < 1e-5) break;
   }
@@ -319,16 +322,16 @@ function findBreakEven(price, params, costs) {
 
 #### 4.3.4 参数默认值
 
-| 参数 | 默认值 | 来源 |
-|---|---|---|
-| `H`（持有年数） | 7 | PRD spec |
-| `tenure`（贷款年限） | 30 | PRD spec |
-| `rate`（房贷利率） | 1.65% | 当前 SORA 参考 |
-| `r_alt`（替代投资回报） | 5% | 标普 500 长期保守值 |
-| `mcstMonthly`（物业费） | $450 | 新加坡 OCR/RCR 中位 |
+| 参数                      | 默认值  | 来源                                              |
+| ------------------------- | ------- | ------------------------------------------------- |
+| `H`（持有年数）           | 7       | PRD spec                                          |
+| `tenure`（贷款年限）      | 30      | PRD spec                                          |
+| `rate`（房贷利率）        | 1.65%   | 当前 SORA 参考                                    |
+| `r_alt`（替代投资回报）   | 5%      | 标普 500 长期保守值                               |
+| `mcstMonthly`（物业费）   | $450    | 新加坡 OCR/RCR 中位                               |
 | `propTaxRate`（房产税率） | 0.4%/年 | IRAS 自住房产 AV × 4%-10%，按 AV ≈ 房价 × 1% 估算 |
-| `maintRate`（维护折旧） | 1%/年 | 行业标准 |
-| `sellingCost` | 2% | 中介佣金 1-2% + 律师 + SSD（≥4 年 0%） |
+| `maintRate`（维护折旧）   | 1%/年   | 行业标准                                          |
+| `sellingCost`             | 2%      | 中介佣金 1-2% + 律师 + SSD（≥4 年 0%）            |
 
 ### 4.4 租金估算
 
@@ -337,19 +340,20 @@ function findBreakEven(price, params, costs) {
 ```ts
 // 简化版：按房价 × 年化租金回报率反推月租
 const ANNUAL_YIELD_BY_PRICE = [
-  { upTo: 1_000_000, yield: 0.032 },  // 小户型回报率高
-  { upTo: 2_000_000, yield: 0.028 },  // 主流家庭户型
-  { upTo: 5_000_000, yield: 0.024 },  // 大户型回报率低
-  { upTo: Infinity,  yield: 0.020 },  // 豪宅
+  { upTo: 1_000_000, yield: 0.032 }, // 小户型回报率高
+  { upTo: 2_000_000, yield: 0.028 }, // 主流家庭户型
+  { upTo: 5_000_000, yield: 0.024 }, // 大户型回报率低
+  { upTo: Infinity, yield: 0.02 }, // 豪宅
 ];
 
 export function estimateMedianRent(price: number): number {
-  const tier = ANNUAL_YIELD_BY_PRICE.find(t => price <= t.upTo)!;
-  return Math.round(price * tier.yield / 12 / 100) * 100;  // 保留到百位
+  const tier = ANNUAL_YIELD_BY_PRICE.find((t) => price <= t.upTo)!;
+  return Math.round((price * tier.yield) / 12 / 100) * 100; // 保留到百位
 }
 ```
 
 **V2.1 增强方案**（不在本 TD 范围）：
+
 - 接 URA 季度租赁合同 API（公开数据）
 - 按 district + property_type 细分租金中位数
 - 缓存 30 天，hourly job 刷新
@@ -361,7 +365,7 @@ export function estimateMedianRent(price: number): number {
 ```ts
 export const HISTORICAL_APPRECIATION = {
   whole_city: {
-    decade: 0.028,    // 过去 10 年年化
+    decade: 0.028, // 过去 10 年年化
     five_year: 0.018, // 过去 5 年年化
     source: "URA PPI 2014-2024",
     last_updated: "2025-Q1",
@@ -387,7 +391,7 @@ const ComputeRequestSchema = z.object({
   annual_income: z.number().positive(),
   age: z.number().int().min(21).max(80),
   available_cash: z.number().min(0),
-  available_cpf: z.number().min(0),       // 外籍前端传 0
+  available_cpf: z.number().min(0), // 外籍前端传 0
 
   // 默认（V2 多数有默认）
   loan_tenure_years: z.number().int().min(5).max(30).default(30),
@@ -482,7 +486,7 @@ interface CashBreakdown {
 
 ### 5.4 前端 break-even 实时联动
 
-**关键设计**：用户在结果页改租金/年数/年限/利率，**不打 API**，纯前端二分搜 g*。
+**关键设计**：用户在结果页改租金/年数/年限/利率，**不打 API**，纯前端二分搜 g\*。
 
 为此前端需要一个 `lib/finance/break-even-client.ts`，把 4.3 节的公式以 TypeScript 实现，复用同一份算法。
 
@@ -501,13 +505,13 @@ lib/finance/
 
 ### 6.1 现有表（不改）
 
-| 表 | 用途 | V2 改动 |
-|---|---|---|
-| `users` | 用户主表 | 不改 |
-| `user_profile` | 扩展信息 | 不改 |
-| `calculator_runs` | 计算历史 | **inputs/outputs jsonb 结构变化**，schema 不变 |
-| `tax_rates` | BSD/ABSD/LTV/TDSR 配置 | 不改 |
-| `consent_log` | 同意书追溯 | 不改 |
+| 表                | 用途                   | V2 改动                                        |
+| ----------------- | ---------------------- | ---------------------------------------------- |
+| `users`           | 用户主表               | 不改                                           |
+| `user_profile`    | 扩展信息               | 不改                                           |
+| `calculator_runs` | 计算历史               | **inputs/outputs jsonb 结构变化**，schema 不变 |
+| `tax_rates`       | BSD/ABSD/LTV/TDSR 配置 | 不改                                           |
+| `consent_log`     | 同意书追溯             | 不改                                           |
 
 ### 6.2 `calculator_runs.inputs` 新结构（jsonb）
 
@@ -546,6 +550,7 @@ lib/finance/
 **结论：不新增表。**
 
 **理由：**
+
 - 三档结果本质是同一次计算的 3 个 perspective，存一行就够
 - `outputs jsonb` 可以容纳完整三档数据
 - break-even 用户调参（租金/年数等）**不持久化**——这是临时探索行为
@@ -582,7 +587,7 @@ export interface V2ComputeResult {
   tax_rates_version: string;
   tiers: Record<PriceTier, TierData>;
   break_even: BreakEvenData | null;
-  legacy_max_price?: number;  // 兼容期保留
+  legacy_max_price?: number; // 兼容期保留
 }
 ```
 
@@ -592,21 +597,21 @@ export interface V2ComputeResult {
 
 ### 7.1 单元测试
 
-| 模块 | 测试场景数 | 优先级 |
-|---|---|---|
-| `solveByMonthlyRatio` | 6 case（3 档 × 2 picture） | P0 |
-| `computeTiers` | 4 case（正常 / 现金封顶 / TDSR 封顶 / LTV 悬崖） | P0 |
-| `computeBreakEven` | 5 case（盈亏临界 / 持有 < SSD 红线 / 利率极端 / 租金极端 / 二套不算） | P0 |
-| `estimateMedianRent` | 4 case（4 个房价档） | P1 |
+| 模块                  | 测试场景数                                                            | 优先级 |
+| --------------------- | --------------------------------------------------------------------- | ------ |
+| `solveByMonthlyRatio` | 6 case（3 档 × 2 picture）                                            | P0     |
+| `computeTiers`        | 4 case（正常 / 现金封顶 / TDSR 封顶 / LTV 悬崖）                      | P0     |
+| `computeBreakEven`    | 5 case（盈亏临界 / 持有 < SSD 红线 / 利率极端 / 租金极端 / 二套不算） | P0     |
+| `estimateMedianRent`  | 4 case（4 个房价档）                                                  | P1     |
 
 ### 7.2 集成测试（API 层）
 
-| 场景 | 期望 |
-|---|---|
-| SC · 月入 25K · 现金 60 万 · 35 岁 · 首套 | 平衡区 180-220 万；break-even 2.0-2.5% |
-| PR · 月入 17.5K · 现金 35 万 · CPF 20 万 · 首套 | 平衡区 130-160 万；break-even ~2% |
-| 外籍 WP · 月入 25K · 现金 80 万 · CPF 0 · 首套 | 三档收敛 / 现金不足；break-even 可能极高 |
-| SC · 月入 30K · 现金 100 万 · 第二套 | 不显示 break-even（is_first_property=false） |
+| 场景                                            | 期望                                         |
+| ----------------------------------------------- | -------------------------------------------- |
+| SC · 月入 25K · 现金 60 万 · 35 岁 · 首套       | 平衡区 180-220 万；break-even 2.0-2.5%       |
+| PR · 月入 17.5K · 现金 35 万 · CPF 20 万 · 首套 | 平衡区 130-160 万；break-even ~2%            |
+| 外籍 WP · 月入 25K · 现金 80 万 · CPF 0 · 首套  | 三档收敛 / 现金不足；break-even 可能极高     |
+| SC · 月入 30K · 现金 100 万 · 第二套            | 不显示 break-even（is_first_property=false） |
 
 ### 7.3 一致性测试（前后端 break-even）
 
@@ -625,13 +630,13 @@ test("front-end and server break-even consistency", () => {
 
 [tests/e2e/](../tests/e2e/) 新增：
 
-| 测试 | 目的 |
-|---|---|
+| 测试                                                   | 目的     |
+| ------------------------------------------------------ | -------- |
 | `calculator-v2.spec.ts` 走完 7 题问卷 → 看到结果页三档 | 基础流程 |
-| 切换档位 → Block 2 数字变化 | 切档联动 |
-| 改租金 → Block 3 break-even 变化 | 参数联动 |
-| 外籍 → CPF 字段隐藏 | 条件渲染 |
-| 二套 → break-even block 隐藏 | 条件渲染 |
+| 切换档位 → Block 2 数字变化                            | 切档联动 |
+| 改租金 → Block 3 break-even 变化                       | 参数联动 |
+| 外籍 → CPF 字段隐藏                                    | 条件渲染 |
+| 二套 → break-even block 隐藏                           | 条件渲染 |
 
 ---
 
@@ -647,16 +652,16 @@ test("front-end and server break-even consistency", () => {
 
 ### 8.2 边界情况清单
 
-| 边界 | 引擎行为 | UI 行为 |
-|---|---|---|
-| 收入极低，TDSR 月供 ≤ 0 | 返回 `max_price=0, infeasible_reason="TDSR_EXCEEDED"` | 显示"按当前收入难通过 TDSR" |
-| 现金=0 | 返回 `max_price=0, infeasible_reason="INSUFFICIENT_CASH"` | 显示"还差 X 现金" |
-| 三档同值（现金/收入封顶） | 三 tier 返回相同 max_price | UI 显示 3 卡片但加注释"收敛于现金封顶" |
-| 年龄+年限>65 | LTV 自动降到 55% | 结果页提示"可改 25 年恢复 75% LTV" |
-| 二套（PR 30% / SC 20% ABSD） | LTV 强制 45% | 不显示 break-even block |
-| 外籍首套（ABSD 60%） | 正常计算，数字会很难看 | "让数字说话"——不弹窗，诊断面板给"等 PR" |
-| 用户改租金 → g* 算出负数 | 返回负数 | 显示"这套房即使跌 X%/年，买仍比租划算" |
-| 用户改租金 → g* 算出 > 15% | 二分搜索的 hi 边界 | 显示"> 15%/年（这套房难划算）" |
+| 边界                         | 引擎行为                                                  | UI 行为                                 |
+| ---------------------------- | --------------------------------------------------------- | --------------------------------------- |
+| 收入极低，TDSR 月供 ≤ 0      | 返回 `max_price=0, infeasible_reason="TDSR_EXCEEDED"`     | 显示"按当前收入难通过 TDSR"             |
+| 现金=0                       | 返回 `max_price=0, infeasible_reason="INSUFFICIENT_CASH"` | 显示"还差 X 现金"                       |
+| 三档同值（现金/收入封顶）    | 三 tier 返回相同 max_price                                | UI 显示 3 卡片但加注释"收敛于现金封顶"  |
+| 年龄+年限>65                 | LTV 自动降到 55%                                          | 结果页提示"可改 25 年恢复 75% LTV"      |
+| 二套（PR 30% / SC 20% ABSD） | LTV 强制 45%                                              | 不显示 break-even block                 |
+| 外籍首套（ABSD 60%）         | 正常计算，数字会很难看                                    | "让数字说话"——不弹窗，诊断面板给"等 PR" |
+| 用户改租金 → g\* 算出负数    | 返回负数                                                  | 显示"这套房即使跌 X%/年，买仍比租划算"  |
+| 用户改租金 → g\* 算出 > 15%  | 二分搜索的 hi 边界                                        | 显示"> 15%/年（这套房难划算）"          |
 
 ### 8.3 数值精度
 
@@ -677,14 +682,14 @@ V2 中文优先，**英文版需要做但不阻塞 MVP**。
 
 按依赖关系：
 
-| 阶段 | 内容 | 估算工作量 |
-|---|---|---|
-| **1. 引擎核心** | `solveByMonthlyRatio` 参数化 + `computeTiers` + 单元测试 | 1-2 天 |
-| **2. Break-even 模块** | `lib/finance/break-even-core.ts` + 单元测试 | 2-3 天 |
-| **3. API 改造** | `/compute` 响应结构 + 集成测试 | 1 天 |
-| **4. 前端重构** | prototype f → `app/(tools)/calculator/page.tsx` | 3-5 天 |
-| **5. 一致性 & E2E** | 前后端 break-even 一致性测试 + Playwright | 2 天 |
-| **6. 数据迁移** | calculator_runs jsonb schema_version 标记 + 旧数据兼容读取 | 0.5 天 |
+| 阶段                   | 内容                                                       | 估算工作量 |
+| ---------------------- | ---------------------------------------------------------- | ---------- |
+| **1. 引擎核心**        | `solveByMonthlyRatio` 参数化 + `computeTiers` + 单元测试   | 1-2 天     |
+| **2. Break-even 模块** | `lib/finance/break-even-core.ts` + 单元测试                | 2-3 天     |
+| **3. API 改造**        | `/compute` 响应结构 + 集成测试                             | 1 天       |
+| **4. 前端重构**        | prototype f → `app/(tools)/calculator/page.tsx`            | 3-5 天     |
+| **5. 一致性 & E2E**    | 前后端 break-even 一致性测试 + Playwright                  | 2 天       |
+| **6. 数据迁移**        | calculator_runs jsonb schema_version 标记 + 旧数据兼容读取 | 0.5 天     |
 
 **总计：9-13 天**（一人全栈，含测试，不含 PM/Design review）。
 
@@ -705,6 +710,7 @@ V2 中文优先，**英文版需要做但不阻塞 MVP**。
 ### 10.1 P0 — 租金中位数数据源
 
 **选项：**
+
 - A. Hard-code 4 档（MVP，按全国均值，精度低）← 推荐
 - B. URA 季度租赁合同 API（精度高，工程量 2-3 天）
 - C. 爬 PropertyGuru / 99.co（合规风险）
@@ -714,6 +720,7 @@ V2 中文优先，**英文版需要做但不阻塞 MVP**。
 ### 10.2 P0 — 替代投资回报 r_alt 默认值
 
 5% 是标普 500 长期保守 — **但用户可能不同意这个假设**。
+
 - 选项 1：硬编码 5%，不暴露给用户（MVP）
 - 选项 2：结果页提供一个 "假设我投资能赚 X%/年" 的滑块（4%-8%）
 
@@ -722,6 +729,7 @@ V2 中文优先，**英文版需要做但不阻塞 MVP**。
 ### 10.3 P1 — Break-even 算法是否处理通胀
 
 当前模型假设：
+
 - 房贷利息（名义）vs 投资回报（名义）—— 同步处理
 - 但租金 H 年不变（实际新加坡租金 5-7%/年涨）
 
@@ -754,14 +762,14 @@ V2 中文优先，**英文版需要做但不阻塞 MVP**。
 
 ## 附录：与现有架构契合度检查
 
-| 项目约束 | V2 设计 | 满足? |
-|---|---|---|
-| RLS 政策（PRD §16.4） | 不新增表，复用现有 RLS | ✓ |
-| 同意书追溯（PRD §16, §18.1） | 留资走 `/save` 现有路径 | ✓ |
-| Tax rates 可配置 | `solveByMonthlyRatio` 注入 `tdsr` 参数 | ✓ |
-| 服务端边界校验 | Zod schema 全字段校验 | ✓ |
-| jsonb 灵活性 | inputs/outputs schema 自带 `schema_version` | ✓ |
-| 现有单测覆盖 | bsd/absd/scoring 已有，新增 tdsr-v2 / break-even | ✓ |
+| 项目约束                     | V2 设计                                          | 满足? |
+| ---------------------------- | ------------------------------------------------ | ----- |
+| RLS 政策（PRD §16.4）        | 不新增表，复用现有 RLS                           | ✓     |
+| 同意书追溯（PRD §16, §18.1） | 留资走 `/save` 现有路径                          | ✓     |
+| Tax rates 可配置             | `solveByMonthlyRatio` 注入 `tdsr` 参数           | ✓     |
+| 服务端边界校验               | Zod schema 全字段校验                            | ✓     |
+| jsonb 灵活性                 | inputs/outputs schema 自带 `schema_version`      | ✓     |
+| 现有单测覆盖                 | bsd/absd/scoring 已有，新增 tdsr-v2 / break-even | ✓     |
 
 ---
 

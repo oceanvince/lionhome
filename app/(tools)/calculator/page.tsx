@@ -1,48 +1,70 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import type { CalcOutputs } from "@/lib/tax";
-import {
-  buildApiPayload,
-  INCOME_BUCKETS,
-  CASH_BUCKETS,
-  CPF_BUCKETS,
-  DEBT_BUCKETS,
-  isForeigner,
-} from "@/lib/calculator/bucket-maps";
-import type {
-  CalculatorFormState,
-  ResidencyOption,
-  PropertyPurpose,
-  PropertyTypePref,
-  Timeline,
-  LoanTenure,
-} from "@/lib/calculator/form-types";
+import React, { useState, useCallback, useRef } from "react";
+import { buildApiPayload, toAmount, isForeigner } from "@/lib/calculator/bucket-maps";
+import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calculator/form-types";
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
+import type { V2ComputeResult, TierData, PriceTierKey } from "@/lib/calculator/v2-types";
+import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
+
+/* ─────────────────────────────────────────────────────────────────────
+   COLORS / TOKENS
+───────────────────────────────────────────────────────────────────── */
+const C = {
+  primary: "#2F4F3D",
+  primarySoft: "#EAEFEB",
+  charcoal: "#1A1C1A",
+  offwhite: "#FCFBF9",
+  cream: "#F5F1E8",
+  border: "#E5E5E5",
+  warn: "#8B3A1F",
+  warnSoft: "#F8EFE8",
+  gray500: "#6B7280",
+  gray400: "#9CA3AF",
+};
+const SERIF = "'Noto Serif SC', serif";
 
 /* ─────────────────────────────────────────────────────────────────────
    HELPERS
 ───────────────────────────────────────────────────────────────────── */
-
 function fmt(n: number) {
   return Math.round(n).toLocaleString("en-US");
 }
 function fmtS(n: number) {
   return `S$ ${fmt(n)}`;
 }
-function monthlyMortgage(P: number, annualRate: number, years: number) {
-  if (P <= 0) return 0;
-  if (annualRate === 0) return P / (years * 12);
-  const i = annualRate / 12;
-  const N = years * 12;
-  return (P * i * Math.pow(1 + i, N)) / (Math.pow(1 + i, N) - 1);
+/** "S$ X – Y 万" range, in 万 (10k). */
+function fmtRange(low: number, high: number) {
+  const lo = Math.round(low / 10_000);
+  const hi = Math.round(high / 10_000);
+  return `S$ ${lo} – ${hi} 万`;
+}
+function fmtWan(n: number) {
+  return `S$ ${Math.round(n / 10_000)} 万`;
 }
 
-/* ─────────────────────────────────────────────────────────────────────
-   PRIMITIVES — matching prototype classes exactly
-───────────────────────────────────────────────────────────────────── */
+const RESIDENCY_LABEL: Record<ResidencyOption, string> = {
+  sc: "新加坡公民",
+  pr: "PR",
+  foreigner_wp: "外籍 (WP)",
+  foreigner_none: "外籍 (无身份)",
+};
+const ABSD_RATE_LABEL: Record<ResidencyOption, string> = {
+  sc: "SC 0% 起",
+  pr: "PR 5% 起",
+  foreigner_wp: "外籍 60%",
+  foreigner_none: "外籍 60%",
+};
+const TIER_NAME: Record<PriceTierKey, string> = {
+  comfortable: "舒适区",
+  balanced: "平衡区",
+  aggressive: "压力区",
+};
+const TIER_ORDER: PriceTierKey[] = ["comfortable", "balanced", "aggressive"];
 
-/** btn-primary */
+/* ─────────────────────────────────────────────────────────────────────
+   PRIMITIVES
+───────────────────────────────────────────────────────────────────── */
 function BtnPrimary({
   children,
   onClick,
@@ -57,10 +79,9 @@ function BtnPrimary({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="btn-primary"
       style={{
         width: "100%",
-        background: "#2F4F3D",
+        background: C.primary,
         color: "#fff",
         padding: "16px 24px",
         borderRadius: 4,
@@ -74,7 +95,7 @@ function BtnPrimary({
         minHeight: 56,
         border: "none",
         transition: "opacity 0.15s",
-        opacity: disabled ? 0.5 : 1,
+        opacity: disabled ? 0.4 : 1,
       }}
     >
       {children}
@@ -82,25 +103,15 @@ function BtnPrimary({
   );
 }
 
-/** btn-secondary */
-function BtnSecondary({
-  children,
-  onClick,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-}) {
+function BtnSecondary({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
       style={{
         width: "100%",
         background: "#fff",
-        color: "#1A1C1A",
+        color: C.charcoal,
         padding: "16px 24px",
         borderRadius: 4,
         fontWeight: 500,
@@ -109,11 +120,9 @@ function BtnSecondary({
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
-        cursor: disabled ? "not-allowed" : "pointer",
+        cursor: "pointer",
         minHeight: 56,
-        border: "1px solid #E5E5E5",
-        transition: "background 0.15s",
-        opacity: disabled ? 0.5 : 1,
+        border: `1px solid ${C.border}`,
       }}
     >
       {children}
@@ -121,7 +130,6 @@ function BtnSecondary({
   );
 }
 
-/** back button — step-back-btn */
 function BackBtn({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -134,15 +142,14 @@ function BackBtn({ onClick }: { onClick: () => void }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        border: "1px solid #E5E5E5",
+        border: `1px solid ${C.border}`,
         borderRadius: "50%",
         background: "transparent",
-        color: "#1A1C1A",
+        color: C.charcoal,
         cursor: "pointer",
         flexShrink: 0,
       }}
     >
-      {/* ph-thin ph-arrow-left equivalent */}
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path
           d="M13 4L7 10L13 16"
@@ -156,7 +163,79 @@ function BackBtn({ onClick }: { onClick: () => void }) {
   );
 }
 
-/** identity card */
+function BrandLogo() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 8, height: 8, borderRadius: "50%", background: C.primary }} />
+      <span style={{ fontSize: 14, fontWeight: 500, letterSpacing: "0.02em", color: C.charcoal }}>
+        狮城家 LionHome
+      </span>
+    </span>
+  );
+}
+
+function StepHeader({ label, onBack }: { label: string; onBack: () => void }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 28,
+      }}
+    >
+      <BackBtn onClick={onBack} />
+      <span
+        style={{
+          fontSize: 12,
+          letterSpacing: "0.1em",
+          color: C.gray400,
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function InputLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label
+      style={{
+        display: "block",
+        fontSize: 12,
+        fontWeight: 500,
+        color: C.gray500,
+        marginBottom: 12,
+      }}
+    >
+      {children}
+    </label>
+  );
+}
+
+function QuestionTitle({ title, sub }: { title: string; sub: string }) {
+  return (
+    <>
+      <h2
+        style={{
+          fontFamily: SERIF,
+          fontSize: 24,
+          fontWeight: 600,
+          lineHeight: 1.3,
+          marginBottom: 8,
+          color: C.charcoal,
+        }}
+      >
+        {title}
+      </h2>
+      <p style={{ fontSize: 14, color: C.gray500, marginBottom: 28, fontWeight: 300 }}>{sub}</p>
+    </>
+  );
+}
+
 function IdentityCard({
   title,
   sub,
@@ -180,40 +259,24 @@ function IdentityCard({
         alignItems: "flex-start",
         justifyContent: "center",
         padding: 16,
-        border: `1px solid ${selected ? "#2F4F3D" : "#E5E5E5"}`,
+        border: `1px solid ${selected ? C.primary : C.border}`,
         borderRadius: 4,
-        background: selected ? "#EAEFEB" : "#fff",
-        boxShadow: selected ? "0 0 0 1px #2F4F3D" : "none",
+        background: selected ? C.primarySoft : "#fff",
+        boxShadow: selected ? `0 0 0 1px ${C.primary}` : "none",
         cursor: "pointer",
         minHeight: 88,
         transition: "all 0.15s",
         textAlign: "left",
       }}
     >
-      <span
-        style={{
-          fontSize: 16,
-          fontWeight: 500,
-          color: selected ? "#2F4F3D" : "#1A1C1A",
-        }}
-      >
+      <span style={{ fontSize: 16, fontWeight: 500, color: selected ? C.primary : C.charcoal }}>
         {title}
       </span>
-      <span
-        style={{
-          fontSize: 12,
-          fontWeight: 300,
-          color: "#6B7280",
-          marginTop: 2,
-        }}
-      >
-        {sub}
-      </span>
+      <span style={{ fontSize: 12, fontWeight: 300, color: C.gray500, marginTop: 2 }}>{sub}</span>
     </div>
   );
 }
 
-/** radio card */
 function RadioCard({
   label,
   sub,
@@ -221,7 +284,7 @@ function RadioCard({
   onClick,
 }: {
   label: string;
-  sub: string;
+  sub?: string;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -236,50 +299,42 @@ function RadioCard({
         alignItems: "center",
         justifyContent: "space-between",
         padding: 16,
-        border: `1px solid ${selected ? "#2F4F3D" : "#E5E5E5"}`,
+        border: `1px solid ${selected ? C.primary : C.border}`,
         borderRadius: 4,
-        background: selected ? "#EAEFEB" : "#fff",
-        boxShadow: selected ? "0 0 0 1px #2F4F3D" : "none",
+        background: selected ? C.primarySoft : "#fff",
+        boxShadow: selected ? `0 0 0 1px ${C.primary}` : "none",
         cursor: "pointer",
         minHeight: 56,
         transition: "all 0.15s",
       }}
     >
-      <span style={{ fontSize: 16, color: "#1A1C1A" }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 300, color: "#9CA3AF" }}>{sub}</span>
+      <span style={{ fontSize: 15, color: C.charcoal }}>{label}</span>
+      {sub && <span style={{ fontSize: 12, fontWeight: 300, color: C.gray400 }}>{sub}</span>}
     </div>
   );
 }
 
-/** segmented control */
-function SegWrap<T extends string>({
+function SegRow<T extends string | number>({
   options,
   value,
   onChange,
 }: {
   options: { label: string; value: T }[];
-  value: T | null;
+  value: T;
   onChange: (v: T) => void;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        background: "#F3F4F6",
-        borderRadius: 4,
-        padding: 4,
-      }}
-    >
+    <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 4, padding: 4 }}>
       {options.map((o) => {
         const active = o.value === value;
         return (
           <button
-            key={o.value}
+            key={String(o.value)}
             type="button"
             onClick={() => onChange(o.value)}
             style={{
               flex: 1,
-              padding: "12px 16px",
+              padding: "10px 12px",
               textAlign: "center",
               fontSize: 14,
               fontWeight: 500,
@@ -288,7 +343,7 @@ function SegWrap<T extends string>({
               cursor: "pointer",
               transition: "all 0.15s",
               background: active ? "#fff" : "transparent",
-              color: active ? "#2F4F3D" : "#6B7280",
+              color: active ? C.primary : C.gray500,
               boxShadow: active ? "0 1px 2px rgba(0,0,0,0.1)" : "none",
             }}
           >
@@ -300,562 +355,71 @@ function SegWrap<T extends string>({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────
-   SCROLL PICKER
-   All structural styles are inline to avoid Tailwind v4 box-sizing
-   interference. The ::before/::after selection lines become real <div>s.
-   Items keep CSS classes for .is-center toggle via imperative DOM.
-───────────────────────────────────────────────────────────────────── */
-
-function ScrollPicker({
-  items,
-  selectedIndex,
+/** Manual money input — digit string, clearable, with a unit prefix and optional helper line. */
+function MoneyInput({
+  label,
+  value,
   onChange,
+  prefix = "S$",
   suffix,
+  hint,
+  placeholder,
 }: {
-  items: string[];
-  selectedIndex: number;
-  onChange: (i: number) => void;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  prefix?: string;
   suffix?: string;
+  hint?: string;
+  placeholder?: string;
 }) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const ITEM_H = 48; // fallback; actual height read from DOM where possible
-
-  // Read the rendered height of the first picker-item (inline height wins over CSS class).
-  // Using actual DOM height prevents ITEM_H mismatch from causing wrong snap corrections.
-  function itemHeight(el: HTMLElement): number {
-    return (el.firstElementChild as HTMLElement | null)?.offsetHeight ?? ITEM_H;
-  }
-
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    // rAF: layout is complete, offsetHeight is valid
-    requestAnimationFrame(() => {
-      const h = itemHeight(list);
-      list.scrollTop = selectedIndex * h;
-      markCenter(list, selectedIndex);
-    });
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function markCenter(el: HTMLElement, idx: number) {
-    el.querySelectorAll(".picker-item").forEach((item, i) => {
-      item.classList.toggle("is-center", i === idx);
-    });
-  }
-
-  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
-    const el = e.currentTarget;
-    const h = itemHeight(el);
-    const idx = Math.round(el.scrollTop / h);
-    const clamped = Math.max(0, Math.min(items.length - 1, idx));
-    markCenter(el, clamped);
-
-    // Do NOT manually scrollTo here — scroll-snap-type:y mandatory handles centering.
-    // We only need to fire onChange after the snap settles.
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => onChange(clamped), 200);
-  }
-
   return (
-    <div
-      style={{
-        position: "relative",
-        height: 220,
-        maxWidth: 240,
-        marginLeft: "auto",
-        marginRight: "auto",
-        overflow: "hidden",
-        WebkitMaskImage:
-          "linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%)",
-        maskImage:
-          "linear-gradient(to bottom, transparent 0%, #000 30%, #000 70%, transparent 100%)",
-      }}
-    >
-      {/* Selection band highlight + lines — ±24px = ITEM_H/2 = 48/2 */}
+    <div>
+      <InputLabel>{label}</InputLabel>
       <div
         style={{
-          position: "absolute",
-          left: 8,
-          right: 8,
-          top: "calc(50% - 24px)",
-          height: 48,
-          background: "#EAEFEB",
-          borderRadius: 6,
-          zIndex: 1,
-          pointerEvents: "none",
+          display: "flex",
+          alignItems: "center",
+          border: `1px solid ${C.border}`,
+          borderRadius: 4,
+          padding: "0 16px",
+          background: "#fff",
         }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          top: "calc(50% - 24px)",
-          height: 1,
-          background: "#D1D5D1",
-          zIndex: 2,
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          top: "calc(50% + 24px)",
-          height: 1,
-          background: "#D1D5D1",
-          zIndex: 2,
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* Scrollable list.
-          height: 220, padding: 86px → content area = 48px = ITEM_H (border-box).
-          maxScrollTop = (n−1)×48, every item reachable.
-          Items also get height inline to guarantee it regardless of CSS class resolution. */}
-      <div
-        ref={listRef}
-        onScroll={handleScroll}
-        style={
-          {
-            position: "relative",
-            zIndex: 3,
-            height: 220,
-            overflowY: "scroll",
-            scrollSnapType: "y mandatory",
-            WebkitOverflowScrolling: "touch",
-            scrollbarWidth: "none",
-            padding: "86px 0",
-            overscrollBehavior: "contain",
-          } as React.CSSProperties
-        }
       >
-        {items.map((label, i) => (
-          <div
-            key={i}
-            className="picker-item"
-            style={
-              {
-                height: ITEM_H,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-                scrollSnapAlign: "center",
-                scrollSnapStop: "always",
-              } as React.CSSProperties
-            }
-          >
-            {label}
-          </div>
-        ))}
-      </div>
-
-      {/* Suffix label */}
-      {suffix && (
-        <span
+        <span style={{ color: C.gray500, fontSize: 16, marginRight: 8 }}>{prefix}</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={value}
+          placeholder={placeholder}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ""))}
           style={{
-            position: "absolute",
-            top: "calc(50% - 12px)",
-            right: 16,
-            fontSize: 13,
-            color: "#9CA3AF",
-            zIndex: 3,
-            pointerEvents: "none",
+            flex: 1,
+            minWidth: 0,
+            border: "none",
+            outline: "none",
+            padding: "14px 0",
+            fontSize: 18,
+            fontWeight: 600,
+            fontFamily: SERIF,
+            color: C.charcoal,
+            background: "transparent",
+            fontVariantNumeric: "tabular-nums",
           }}
+        />
+        {suffix && <span style={{ color: C.gray400, fontSize: 13, marginLeft: 8 }}>{suffix}</span>}
+      </div>
+      {hint && (
+        <p
+          style={{ fontSize: 11, color: C.gray400, fontWeight: 300, marginTop: 6, lineHeight: 1.6 }}
         >
-          {suffix}
-        </span>
+          {hint}
+        </p>
       )}
     </div>
   );
 }
-
-/* ─────────────────────────────────────────────────────────────────────
-   INPUT LABEL — text-xs font-medium text-gray-500 mb-3 (no uppercase)
-───────────────────────────────────────────────────────────────────── */
-
-function InputLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label
-      style={{
-        display: "block",
-        fontSize: 12,
-        fontWeight: 500,
-        color: "#6B7280",
-        marginBottom: 12,
-      }}
-    >
-      {children}
-    </label>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────
-   BRAND LOGO
-───────────────────────────────────────────────────────────────────── */
-
-function BrandLogo() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M12 3 L20 8 V19 C20 19.6 19.6 20 19 20 H5 C4.4 20 4 19.6 4 19 V8 Z"
-          stroke="#2F4F3D"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path d="M8 20 V13 H16 V20" stroke="#2F4F3D" strokeWidth="1.5" />
-      </svg>
-      <span
-        style={{
-          fontSize: 14,
-          fontWeight: 500,
-          color: "#1A1C1A",
-          letterSpacing: "0.05em",
-        }}
-      >
-        狮城家 LionHome
-      </span>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────
-   CONSULT DRAWER — matches prototype's 即刻咨询 drawer
-───────────────────────────────────────────────────────────────────── */
-
-function ConsultDrawer({
-  open,
-  onClose,
-  outputs,
-  sessionId,
-  taxRatesVersion,
-  runId,
-  onSuccess,
-}: {
-  open: boolean;
-  onClose: () => void;
-  outputs: CalcOutputs | null;
-  sessionId: string;
-  taxRatesVersion: string;
-  runId: string | null;
-  onSuccess: () => void;
-}) {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [message, setMessage] = useState("");
-
-  async function handleSubmit() {
-    if (!name || !phone) {
-      alert("请填写姓名和手机号");
-      return;
-    }
-    const fullPhone = phone.startsWith("+") ? phone : `+65${phone}`;
-
-    // Link layer1 contact info to the already-saved run (non-blocking)
-    if (outputs) {
-      const storedInputs = (() => {
-        try {
-          return JSON.parse(sessionStorage.getItem("lh_calc_inputs") ?? "{}");
-        } catch {
-          return {};
-        }
-      })();
-      fetch("/api/v1/calculator/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inputs: storedInputs,
-          outputs,
-          tax_rates_version: taxRatesVersion,
-          session_id: sessionId,
-          ...(runId ? { run_id: runId } : {}),
-          layer1: { name, phone: fullPhone },
-        }),
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.ok) {
-            try {
-              localStorage.setItem("lh_run_id", data.data.run_id);
-            } catch {
-              /* ignore */
-            }
-          }
-        })
-        .catch(() => {
-          /* ignore */
-        });
-    }
-
-    onClose();
-    setName("");
-    setPhone("");
-    setMessage("");
-    onSuccess();
-  }
-
-  if (!open) return null;
-
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50 }}>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(26,28,26,0.4)",
-          backdropFilter: "blur(4px)",
-        }}
-      />
-      {/* Panel */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "#fff",
-          borderRadius: "16px 16px 0 0",
-          paddingBottom: "max(20px, env(safe-area-inset-bottom))",
-        }}
-      >
-        <div style={{ padding: 24 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <h3
-              style={{
-                fontFamily: "'Noto Serif SC', serif",
-                fontSize: 20,
-                fontWeight: 600,
-                color: "#1A1C1A",
-              }}
-            >
-              即刻咨询
-            </h3>
-            <button
-              onClick={onClose}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "#9CA3AF",
-                fontSize: 24,
-                lineHeight: 1,
-                padding: 0,
-              }}
-            >
-              ×
-            </button>
-          </div>
-
-          <p
-            style={{
-              fontSize: 14,
-              fontWeight: 300,
-              color: "#6B7280",
-              marginBottom: 24,
-              lineHeight: 1.6,
-            }}
-          >
-            留下您的联系方式，理财顾问将在 24 小时内联系您解读测算结果。
-          </p>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div>
-              <InputLabel>您的称呼</InputLabel>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="例如：陈先生"
-                style={{
-                  width: "100%",
-                  borderBottom: "1px solid #E5E5E5",
-                  padding: "12px 0",
-                  fontSize: 16,
-                  outline: "none",
-                  fontFamily: "inherit",
-                  background: "transparent",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-
-            <div>
-              <InputLabel>手机号码</InputLabel>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <span
-                  style={{
-                    borderBottom: "1px solid #E5E5E5",
-                    padding: "12px 8px 12px 0",
-                    fontSize: 16,
-                    color: "#6B7280",
-                  }}
-                >
-                  +65
-                </span>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                  placeholder="8123 4567"
-                  style={{
-                    flex: 1,
-                    borderBottom: "1px solid #E5E5E5",
-                    padding: "12px 0",
-                    fontSize: 16,
-                    outline: "none",
-                    fontFamily: "inherit",
-                    background: "transparent",
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <InputLabel>留言（可选）</InputLabel>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={2}
-                placeholder="例如：希望了解 PR 二套购房策略"
-                style={{
-                  width: "100%",
-                  border: "1px solid #E5E5E5",
-                  borderRadius: 4,
-                  padding: "8px 12px",
-                  fontSize: 14,
-                  outline: "none",
-                  fontFamily: "inherit",
-                  resize: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 28 }}>
-            <BtnPrimary onClick={handleSubmit} disabled={!name || !phone}>
-              提交
-            </BtnPrimary>
-          </div>
-
-          <p
-            style={{
-              fontSize: 11,
-              fontWeight: 300,
-              color: "#9CA3AF",
-              textAlign: "center",
-              marginTop: 16,
-              lineHeight: 1.6,
-            }}
-          >
-            提交即表示您同意我们的隐私政策。
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────
-   INFO MODAL
-───────────────────────────────────────────────────────────────────── */
-
-function InfoModal({
-  info,
-  onClose,
-}: {
-  info: { title: string; body: string } | null;
-  onClose: () => void;
-}) {
-  if (!info) return null;
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50 }}>
-      <div
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(26,28,26,0.4)",
-          backdropFilter: "blur(4px)",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%,-50%)",
-          width: "88%",
-          maxWidth: 360,
-          background: "#fff",
-          borderRadius: 6,
-          boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            marginBottom: 12,
-          }}
-        >
-          <h3
-            style={{
-              fontFamily: "'Noto Serif SC', serif",
-              fontSize: 16,
-              fontWeight: 600,
-              color: "#1A1C1A",
-            }}
-          >
-            {info.title}
-          </h3>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "#9CA3AF",
-              fontSize: 20,
-              lineHeight: 1,
-              padding: 0,
-              marginLeft: 8,
-            }}
-          >
-            ×
-          </button>
-        </div>
-        <p style={{ fontSize: 14, fontWeight: 300, color: "#4B5563", lineHeight: 1.7 }}>
-          {info.body}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────
-   TOAST
-───────────────────────────────────────────────────────────────────── */
 
 function Toast({ visible }: { visible: boolean }) {
   if (!visible) return null;
@@ -867,7 +431,7 @@ function Toast({ visible }: { visible: boolean }) {
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 60,
-        background: "#1A1C1A",
+        background: C.charcoal,
         color: "#fff",
         fontSize: 14,
         padding: "12px 20px",
@@ -876,26 +440,89 @@ function Toast({ visible }: { visible: boolean }) {
         whiteSpace: "nowrap",
       }}
     >
-      ✓ 提交成功，顾问将在 24 小时内联系您
+      ✓ 已为您准备好，顾问将在 24 小时内联系
+    </div>
+  );
+}
+
+function Badge({ children, warn }: { children: React.ReactNode; warn?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        marginLeft: 8,
+        fontSize: 10,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: warn ? C.warn : C.primary,
+        color: "#fff",
+        fontWeight: 500,
+        verticalAlign: "middle",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function CostRow({
+  label,
+  value,
+  strongTop,
+  noTop,
+  total,
+}: {
+  label: string;
+  value: string;
+  strongTop?: boolean;
+  noTop?: boolean;
+  total?: boolean;
+}) {
+  const emphasized = total || strongTop;
+  const borderTop = emphasized ? `1px solid ${C.border}` : noTop ? "none" : "1px solid #F3F4F6";
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        fontSize: 14,
+        padding: "10px 0",
+        borderTop,
+        marginTop: emphasized ? 4 : 0,
+      }}
+    >
+      <span
+        style={{ color: emphasized ? C.charcoal : C.gray500, fontWeight: emphasized ? 500 : 300 }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontWeight: total ? 600 : 500,
+          color: total ? C.primary : C.charcoal,
+          fontVariantNumeric: "tabular-nums",
+          fontSize: total ? 16 : 14,
+        }}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   MAIN COMPONENT
+   PAGE
 ───────────────────────────────────────────────────────────────────── */
-
 type View = "hero" | "step1" | "step2" | "step3" | "loading" | "result";
 
-const AGE_ITEMS = Array.from({ length: 45 }, (_, i) => String(21 + i));
 const LOADING_TEXTS = [
-  "计算最新政策下的印花税 (ABSD)...",
-  "测算最高贷款成数 (LTV)...",
-  "评估总偿债比率 (TDSR)...",
-  "生成预算区间...",
+  "计算 BSD/ABSD 印花税...",
+  "测算 LTV 与 TDSR...",
+  "生成三档房价区间...",
+  "计算 break-even 涨幅...",
 ];
 
-// Shared page container style for step pages
 const STEP_PAGE: React.CSSProperties = {
   width: "100%",
   maxWidth: 430,
@@ -910,32 +537,35 @@ const STEP_PAGE: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-// Section title (h4 in result page)
 const SECTION_TITLE: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 600,
-  color: "#1A1C1A",
+  color: C.charcoal,
   marginBottom: 16,
-  letterSpacing: "0.025em",
-  fontFamily: "'Noto Serif SC', serif",
+  fontFamily: SERIF,
 };
 
 export default function CalculatorPage() {
   const [view, setView] = useState<View>("hero");
   const [form, setForm] = useState<CalculatorFormState>(INITIAL_FORM);
-  const [ageBucket, setAgeBucket] = useState(9); // age 30
-  const [outputs, setOutputs] = useState<CalcOutputs | null>(null);
-  const [taxVersion, setTaxVersion] = useState("");
   const [loadingIdx, setLoadingIdx] = useState(0);
-  const [displayRate, setDisplayRate] = useState(1.65);
-  const [calcTenure, setCalcTenure] = useState(25);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [consultOpen, setConsultOpen] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
-  const [info, setInfo] = useState<{ title: string; body: string } | null>(null);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [result, setResult] = useState<V2ComputeResult | null>(null);
+
+  // Result-page adjustable state
+  const [selectedTier, setSelectedTier] = useState<PriceTierKey>("balanced");
+  const [years, setYears] = useState(7);
+  const [tenure, setTenure] = useState(30);
+  const [rate, setRate] = useState(1.65); // %
+  // rent as a digit string so the field can be fully cleared while typing
+  const [rentDigits, setRentDigits] = useState("4500");
+  const rentNum = rentDigits === "" ? 0 : Number(rentDigits);
+  const rentEdited = useRef(false);
+
+  const [sessionId] = useState(() =>
+    typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
+  );
   const [runId, setRunId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
 
   const setField = useCallback(
     <K extends keyof CalculatorFormState>(key: K, val: CalculatorFormState[K]) =>
@@ -943,15 +573,16 @@ export default function CalculatorPage() {
     []
   );
 
-  function showToast() {
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 3000);
-  }
-
   function goTo(v: View) {
     setView(v);
-    window.scrollTo(0, 0);
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
   }
+
+  const foreigner = isForeigner(form.residency);
+  const step1Ready = form.residency !== null;
+  // Income and cash are required (cash 0 is a valid "insufficient" outcome, but must be entered); CPF optional.
+  const step2Ready = toAmount(form.incomeMonthly) > 0 && form.cash !== "";
+  const step3Ready = form.timeline !== null;
 
   /* ─── Submit ─────────────────────────────────────────────────── */
   async function handleSubmit() {
@@ -959,11 +590,10 @@ export default function CalculatorPage() {
     setLoadingIdx(0);
     const interval = setInterval(
       () => setLoadingIdx((i) => Math.min(i + 1, LOADING_TEXTS.length - 1)),
-      800
+      600
     );
 
-    const payload = buildApiPayload({ ...form, age: 21 + ageBucket });
-
+    const payload = buildApiPayload(form, form.age);
     try {
       const res = await fetch("/api/v1/calculator/compute", {
         method: "POST",
@@ -972,16 +602,24 @@ export default function CalculatorPage() {
       });
       const json = await res.json();
       clearInterval(interval);
-
       if (json.ok) {
-        setOutputs(json.data.outputs);
-        setTaxVersion(json.data.tax_rates_version);
-        setCalcTenure(form.tenure);
+        const data = json.data as V2ComputeResult;
+        setResult(data);
+        setSelectedTier("balanced");
+        setYears(data.break_even?.default_holding_years ?? 7);
+        setTenure(data.break_even?.default_tenure_years ?? 30);
+        setRate((data.break_even?.default_rate ?? 0.0165) * 100);
+        rentEdited.current = false;
+        setRentDigits(
+          String(
+            data.break_even?.median_rent_estimate ??
+              estimateMedianRent(data.tiers.balanced.midpoint)
+          )
+        );
         try {
-          sessionStorage.setItem("lh_calc_outputs", JSON.stringify(json.data.outputs));
           sessionStorage.setItem("lh_calc_inputs", JSON.stringify(payload));
-          sessionStorage.setItem("lh_tax_version", json.data.tax_rates_version);
-          sessionStorage.setItem("lh_session_id", sessionId);
+          sessionStorage.setItem("lh_calc_outputs", JSON.stringify(data));
+          sessionStorage.setItem("lh_tax_version", data.tax_rates_version);
         } catch {
           /* ignore */
         }
@@ -997,92 +635,71 @@ export default function CalculatorPage() {
     }
   }
 
-  /* ─── Save report to DB, return run_id ─────────────────────── */
+  /* ─── Tier switch: re-estimate rent unless user edited it ─────── */
+  function pickTier(t: PriceTierKey) {
+    setSelectedTier(t);
+    if (!rentEdited.current && result) {
+      setRentDigits(String(estimateMedianRent(result.tiers[t].midpoint)));
+    }
+  }
+
+  /* ─── Save report ────────────────────────────────────────────── */
   async function saveReport(): Promise<string | null> {
-    if (!outputs) return null;
-    setSaving(true);
+    if (!result) return null;
     try {
-      const storedInputs = (() => {
-        try {
-          return JSON.parse(sessionStorage.getItem("lh_calc_inputs") ?? "{}");
-        } catch {
-          return {};
-        }
-      })();
+      const storedInputs = JSON.parse(sessionStorage.getItem("lh_calc_inputs") ?? "{}");
       const res = await fetch("/api/v1/calculator/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inputs: storedInputs,
-          outputs,
-          tax_rates_version: taxVersion,
+          outputs: result,
+          tax_rates_version: result.tax_rates_version,
           session_id: sessionId,
         }),
       });
       const data = await res.json();
       if (data.ok) {
-        const id = data.data.run_id as string;
-        setRunId(id);
-        try {
-          localStorage.setItem("lh_run_id", id);
-        } catch {
-          /* ignore */
-        }
-        return id;
+        setRunId(data.data.run_id);
+        return data.data.run_id as string;
       }
-      return null;
     } catch {
-      return null;
-    } finally {
-      setSaving(false);
+      /* ignore */
     }
+    return null;
   }
 
-  /* ─── WhatsApp CTA: save first, then open with run_id ───────── */
-  async function handleWhatsAppCTA() {
-    if (!outputs) return;
+  async function handleWhatsApp() {
     const id = runId ?? (await saveReport());
     const text = id
-      ? `Hi 狮城家，我的报告编号是 ${id}，请帮我生成定制购房参考报告。`
-      : `Hi 狮城家，请帮我生成一份定制购房参考报告。`;
+      ? `Hi 狮城家，我的报告编号是 ${id}，请帮我看这个区间的房。`
+      : `Hi 狮城家，请帮我看看适合我的房。`;
     window.open(
       `https://api.whatsapp.com/send?phone=6580565348&text=${encodeURIComponent(text)}`,
       "_blank"
     );
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
   }
 
-  /* ─── Consult CTA: save first, then open drawer ─────────────── */
-  async function handleConsultCTA() {
-    if (!outputs) return;
-    if (!runId) await saveReport();
-    setConsultOpen(true);
+  function resetAll() {
+    setForm(INITIAL_FORM);
+    setResult(null);
+    setSelectedTier("balanced");
+    setYears(7);
+    setTenure(30);
+    setRate(1.65);
+    setRentDigits("4500");
+    rentEdited.current = false;
+    goTo("hero");
   }
-
-  /* ─── RESULT computed values ────────────────────────────────── */
-  const price = outputs?.max_price ?? 0;
-  const loan = outputs?.loan_amount ?? 0;
-  const rate = displayRate / 100;
-  const monthlyBase = Math.round(monthlyMortgage(loan, rate, calcTenure));
-  const monthlyStress = Math.round(monthlyMortgage(loan, 0.04, calcTenure));
-  const totalInterest = Math.round(monthlyBase * calcTenure * 12 - loan);
-  const cash5 = Math.round(price * 0.05);
-  const downCpf = outputs?.down_payment.cpf ?? 0;
-  const downCash = outputs?.down_payment.cash ?? 0;
-  const cashExtra = Math.max(0, downCash - cash5);
-  const feesTotal =
-    (outputs?.bsd ?? 0) + (outputs?.absd ?? 0) + 500 + (outputs?.legal_fees_est ?? 0);
-  const absdRate = outputs?.absd_rate ?? 0;
 
   /* ═══════════════════════════════════════════════════════════════
-     VIEWS
+     HERO
   ═══════════════════════════════════════════════════════════════ */
-
-  /* ── HERO ──────────────────────────────────────────────────── */
   if (view === "hero") {
     return (
       <div
-        key="hero"
-        className="calc-view-enter"
         style={{
           width: "100%",
           maxWidth: 430,
@@ -1090,113 +707,85 @@ export default function CalculatorPage() {
           display: "flex",
           flexDirection: "column",
           minHeight: "100dvh",
-          background: "#FCFBF9",
-          // no horizontal padding at root level (matches prototype)
+          background: C.offwhite,
         }}
       >
-        {/* Top brand strip */}
-        <div
-          style={{
-            flexShrink: 0,
-            paddingLeft: 20,
-            paddingRight: 20,
-            paddingTop: "max(20px, env(safe-area-inset-top))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div style={{ flexShrink: 0, padding: "max(20px, env(safe-area-inset-top)) 20px 0" }}>
           <BrandLogo />
         </div>
 
-        {/* Visual hero block (cream) */}
         <div
           style={{
             flexShrink: 0,
             padding: "48px 20px 40px",
-            marginTop: 24,
-            marginLeft: 20,
-            marginRight: 20,
+            margin: "24px 20px 0",
             borderRadius: 6,
             position: "relative",
             overflow: "hidden",
-            background: "#F5F1E8",
+            background: C.cream,
           }}
         >
-          {/* Decorative circles */}
-          <div
-            style={{
-              position: "absolute",
-              top: 24,
-              right: 24,
-              opacity: 0.3,
-            }}
-          >
+          <div style={{ position: "absolute", top: 24, right: 24, opacity: 0.3 }}>
             <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-              <circle cx="40" cy="40" r="38" stroke="#2F4F3D" strokeWidth="0.5" />
-              <circle cx="40" cy="40" r="26" stroke="#2F4F3D" strokeWidth="0.5" />
-              <circle cx="40" cy="40" r="14" stroke="#2F4F3D" strokeWidth="0.5" />
+              <circle cx="40" cy="40" r="38" stroke={C.primary} strokeWidth="0.5" />
+              <circle cx="40" cy="40" r="26" stroke={C.primary} strokeWidth="0.5" />
+              <circle cx="40" cy="40" r="14" stroke={C.primary} strokeWidth="0.5" />
             </svg>
           </div>
-
           <p
             style={{
               fontSize: 11,
               letterSpacing: "0.2em",
-              color: "#2F4F3D",
+              color: C.primary,
               fontWeight: 500,
               textTransform: "uppercase",
               marginBottom: 12,
             }}
           >
-            购房力测算
+            理性购房决策
           </p>
           <h1
             style={{
-              fontFamily: "'Noto Serif SC', serif",
+              fontFamily: SERIF,
               fontWeight: 600,
-              color: "#1A1C1A",
+              color: C.charcoal,
               lineHeight: 1.05,
-              fontSize: 38,
+              fontSize: 36,
               marginBottom: 16,
             }}
           >
-            我的购房
+            新加坡买房，
             <br />
-            预算是多少？
+            我该花多少钱？
           </h1>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 300 }}>3 分钟测算</span>
+            <span style={{ fontSize: 12, color: C.gray500, fontWeight: 300 }}>3 分钟理性决策</span>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#D1D5DB" }} />
-            <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 300 }}>无需注册</span>
+            <span style={{ fontSize: 12, color: C.gray500, fontWeight: 300 }}>无需注册</span>
           </div>
         </div>
 
-        {/* Value bullets */}
         <div
           style={{
             flex: 1,
-            paddingLeft: 28,
-            paddingRight: 28,
-            paddingTop: 32,
-            paddingBottom: 8,
+            padding: "32px 28px 8px",
             display: "flex",
             flexDirection: "column",
             gap: 20,
           }}
         >
           {[
-            { title: "精确到税金", sub: "基于 IRAS 最新 BSD/ABSD 累进税率" },
-            { title: "考虑您的真实身份", sub: "PR 二套、外籍首套，税率天差地别" },
-            { title: "压力测试 +2pp", sub: "看清未来利率波动下的真实月供" },
-          ].map(({ title, sub }) => (
-            <div key={title} style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+            { t: "我该看多少钱档次的房", s: "舒适 · 平衡 · 压力 三档区间，避免月供吃紧" },
+            { t: "手里应该攒多少现金", s: "首付 · 印花税 · 应急金，一笔笔拆给您看" },
+            { t: "买还是租，到底哪个划算", s: "告诉您 break-even 涨幅，赌注一目了然" },
+          ].map(({ t, s }) => (
+            <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
               <div
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
-                  background: "#EAEFEB",
+                  background: C.primarySoft,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -1207,7 +796,7 @@ export default function CalculatorPage() {
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path
                     d="M3 7L6 10L11 4"
-                    stroke="#2F4F3D"
+                    stroke={C.primary}
                     strokeWidth="1.6"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -1215,27 +804,18 @@ export default function CalculatorPage() {
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 500, color: "#1A1C1A", marginBottom: 2 }}>
-                  {title}
+                <div style={{ fontSize: 14, fontWeight: 500, color: C.charcoal, marginBottom: 2 }}>
+                  {t}
                 </div>
-                <div style={{ fontSize: 12, color: "#6B7280", fontWeight: 300, lineHeight: 1.6 }}>
-                  {sub}
+                <div style={{ fontSize: 12, color: C.gray500, fontWeight: 300, lineHeight: 1.6 }}>
+                  {s}
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* CTA */}
-        <div
-          style={{
-            flexShrink: 0,
-            paddingLeft: 20,
-            paddingRight: 20,
-            paddingTop: 16,
-            paddingBottom: "max(24px, env(safe-area-inset-bottom))",
-          }}
-        >
+        <div style={{ flexShrink: 0, padding: "24px 20px max(24px, env(safe-area-inset-bottom))" }}>
           <BtnPrimary onClick={() => goTo("step1")}>开始测算</BtnPrimary>
           <div
             style={{
@@ -1244,12 +824,11 @@ export default function CalculatorPage() {
               justifyContent: "center",
               gap: 8,
               fontSize: 12,
-              color: "#9CA3AF",
+              color: C.gray400,
               marginTop: 12,
               fontWeight: 300,
             }}
           >
-            {/* lock icon */}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <rect
                 x="2"
@@ -1269,61 +848,21 @@ export default function CalculatorPage() {
     );
   }
 
-  /* ── STEP 1 — 个人信息 ──────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════
+     STEP 1 — 身份 / 套数 / 年龄
+  ═══════════════════════════════════════════════════════════════ */
   if (view === "step1") {
-    const showCpfHide = isForeigner(form.residency);
-    void showCpfHide; // used in step2
+    const ageSum = form.age + 30;
+    const ltvWarn = ageSum > 65;
     return (
-      <div key="step1" className="calc-view-enter" style={STEP_PAGE}>
-        {/* Step header */}
-        <div
-          style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 28,
-          }}
-        >
-          <BackBtn onClick={() => goTo("hero")} />
-          <span
-            style={{
-              fontSize: 12,
-              fontFamily: "var(--font-sans)",
-              letterSpacing: "0.1em",
-              color: "#9CA3AF",
-              textTransform: "uppercase",
-            }}
-          >
-            步骤 1 / 3 · 个人信息
-          </span>
-        </div>
-
+      <div style={STEP_PAGE}>
+        <StepHeader label="步骤 1 / 3 · 您和这次买房" onBack={() => goTo("hero")} />
         <div style={{ flex: 1 }}>
-          <h2
-            style={{
-              fontFamily: "'Noto Serif SC', serif",
-              fontSize: 24,
-              fontWeight: 600,
-              lineHeight: 1.3,
-              marginBottom: 8,
-              color: "#1A1C1A",
-            }}
-          >
-            关于您的身份
-          </h2>
-          <p
-            style={{
-              fontSize: 14,
-              color: "#6B7280",
-              marginBottom: 28,
-              fontWeight: 300,
-            }}
-          >
-            这三项决定您的印花税率和贷款成数。
-          </p>
+          <QuestionTitle
+            title="关于您的身份"
+            sub="这三项决定您的印花税率、贷款成数与 CPF 可用性。"
+          />
 
-          {/* Residency */}
           <div style={{ marginBottom: 24 }}>
             <InputLabel>主申请人身份</InputLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1331,11 +870,7 @@ export default function CalculatorPage() {
                 [
                   { value: "sc", title: "新加坡公民", sub: "ABSD 0% 起" },
                   { value: "pr", title: "永久居民 (PR)", sub: "ABSD 5% 起" },
-                  {
-                    value: "foreigner_wp",
-                    title: "外籍·有工作许可",
-                    sub: "EP/SP/WP/DP · ABSD 60%",
-                  },
+                  { value: "foreigner_wp", title: "外籍·有工作许可", sub: "EP/SP/WP · ABSD 60%" },
                   { value: "foreigner_none", title: "外籍·无在新身份", sub: "仅访客 · ABSD 60%" },
                 ] as { value: ResidencyOption; title: string; sub: string }[]
               ).map(({ value, title, sub }) => (
@@ -1350,29 +885,14 @@ export default function CalculatorPage() {
             </div>
           </div>
 
-          {/* Age picker */}
-          <div style={{ marginTop: 28, marginBottom: 24 }}>
-            <InputLabel>主申请人年龄</InputLabel>
-            <ScrollPicker
-              items={AGE_ITEMS}
-              selectedIndex={ageBucket}
-              onChange={setAgeBucket}
-              suffix="岁"
-            />
-            <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8, fontWeight: 300 }}>
-              年龄 + 贷款年限 ≤ 65 时可享 75% LTV。
-            </p>
-          </div>
-
-          {/* Existing properties */}
-          <div style={{ marginTop: 28 }}>
-            <InputLabel>目前持有住宅数（含全球）</InputLabel>
+          <div style={{ marginBottom: 24 }}>
+            <InputLabel>名下已有几套住宅（含全球）</InputLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {(
                 [
-                  { value: 0 as const, label: "0 套", sub: "首次置业" },
-                  { value: 1 as const, label: "1 套", sub: "第二套买家" },
-                  { value: 2 as const, label: "2 套及以上", sub: "多套持有" },
+                  { value: 0, label: "0 套", sub: "首次置业" },
+                  { value: 1, label: "1 套", sub: "第二套买家" },
+                  { value: 2, label: "2 套及以上", sub: "多套持有" },
                 ] as { value: 0 | 1 | 2; label: string; sub: string }[]
               ).map(({ value, label, sub }) => (
                 <RadioCard
@@ -1385,238 +905,157 @@ export default function CalculatorPage() {
               ))}
             </div>
           </div>
-        </div>
 
-        <div style={{ marginTop: 24, paddingTop: 16 }}>
-          <BtnPrimary onClick={() => goTo("step2")}>下一步</BtnPrimary>
-        </div>
-      </div>
-    );
-  }
-
-  /* ── STEP 2 — 收入情况 ──────────────────────────────────────── */
-  if (view === "step2") {
-    const hideCpf = isForeigner(form.residency);
-    return (
-      <div key="step2" className="calc-view-enter" style={STEP_PAGE}>
-        <div
-          style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 28,
-          }}
-        >
-          <BackBtn onClick={() => goTo("step1")} />
-          <span
-            style={{
-              fontSize: 12,
-              fontFamily: "var(--font-sans)",
-              letterSpacing: "0.1em",
-              color: "#9CA3AF",
-              textTransform: "uppercase",
-            }}
-          >
-            步骤 2 / 3 · 收入情况
-          </span>
-        </div>
-
-        <div style={{ flex: 1 }}>
-          <h2
-            style={{
-              fontFamily: "'Noto Serif SC', serif",
-              fontSize: 24,
-              fontWeight: 600,
-              lineHeight: 1.3,
-              marginBottom: 8,
-              color: "#1A1C1A",
-            }}
-          >
-            您的收入与资产
-          </h2>
-          <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 28, fontWeight: 300 }}>
-            用于测算贷款额度与首付能力。
-          </p>
-
-          <div style={{ marginBottom: 24 }}>
-            <InputLabel>家庭年税前总收入（含花红）</InputLabel>
-            <ScrollPicker
-              items={INCOME_BUCKETS.map((b) => b.label)}
-              selectedIndex={form.incomeBucket}
-              onChange={(i) => setField("incomeBucket", i)}
-            />
-          </div>
-
-          <div style={{ marginTop: 28, marginBottom: 24 }}>
-            <InputLabel>可动用现金存款（不含 CPF）</InputLabel>
-            <ScrollPicker
-              items={CASH_BUCKETS.map((b) => b.label)}
-              selectedIndex={form.cashBucket}
-              onChange={(i) => setField("cashBucket", i)}
-            />
-          </div>
-
-          {!hideCpf && (
-            <div style={{ marginTop: 28, marginBottom: 24 }}>
-              <InputLabel>CPF 普通户头 (OA) 余额</InputLabel>
-              <ScrollPicker
-                items={CPF_BUCKETS.map((b) => b.label)}
-                selectedIndex={form.cpfBucket}
-                onChange={(i) => setField("cpfBucket", i)}
-              />
-              <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8, fontWeight: 300 }}>
-                私宅至少 5% 须以现金支付，余下可由 CPF 补足。
-              </p>
+          <div style={{ marginBottom: 8 }}>
+            <InputLabel>主申请人年龄</InputLabel>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
+              <span style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600 }}>{form.age}</span>
+              <span style={{ color: C.gray500 }}>岁</span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 300,
+                  marginLeft: "auto",
+                  color: ltvWarn ? C.warn : C.gray400,
+                }}
+              >
+                {ltvWarn
+                  ? `年龄 + 30 年 = ${ageSum}（>65），LTV 降至 55%`
+                  : `年龄 + 30 年 = ${ageSum}，可享 75% LTV`}
+              </span>
             </div>
-          )}
-
-          <div style={{ marginTop: 28 }}>
-            <InputLabel>每月固定债务还款（车贷 / 卡 min / 学生贷）</InputLabel>
-            <ScrollPicker
-              items={DEBT_BUCKETS.map((b) => b.label)}
-              selectedIndex={form.debtBucket}
-              onChange={(i) => setField("debtBucket", i)}
+            <input
+              type="range"
+              min={21}
+              max={65}
+              value={form.age}
+              onChange={(e) => setField("age", Number(e.target.value))}
+              style={{ width: "100%", accentColor: C.primary }}
             />
           </div>
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 16 }}>
-          <BtnPrimary onClick={() => goTo("step3")}>下一步</BtnPrimary>
+          <BtnPrimary disabled={!step1Ready} onClick={() => goTo("step2")}>
+            下一步
+          </BtnPrimary>
         </div>
       </div>
     );
   }
 
-  /* ── STEP 3 — 买房预期 ──────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════
+     STEP 2 — 收入 / 现金 / CPF
+  ═══════════════════════════════════════════════════════════════ */
+  if (view === "step2") {
+    return (
+      <div style={STEP_PAGE}>
+        <StepHeader label="步骤 2 / 3 · 您的钱" onBack={() => goTo("step1")} />
+        <div style={{ flex: 1 }}>
+          <QuestionTitle title="您的收入与现金" sub="直接填写您的实际数字，估个大概也行。" />
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <MoneyInput
+              label="家庭税前月收入（含配偶）"
+              value={form.incomeMonthly}
+              onChange={(v) => setField("incomeMonthly", v)}
+              suffix="/ 月"
+              placeholder="例如 18000"
+              hint={
+                toAmount(form.incomeMonthly) > 0
+                  ? `≈ 年收入 S$ ${(toAmount(form.incomeMonthly) * 12).toLocaleString("en-US")}`
+                  : undefined
+              }
+            />
+
+            <MoneyInput
+              label="可动用现金（不含 CPF，含父母赞助）"
+              value={form.cash}
+              onChange={(v) => setField("cash", v)}
+              placeholder="例如 500000"
+              hint={toAmount(form.cash) > 0 ? `≈ ${toAmount(form.cash) / 10000} 万` : undefined}
+            />
+
+            {!foreigner && (
+              <MoneyInput
+                label="CPF OA 余额（可粗估）"
+                value={form.cpf}
+                onChange={(v) => setField("cpf", v)}
+                placeholder="例如 200000"
+                hint={
+                  toAmount(form.cpf) > 0
+                    ? `≈ ${toAmount(form.cpf) / 10000} 万 · 登录 cpf.gov.sg 可查精确数额`
+                    : "登录 cpf.gov.sg 可查精确数额，估个大概也行"
+                }
+              />
+            )}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 24, paddingTop: 16 }}>
+          <BtnPrimary disabled={!step2Ready} onClick={() => goTo("step3")}>
+            下一步
+          </BtnPrimary>
+        </div>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     STEP 3 — 时间线
+  ═══════════════════════════════════════════════════════════════ */
   if (view === "step3") {
     return (
-      <div key="step3" className="calc-view-enter" style={STEP_PAGE}>
-        <div
-          style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 28,
-          }}
-        >
-          <BackBtn onClick={() => goTo("step2")} />
-          <span
-            style={{
-              fontSize: 12,
-              fontFamily: "var(--font-sans)",
-              letterSpacing: "0.1em",
-              color: "#9CA3AF",
-              textTransform: "uppercase",
-            }}
-          >
-            步骤 3 / 3 · 买房预期
-          </span>
-        </div>
-
+      <div style={STEP_PAGE}>
+        <StepHeader label="步骤 3 / 3 · 您的计划" onBack={() => goTo("step2")} />
         <div style={{ flex: 1 }}>
-          <h2
-            style={{
-              fontFamily: "'Noto Serif SC', serif",
-              fontSize: 24,
-              fontWeight: 600,
-              lineHeight: 1.3,
-              marginBottom: 8,
-              color: "#1A1C1A",
-            }}
-          >
-            您的购房计划
-          </h2>
-          <p style={{ fontSize: 14, color: "#6B7280", marginBottom: 28, fontWeight: 300 }}>
-            帮助我们理解您的购房动机。
-          </p>
-
-          {/* Purpose */}
-          <div style={{ marginBottom: 24 }}>
-            <InputLabel>购房目的</InputLabel>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {(
-                [
-                  { value: "self", label: "自住", sub: "家人居住" },
-                  { value: "invest", label: "投资", sub: "出租或资本增值" },
-                  {
-                    value: "upgrade",
-                    label: "升级换房",
-                    sub: "出售现有住宅，购置更大/更好的房产",
-                  },
-                ] as { value: PropertyPurpose; label: string; sub: string }[]
-              ).map(({ value, label, sub }) => (
-                <RadioCard
-                  key={value}
-                  label={label}
-                  sub={sub}
-                  selected={form.purpose === value}
-                  onClick={() => setField("purpose", value)}
-                />
-              ))}
-            </div>
+          <QuestionTitle
+            title="您打算何时买？"
+            sub="这一项不影响计算，只用于后续匹配合适节奏的顾问。"
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(
+              [
+                { value: "6m", label: "半年内" },
+                { value: "1y", label: "1 年内" },
+                { value: "explore", label: "1 年以上 / 仅了解" },
+              ] as { value: Timeline; label: string }[]
+            ).map(({ value, label }) => (
+              <RadioCard
+                key={value}
+                label={label}
+                selected={form.timeline === value}
+                onClick={() => setField("timeline", value)}
+              />
+            ))}
           </div>
 
-          {/* Property type */}
-          <div style={{ marginTop: 28, marginBottom: 24 }}>
-            <InputLabel>房产类型偏好</InputLabel>
-            <SegWrap<PropertyTypePref>
-              options={[
-                { label: "新楼盘", value: "new_launch" },
-                { label: "二手房", value: "resale" },
-                { label: "两者均可", value: "either" },
-              ]}
-              value={form.propertyType}
-              onChange={(v) => setField("propertyType", v)}
-            />
-          </div>
-
-          {/* Timeline */}
-          <div style={{ marginTop: 28, marginBottom: 24 }}>
-            <InputLabel>购入预期时间</InputLabel>
-            <SegWrap<Timeline>
-              options={[
-                { label: "3 月内", value: "3m" },
-                { label: "6 月内", value: "6m" },
-                { label: "1 年内", value: "1y" },
-                { label: "仅了解", value: "explore" },
-              ]}
-              value={form.timeline}
-              onChange={(v) => setField("timeline", v)}
-            />
-          </div>
-
-          {/* Tenure */}
-          <div style={{ marginTop: 28 }}>
-            <InputLabel>期望贷款年限</InputLabel>
-            <SegWrap<string>
-              options={[
-                { label: "20 年", value: "20" },
-                { label: "25 年", value: "25" },
-                { label: "30 年", value: "30" },
-              ]}
-              value={String(form.tenure)}
-              onChange={(v) => setField("tenure", Number(v) as LoanTenure)}
-            />
-            <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8, fontWeight: 300 }}>
-              年龄 + 年限 ≤ 65 时可享 75% LTV。
+          <div style={{ background: "#FAF8F2", borderRadius: 4, padding: 16, marginTop: 24 }}>
+            <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.7 }}>
+              系统默认按{" "}
+              <span style={{ fontWeight: 500, color: C.charcoal }}>
+                贷款 30 年 · 持有 7 年 · 利率 1.65%
+              </span>{" "}
+              测算。结果页可调，看不同情境下的数字。
             </p>
           </div>
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 16 }}>
-          <BtnPrimary onClick={handleSubmit}>生成评估报告</BtnPrimary>
+          <BtnPrimary disabled={!step3Ready} onClick={handleSubmit}>
+            生成评估
+          </BtnPrimary>
         </div>
       </div>
     );
   }
 
-  /* ── LOADING ────────────────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════
+     LOADING
+  ═══════════════════════════════════════════════════════════════ */
   if (view === "loading") {
     return (
       <div
-        key="loading"
         style={{
           display: "flex",
           alignItems: "center",
@@ -1640,7 +1079,7 @@ export default function CalculatorPage() {
               style={{
                 position: "absolute",
                 inset: 0,
-                border: "1px solid #E5E5E5",
+                border: `1px solid ${C.border}`,
                 borderRadius: "50%",
               }}
             />
@@ -1648,7 +1087,7 @@ export default function CalculatorPage() {
               style={{
                 position: "absolute",
                 inset: 0,
-                border: "1px solid #2F4F3D",
+                border: `1px solid ${C.primary}`,
                 borderTop: "1px solid transparent",
                 borderRadius: "50%",
                 animation: "spin 1s linear infinite",
@@ -1657,16 +1096,16 @@ export default function CalculatorPage() {
           </div>
           <h3
             style={{
-              fontFamily: "'Noto Serif SC', serif",
+              fontFamily: SERIF,
               fontSize: 20,
               fontWeight: 600,
               marginBottom: 8,
-              color: "#1A1C1A",
+              color: C.charcoal,
             }}
           >
-            正在深度测算
+            正在为您理性决策
           </h3>
-          <p style={{ fontSize: 14, color: "#6B7280", fontWeight: 300 }}>
+          <p style={{ fontSize: 14, color: C.gray500, fontWeight: 300 }}>
             {LOADING_TEXTS[loadingIdx]}
           </p>
         </div>
@@ -1675,613 +1114,482 @@ export default function CalculatorPage() {
     );
   }
 
-  /* ── RESULT ─────────────────────────────────────────────────── */
-  if (view === "result" && outputs) {
-    const ltvPct = Math.round((outputs.ltv_cap ?? 0.75) * 100);
+  /* ═══════════════════════════════════════════════════════════════
+     RESULT
+  ═══════════════════════════════════════════════════════════════ */
+  if (view === "result" && result) {
+    const residency = form.residency ?? "pr";
+    const isFirst = form.existingProperties === 0;
+    const tier: TierData = result.tiers[selectedTier];
+    const cb = tier.cash_breakdown;
+    const availableCash = cb.total_cash_needed - cb.cash_gap;
+    const cashShort = cb.cash_gap > 0;
+
+    // Live break-even (Block 3 only) via the shared core — identical to the server formula.
+    const upfront = cb.down_payment_cash + cb.bsd + cb.absd + cb.legal_fees_est;
+    const be =
+      isFirst && cb.price > 0
+        ? computeBreakEven({
+            price: cb.price,
+            loanAmount: cb.loan_amount,
+            upfrontCash: upfront,
+            monthlyRent: rentNum,
+            holdingYears: years,
+            tenureYears: tenure,
+            rate: rate / 100,
+          })
+        : null;
+
+    const propsLabel =
+      form.existingProperties === 0 ? "首套" : form.existingProperties === 1 ? "第二套" : "第三套+";
+    const incomeLabel = `S$ ${toAmount(form.incomeMonthly).toLocaleString("en-US")}/月`;
+    const cashLabel = `S$ ${toAmount(form.cash).toLocaleString("en-US")}`;
+    const cpfLabel = foreigner ? "CPF=0" : `S$ ${toAmount(form.cpf).toLocaleString("en-US")}`;
+    const lowerTierName =
+      selectedTier === "aggressive"
+        ? "平衡区"
+        : selectedTier === "balanced"
+          ? "舒适区"
+          : "更低预算";
 
     return (
       <>
         <div
-          key="result"
-          className="calc-view-enter"
           style={{
             width: "100%",
             maxWidth: 430,
             margin: "0 auto",
-            background: "#FCFBF9",
+            background: C.offwhite,
             minHeight: "100dvh",
-            // NO padding — all sections handle their own
           }}
         >
-          {/* Hero cream — NO back button, matches prototype */}
+          {/* Hero */}
           <div
             style={{
-              paddingLeft: 24,
-              paddingRight: 24,
-              paddingBottom: 32,
-              paddingTop: "max(48px, env(safe-area-inset-top))",
-              background: "#F5F1E8",
+              padding: "max(40px, env(safe-area-inset-top)) 20px 28px",
+              background: C.cream,
             }}
           >
             <div
               style={{
                 fontSize: 11,
                 letterSpacing: "0.2em",
-                color: "#2F4F3D",
                 fontWeight: 500,
                 textTransform: "uppercase",
-                marginBottom: 12,
+                color: C.primary,
+                marginBottom: 8,
               }}
             >
-              您的购房参考预算
+              您的理性购房决策
             </div>
             <div
               style={{
-                fontFamily: "'Noto Serif SC', serif",
+                fontFamily: SERIF,
+                fontSize: 28,
                 fontWeight: 600,
-                color: "#1A1C1A",
                 lineHeight: 1.2,
-                fontSize: 38,
-                whiteSpace: "nowrap",
+                color: C.charcoal,
               }}
             >
-              S$&nbsp;{fmt(price)}
+              基于您 {RESIDENCY_LABEL[residency]} · {propsLabel} 的画像
             </div>
-            <div
-              style={{
-                marginTop: 12,
-                fontSize: 12,
-                color: "#6B7280",
-                fontWeight: 300,
-              }}
-            >
-              基于您的输入测算，仅作初步参考
-            </div>
+            <p style={{ fontSize: 12, color: C.gray500, fontWeight: 300, marginTop: 12 }}>
+              以下三档房价对应不同月供压力，平衡区为推荐。
+            </p>
           </div>
 
-          {/* Body — scrolls under sticky footer */}
-          <div
-            style={{
-              paddingLeft: 24,
-              paddingRight: 24,
-              paddingTop: 28,
-              paddingBottom: 160, // space for sticky footer
-              display: "flex",
-              flexDirection: "column",
-              gap: 24,
-            }}
-          >
-            {/* 房产成本明细 */}
-            <section>
-              <h4 style={SECTION_TITLE}>房产成本明细</h4>
-              <div
-                style={{
-                  background: "#fff",
-                  border: "1px solid #E5E5E5",
-                  borderRadius: 4,
-                  padding: 20,
-                  fontSize: 14,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
-                {/* 房屋单价 */}
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#6B7280", fontWeight: 300 }}>房屋单价</span>
-                  <span style={{ fontWeight: 500, color: "#1A1C1A" }}>{fmtS(price)}</span>
-                </div>
-
-                {/* 首付 */}
-                <div style={{ borderTop: "1px solid #E5E5E5", paddingTop: 12 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <span style={{ fontWeight: 500, color: "#1A1C1A" }}>首付（含 CPF）</span>
-                    <span style={{ fontWeight: 500, color: "#1A1C1A" }}>
-                      {fmtS(downCash + downCpf)}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      paddingLeft: 12,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                      fontSize: 12,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}
-                    >
-                      <span>5% 现金（必须）</span>
-                      <span>{fmtS(cash5)}</span>
-                    </div>
-                    <div
-                      style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}
-                    >
-                      <span>CPF OA 可付</span>
-                      <span>{fmtS(downCpf)}</span>
-                    </div>
-                    {cashExtra > 0 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          color: "#6B7280",
-                        }}
-                      >
-                        <span>现金补充</span>
-                        <span>{fmtS(cashExtra)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 税费 */}
-                <div style={{ borderTop: "1px solid #E5E5E5", paddingTop: 12 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <span style={{ fontWeight: 500, color: "#1A1C1A" }}>税费</span>
-                    <span style={{ fontWeight: 500, color: "#1A1C1A" }}>{fmtS(feesTotal)}</span>
-                  </div>
-                  <div
-                    style={{
-                      paddingLeft: 12,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                      fontSize: 12,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}
-                    >
-                      <span>BSD 买方印花税</span>
-                      <span>{fmtS(outputs.bsd)}</span>
-                    </div>
-                    <div
-                      style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}
-                    >
-                      <span>ABSD 额外印花税</span>
-                      <span>{fmtS(outputs.absd)}</span>
-                    </div>
-                    <div
-                      style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}
-                    >
-                      <span>抵押印花</span>
-                      <span>S$ 500</span>
-                    </div>
-                    <div
-                      style={{ display: "flex", justifyContent: "space-between", color: "#6B7280" }}
-                    >
-                      <span>律师 + 估价</span>
-                      <span>{fmtS(outputs.legal_fees_est)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 贷款本金 */}
-                <div
+          <div style={{ padding: "28px 20px 100px" }}>
+            {/* Block 1 · 三档房价区间 */}
+            <section style={{ marginBottom: 32 }}>
+              <h3 style={SECTION_TITLE}>① 您理性可支持的房价</h3>
+              {result.degenerate && (
+                <p
                   style={{
-                    borderTop: "1px solid #E5E5E5",
-                    paddingTop: 12,
-                    display: "flex",
-                    justifyContent: "space-between",
+                    fontSize: 12,
+                    color: C.warn,
+                    fontWeight: 300,
+                    marginBottom: 12,
+                    lineHeight: 1.6,
                   }}
                 >
-                  <span style={{ fontWeight: 500, color: "#1A1C1A" }}>
-                    贷款本金 ({ltvPct}% LTV)
-                  </span>
-                  <span style={{ fontWeight: 500, color: "#1A1C1A" }}>{fmtS(loan)}</span>
-                </div>
-
-                {/* 利息总支出 */}
-                <div
-                  style={{
-                    borderTop: "1px solid #E5E5E5",
-                    paddingTop: 12,
-                    display: "flex",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span style={{ fontWeight: 500, color: "#1A1C1A" }}>利息总支出</span>
-                  <span style={{ fontWeight: 500, color: "#1A1C1A" }}>{fmtS(totalInterest)}</span>
-                </div>
-
-                {/* 总成本 */}
-                <div
-                  style={{
-                    borderTop: "1px solid #E5E5E5",
-                    paddingTop: 12,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 16,
-                  }}
-                >
-                  <span style={{ fontWeight: 600, color: "#1A1C1A" }}>总成本</span>
-                  <span style={{ fontWeight: 600, color: "#2F4F3D" }}>
-                    {fmtS(price + feesTotal + totalInterest)}
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            {/* 月供试算器 */}
-            <section>
-              <h4 style={SECTION_TITLE}>月供试算器</h4>
-              <div
-                style={{
-                  background: "#fff",
-                  border: "1px solid #E5E5E5",
-                  borderRadius: 4,
-                  padding: 20,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 20,
-                }}
-              >
-                {/* 利率 */}
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <label style={{ fontSize: 12, color: "#6B7280", fontWeight: 300 }}>
-                      利率（年化）
-                      <button
-                        onClick={() =>
-                          setInfo({
-                            title: "利率说明",
-                            body: "我们使用 2026 年 5 月新加坡三大银行（DBS/OCBC/UOB）公寓首套房贷的市场平均利率作为估算基准。您的实际利率会根据贷款金额、个人信用、银行促销等因素有所不同，通常浮动在 1.40% - 1.85% 之间。",
-                          })
-                        }
-                        style={{
-                          fontSize: 10,
-                          color: "#2F4F3D",
-                          textDecoration: "underline",
-                          cursor: "pointer",
-                          background: "none",
-                          border: "none",
-                          marginLeft: 4,
-                        }}
-                      >
-                        说明
-                      </button>
-                    </label>
-                    <span
+                  您的现金封顶限制了三档收敛到同一价位 —— 想买更高需先增加现金。
+                </p>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {TIER_ORDER.map((key) => {
+                  const td = result.tiers[key];
+                  const active = key === selectedTier;
+                  const pct = Math.round(td.ratio * 100);
+                  const isAgg = key === "aggressive";
+                  return (
+                    <div
+                      key={key}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => pickTier(key)}
+                      onKeyDown={(e) => e.key === "Enter" && pickTier(key)}
                       style={{
-                        fontFamily: "'Noto Serif SC', serif",
-                        fontWeight: 600,
-                        color: "#1A1C1A",
-                        fontSize: 18,
-                      }}
-                    >
-                      {displayRate.toFixed(2)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1.4}
-                    max={1.85}
-                    step={0.05}
-                    value={displayRate}
-                    onChange={(e) => setDisplayRate(Number(e.target.value))}
-                    style={{ width: "100%", accentColor: "#2F4F3D", cursor: "pointer" }}
-                  />
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 10,
-                      color: "#9CA3AF",
-                      fontWeight: 300,
-                      marginTop: 4,
-                    }}
-                  >
-                    <span>1.40%</span>
-                    <span>1.85%</span>
-                  </div>
-                </div>
-
-                {/* 贷款年限 */}
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <label style={{ fontSize: 12, color: "#6B7280", fontWeight: 300 }}>
-                      贷款年限
-                    </label>
-                    <span
-                      style={{
-                        fontFamily: "'Noto Serif SC', serif",
-                        fontWeight: 600,
-                        color: "#1A1C1A",
-                        fontSize: 18,
-                      }}
-                    >
-                      {calcTenure} 年
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={5}
-                    max={30}
-                    step={1}
-                    value={calcTenure}
-                    onChange={(e) => setCalcTenure(Number(e.target.value))}
-                    style={{ width: "100%", accentColor: "#2F4F3D", cursor: "pointer" }}
-                  />
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 10,
-                      color: "#9CA3AF",
-                      fontWeight: 300,
-                      marginTop: 4,
-                    }}
-                  >
-                    <span>5 年</span>
-                    <span>30 年</span>
-                  </div>
-                </div>
-
-                {/* 月供 */}
-                <div style={{ borderTop: "1px solid #E5E5E5", paddingTop: 16 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 300 }}>
-                      预估月供
-                    </span>
-                    <div>
-                      <span
-                        style={{
-                          fontFamily: "'Noto Serif SC', serif",
-                          fontWeight: 600,
-                          color: "#1A1C1A",
-                          fontSize: 24,
-                        }}
-                      >
-                        S$&nbsp;{fmt(monthlyBase)}
-                      </span>
-                      <span
-                        style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 300, marginLeft: 4 }}
-                      >
-                        / 月
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 300 }}>
-                    ⓘ 实际批贷以 4% 压力测试月供{" "}
-                    <span style={{ color: "#1A1C1A" }}>S$ {fmt(monthlyStress)}</span> 为准 (MAS
-                    要求){" "}
-                    <button
-                      onClick={() =>
-                        setInfo({
-                          title: "为何按 4% 压力测试？",
-                          body: "新加坡金管局 (MAS) 要求所有银行批贷时使用 4% 中期压力利率测算 TDSR (总偿债比率上限 55%)。本工具的参考预算基于此压力测试，以确保您的预算在利率上行时仍可承担。当前显示月供基于实际市场利率，仅作直观参考。",
-                        })
-                      }
-                      style={{
-                        fontSize: 10,
-                        color: "#2F4F3D",
-                        textDecoration: "underline",
+                        background: active ? C.primarySoft : "#fff",
+                        border: `1px solid ${active ? C.primary : C.border}`,
+                        boxShadow: active ? `0 0 0 1px ${C.primary}` : "none",
+                        borderRadius: 4,
+                        padding: 20,
                         cursor: "pointer",
-                        background: "none",
-                        border: "none",
-                      }}
-                    >
-                      详细
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 付款时间表 accordion */}
-            <section>
-              <button
-                onClick={() => setScheduleOpen(!scheduleOpen)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 16px",
-                  background: "#fff",
-                  border: "1px solid #E5E5E5",
-                  borderRadius: 4,
-                  cursor: "pointer",
-                  transition: "background 0.15s",
-                }}
-              >
-                <span style={{ fontSize: 14, fontWeight: 500, color: "#1A1C1A" }}>
-                  📅 完整付款时间表
-                </span>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  style={{
-                    transform: scheduleOpen ? "rotate(180deg)" : "none",
-                    transition: "transform 0.2s",
-                  }}
-                >
-                  <path
-                    d="M4 6L8 10L12 6"
-                    stroke="#1A1C1A"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-
-              {scheduleOpen && (
-                <div
-                  style={{
-                    marginTop: 12,
-                    background: "#fff",
-                    border: "1px solid #E5E5E5",
-                    borderRadius: 4,
-                    padding: 20,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 16,
-                    fontSize: 14,
-                  }}
-                >
-                  {[
-                    {
-                      day: "DAY 0",
-                      title: "选定房 · OTP 定金",
-                      body: `现金 1% = ${fmtS(Math.round(price * 0.01))}。卖方签发购房意向书 (OTP)，您锁定房产 14 天。`,
-                    },
-                    {
-                      day: "DAY 14",
-                      title: "行使 OTP · 现金 + 印花税",
-                      body: `现金 4% = ${fmtS(Math.round(price * 0.04))}，BSD ${fmtS(outputs.bsd)}，ABSD ${fmtS(outputs.absd)}。共需现金约 ${fmtS(Math.round(price * 0.04) + outputs.bsd + outputs.absd)}。`,
-                    },
-                    {
-                      day: "2-3 月内",
-                      title: "完成贷款审批 · 律师交接",
-                      body: `银行审核您的 TDSR/LTV，律师协助过户。律师 + 估价费 ~${fmtS(outputs.legal_fees_est)}。`,
-                    },
-                    {
-                      day: "交房",
-                      title: "余款支付 · 钥匙交付",
-                      body: `CPF OA ${fmtS(downCpf)} 转付 + 现金补充 ${fmtS(cashExtra)} + 贷款 ${fmtS(loan)}。开始月供 ${fmtS(monthlyBase)}。`,
-                    },
-                  ].map(({ day, title, body }, idx) => (
-                    <div
-                      key={day}
-                      style={{
-                        display: "flex",
-                        gap: 12,
-                        ...(idx > 0 ? { borderTop: "1px solid #E5E5E5", paddingTop: 16 } : {}),
+                        transition: "all 0.15s",
                       }}
                     >
                       <div
                         style={{
                           fontSize: 11,
-                          letterSpacing: "0.1em",
-                          color: "#2F4F3D",
+                          letterSpacing: "0.2em",
                           fontWeight: 500,
-                          paddingTop: 2,
-                          width: 64,
-                          flexShrink: 0,
+                          textTransform: "uppercase",
+                          color: C.primary,
                         }}
                       >
-                        {day}
+                        {TIER_NAME[key]}
+                        {key === "balanced" && <Badge>推荐</Badge>}
+                        {isAgg && <Badge warn>MAS 上限</Badge>}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            fontWeight: 500,
-                            color: "#1A1C1A",
-                            marginBottom: 4,
-                          }}
-                        >
-                          {title}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: "#6B7280",
-                            fontWeight: 300,
-                            lineHeight: 1.6,
-                          }}
-                        >
-                          {body}
-                        </div>
+                      <div
+                        style={{
+                          fontFamily: SERIF,
+                          fontSize: 22,
+                          fontWeight: 600,
+                          color: C.charcoal,
+                          marginTop: 4,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {td.price_high > 0 ? fmtRange(td.price_low, td.price_high) : "—"}
+                      </div>
+                      <div
+                        style={{ fontSize: 12, color: C.gray500, fontWeight: 300, marginTop: 4 }}
+                      >
+                        压力测试月供占月收入 ≤ {pct}%{isAgg && " · 日常生活会吃紧"}
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Block 2 · 现金需求拆解 */}
+            <section style={{ marginBottom: 32 }}>
+              <h3 style={SECTION_TITLE}>
+                ② 买 <span style={{ color: C.primary }}>“{TIER_NAME[selectedTier]}”</span>{" "}
+                的房需要准备的现金
+              </h3>
+              <div
+                style={{
+                  background: "#fff",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 4,
+                  padding: 20,
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: C.gray400,
+                    fontWeight: 300,
+                    marginBottom: 16,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  按 <span style={{ fontWeight: 500, color: C.charcoal }}>{fmtWan(cb.price)}</span>
+                  （区间中点）测算。
+                </p>
+                <CostRow label="首付现金部分" value={fmtS(cb.down_payment_cash)} />
+                {cb.down_payment_cpf > 0 && (
+                  <CostRow label="CPF 抵扣" value={fmtS(cb.down_payment_cpf)} />
+                )}
+                <CostRow label="BSD 买方印花税（累进）" value={fmtS(cb.bsd)} />
+                <CostRow
+                  label={`ABSD 额外印花税（${ABSD_RATE_LABEL[residency]}）`}
+                  value={fmtS(cb.absd)}
+                />
+                <CostRow label="律师 / 估价 / 杂费" value={fmtS(cb.legal_fees_est)} />
+                <CostRow label="交易现金需求" value={fmtS(cb.transaction_cash_total)} strongTop />
+                <CostRow
+                  label="+ 应急金（约 6.6 个月收入）"
+                  value={fmtS(cb.emergency_fund_suggested)}
+                  noTop
+                />
+                <CostRow label="您实际应有现金 ≥" value={fmtS(cb.total_cash_needed)} total />
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: C.gray400,
+                    fontWeight: 300,
+                    marginTop: 16,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  首付 = 房价 × 25%。CPF 最多可抵扣房价的 20%，剩下房价的 5% 必须现金。
+                  <br />
+                  BSD 与 ABSD 必须现金 / 支票支付，CPF 不可。
+                </p>
+              </div>
+
+              {/* Feasibility / Diagnosis */}
+              {!cashShort ? (
+                <div
+                  style={{ marginTop: 16, background: C.primarySoft, borderRadius: 4, padding: 16 }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 500, color: C.primary, marginBottom: 4 }}>
+                    ✓ 您的现金充足
+                  </div>
+                  <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.6 }}>
+                    您当前现金 {fmtS(availableCash)} ≥ 应有现金 {fmtS(cb.total_cash_needed)}
+                    ，可以放心进场看房。
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{ marginTop: 16, background: C.warnSoft, borderRadius: 4, padding: 16 }}
+                >
+                  <div style={{ fontSize: 14, fontWeight: 500, color: C.warn, marginBottom: 6 }}>
+                    还差 {fmtS(cb.cash_gap)} 现金
+                  </div>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      color: "#4B5563",
+                      fontWeight: 300,
+                      marginBottom: 10,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    您当前现金不足以买这档房。可选方案：
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      fontSize: 12,
+                      color: "#374151",
+                    }}
+                  >
+                    <div>
+                      → 再攒约 <b>{fmtS(cb.cash_gap)}</b>
+                    </div>
+                    <div>
+                      → 降一档到 <b>{lowerTierName}</b>
+                    </div>
+                    <div>
+                      →{" "}
+                      {foreigner
+                        ? "拿到 PR 后再买，ABSD 从 60% 降到 5%"
+                        : "父母赞助补足 / 延长贷款年限"}
+                    </div>
+                  </div>
                 </div>
               )}
             </section>
 
-            {/* Identity-specific note */}
+            {/* Block 3 · 买 vs 租 break-even (first property only) */}
+            {isFirst ? (
+              <section style={{ marginBottom: 32 }}>
+                <h3 style={{ ...SECTION_TITLE, marginBottom: 4 }}>③ 那这套房买不买划算？</h3>
+                <p style={{ fontSize: 12, color: C.gray500, fontWeight: 300, marginBottom: 16 }}>
+                  买房 vs 继续租 + 把首付投资，哪个 {years} 年后净资产更高？
+                </p>
+                <div
+                  style={{
+                    background: "#fff",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 4,
+                    padding: 20,
+                  }}
+                >
+                  <div style={{ marginBottom: 20 }}>
+                    <InputLabel>如果不买，您打算每月花多少租房？</InputLabel>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="例如 4500"
+                      value={rentDigits}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onChange={(e) => {
+                        rentEdited.current = true;
+                        setRentDigits(e.target.value.replace(/[^\d]/g, ""));
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "12px 16px",
+                        border: `1px solid ${C.border}`,
+                        borderRadius: 4,
+                        fontFamily: SERIF,
+                        fontSize: 22,
+                        fontWeight: 600,
+                        color: C.charcoal,
+                        textAlign: "center",
+                        background: "#fff",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <p style={{ fontSize: 12, color: C.gray400, fontWeight: 300, marginTop: 8 }}>
+                      默认按当前选中区间估算，直接填您的真实数字会更准。
+                    </p>
+                  </div>
+
+                  <div style={{ marginBottom: 20 }}>
+                    <InputLabel>打算住几年？</InputLabel>
+                    <SegRow
+                      options={[5, 7, 10, 15].map((y) => ({ label: `${y} 年`, value: y }))}
+                      value={years}
+                      onChange={setYears}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 20 }}>
+                    <InputLabel>贷款年限</InputLabel>
+                    <SegRow
+                      options={[20, 25, 30].map((y) => ({ label: `${y} 年`, value: y }))}
+                      value={tenure}
+                      onChange={setTenure}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 20 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <InputLabel>房贷利率</InputLabel>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: C.charcoal }}>
+                        {rate.toFixed(2)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1.5}
+                      max={4.0}
+                      step={0.05}
+                      value={rate}
+                      onChange={(e) => setRate(Number(e.target.value))}
+                      style={{ width: "100%", accentColor: C.primary }}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: 12,
+                        color: C.gray400,
+                        fontWeight: 300,
+                        marginTop: 4,
+                      }}
+                    >
+                      <span>1.5%</span>
+                      <span>4.0%</span>
+                    </div>
+                  </div>
+
+                  {/* Break-even bignum */}
+                  <div
+                    style={{
+                      background: C.primarySoft,
+                      borderRadius: 4,
+                      padding: 20,
+                      textAlign: "center",
+                      marginTop: 20,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: C.primary,
+                        fontWeight: 500,
+                        letterSpacing: "0.15em",
+                        textTransform: "uppercase",
+                        marginBottom: 8,
+                      }}
+                    >
+                      这套房年涨 ≥
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: SERIF,
+                        fontSize: 40,
+                        fontWeight: 600,
+                        color: C.primary,
+                        lineHeight: 1,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {be ? (be.g_star * 100).toFixed(1) : "—"}%
+                    </div>
+                    <div style={{ fontSize: 12, color: C.primary, fontWeight: 500, marginTop: 8 }}>
+                      {be?.clamped === "below"
+                        ? "这套房即使下跌也比租划算"
+                        : be?.clamped === "above"
+                          ? "买才划算（这套房较难划算）"
+                          : "买才比租划算"}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{ marginTop: 16, paddingLeft: 16, borderLeft: `2px solid ${C.primary}` }}
+                  >
+                    <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.6 }}>
+                      <span style={{ fontWeight: 500, color: C.charcoal }}>
+                        新加坡私宅过去 10 年实际涨{" "}
+                        {(result.break_even!.regional_historical * 100).toFixed(1)}% / 年
+                      </span>
+                      <br />
+                      <span style={{ color: C.gray500 }}>
+                        您怎么看未来 {years} 年这套房的涨幅？
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <section style={{ marginBottom: 32 }}>
+                <div
+                  style={{
+                    background: "#fff",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 4,
+                    padding: 16,
+                  }}
+                >
+                  <p style={{ fontSize: 12, color: C.gray500, fontWeight: 300, lineHeight: 1.6 }}>
+                    二套及以上不显示“买 vs 租”对比 ——
+                    您的决策逻辑是投资回报率而非居住成本，建议结合租金回报率 + 增值预期单独评估。
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {/* CTA */}
+            <section style={{ marginTop: 8 }}>
+              <BtnPrimary onClick={handleWhatsApp}>找顾问帮我看这个区间的房</BtnPrimary>
+              <div style={{ height: 12 }} />
+              <BtnSecondary onClick={resetAll}>换一组参数再测</BtnSecondary>
+            </section>
+
+            {/* Footer note */}
             <section
-              style={{
-                borderLeft: "2px solid #2F4F3D",
-                paddingLeft: 16,
-                paddingTop: 4,
-                paddingBottom: 4,
-              }}
+              style={{ marginTop: 24, paddingLeft: 16, borderLeft: `2px solid ${C.primary}` }}
             >
-              <p style={{ fontSize: 12, color: "#6B7280", fontWeight: 300, lineHeight: 1.7 }}>
-                {absdRate === 0
-                  ? "作为新加坡公民首次置业，您无需缴纳 ABSD，享有最优贷款条件。"
-                  : absdRate === 0.05
-                    ? "作为 PR 首次置业，您的 ABSD 为 5%。若您与外籍配偶联名购买首套主居所，可申请 ABSD 退税，详情请咨询顾问。"
-                    : `您的 ABSD 税率为 ${Math.round(absdRate * 100)}%，建议在购房前充分了解税费影响并咨询专业顾问。`}
+              <p style={{ fontSize: 12, color: C.gray500, fontWeight: 300, lineHeight: 1.7 }}>
+                基于 {RESIDENCY_LABEL[residency]} · {propsLabel} · {form.age} 岁 · 月入{" "}
+                {incomeLabel} · 现金 {cashLabel} · {cpfLabel} 测算。
+                <br />
+                ABSD {Math.round(cb.absd_rate * 100)}% · LTV {Math.round(cb.ltv_cap * 100)}% · TDSR
+                55% · 利率 {rate.toFixed(2)}% / 压力 4%（MAS 标准）。税率与法规以 IRAS / MAS
+                最新公告为准。
               </p>
             </section>
           </div>
-
-          {/* Footer CTAs — sticky bottom-0, matches prototype */}
-          <div
-            style={{
-              position: "sticky",
-              bottom: 0,
-              zIndex: 20,
-              padding: "16px 20px",
-              paddingBottom: "max(16px, env(safe-area-inset-bottom))",
-              background: "#fff",
-              borderTop: "1px solid #E5E5E5",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-            }}
-          >
-            {/* Primary: 保存并获取定制报告 → save to DB then open WhatsApp with run_id */}
-            <BtnPrimary onClick={handleWhatsAppCTA} disabled={saving}>
-              {saving ? "保存中…" : "保存并获取定制报告"}
-            </BtnPrimary>
-            {/* Secondary: 即刻咨询 → save to DB then open consult drawer */}
-            <BtnSecondary onClick={handleConsultCTA} disabled={saving}>
-              即刻咨询
-            </BtnSecondary>
-          </div>
         </div>
-
-        {/* Overlays */}
-        <ConsultDrawer
-          open={consultOpen}
-          onClose={() => setConsultOpen(false)}
-          outputs={outputs}
-          sessionId={sessionId}
-          taxRatesVersion={taxVersion}
-          runId={runId}
-          onSuccess={showToast}
-        />
-        <InfoModal info={info} onClose={() => setInfo(null)} />
         <Toast visible={toastVisible} />
       </>
     );

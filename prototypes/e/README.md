@@ -19,7 +19,7 @@
 - 复用同一套设计 token（Quiet Luxury · #2F4F3D primary · Noto Serif/Sans SC · 4px radius）
 - 移动端 max-width 430px
 - 数据全是硬编码 demo，**不连后端**，仅用于设计评审
-- 待 UX 确认后，将在 Next.js 主仓库 [app/(tools)/calculator/page.tsx](../../app/(tools)/calculator/page.tsx) 实现
+- 待 UX 确认后，将在 Next.js 主仓库 [app/(tools)/calculator/page.tsx](<../../app/(tools)/calculator/page.tsx>) 实现
 
 ## 关键设计点
 
