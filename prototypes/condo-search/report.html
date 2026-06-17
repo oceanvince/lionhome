@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#FCFBF9">
+  <title>决策报告 | 狮城家</title>
+  <meta name="description" content="楼盘决策报告：盈利/地段评分 + 适配度，一页看懂值不值得入候选。">
+
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary: #2F4F3D;
+      --color-primary-soft: #EAEFEB;
+      --color-charcoal: #1A1C1A;
+      --color-offwhite: #FCFBF9;
+      --color-cream: #F5F1E8;
+      --color-border: #E5E5E5;
+      --color-warn: #8B3A1F;
+      --color-warn-soft: #F8EFE8;
+      --color-verdict-green: #2F6B4A;  --color-verdict-green-soft: #E7F0EA;
+      --color-verdict-amber: #B07A1E;  --color-verdict-amber-soft: #F7F0E0;
+      --color-verdict-orange: #B5562A; --color-verdict-orange-soft: #F7ECE4;
+      --color-band-strong: #2F6B4A; --color-band-good: #5C8A6B;
+      --color-band-fair: #B07A1E;   --color-band-poor: #B5562A; --color-band-na: #B8B8B0;
+      --color-fit-in: #2F6B4A; --color-fit-over: #B07A1E;
+      --font-serif: 'Noto Serif SC', Georgia, serif;
+      --font-sans: 'Noto Sans SC', 'Inter', system-ui, sans-serif;
+    }
+    body{ @apply bg-offwhite text-charcoal font-sans antialiased; letter-spacing:.01em; }
+    h1,h2,h3,h4{ @apply font-serif; }
+
+    .btn-primary{ @apply w-full bg-primary text-white py-3.5 px-6 rounded-[4px] font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 cursor-pointer; min-height:52px; border:none; }
+    .btn-secondary{ @apply w-full bg-white border border-border text-charcoal py-3.5 px-6 rounded-[4px] font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer; min-height:52px; }
+
+    .verdict-badge{ @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium; }
+    .verdict-badge.is-green { color:var(--color-verdict-green);  background:var(--color-verdict-green-soft); }
+    .verdict-badge.is-amber { color:var(--color-verdict-amber);  background:var(--color-verdict-amber-soft); }
+    .verdict-badge.is-orange{ color:var(--color-verdict-orange); background:var(--color-verdict-orange-soft); }
+    .verdict-badge::before{ content:''; width:7px; height:7px; border-radius:50%; background:currentColor; }
+
+    .honesty-tag{ @apply inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-[3px]; color:var(--color-warn); background:var(--color-warn-soft); }
+    .regime-tag{ @apply inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-border text-gray-600; }
+
+    .metric .v{ @apply text-base font-medium; font-variant-numeric:tabular-nums; }
+    .metric .k{ @apply text-xs text-gray-500 font-light; }
+
+    .dim-card{ @apply bg-white border border-border rounded-[4px] p-5 transition-all; }
+    .dim-card:hover{ @apply border-gray-300; }
+    .dim-card.is-coming{ background:color-mix(in srgb, var(--color-cream) 50%, white); @apply border-dashed; }
+    .band-pill{ @apply text-[11px] font-medium px-2 py-0.5 rounded-full; }
+    .score-num{ font-family:var(--font-serif); font-weight:600; font-variant-numeric:tabular-nums; line-height:1; }
+
+    .explain-toggle{ @apply text-sm text-primary inline-flex items-center gap-1 cursor-pointer hover:underline select-none; }
+    .explain-body{ display:none; @apply text-sm text-gray-600 leading-relaxed mt-3 pt-3 border-t border-border; }
+    .explain-body.open{ display:block; animation:fadeInUp .25s ease-out; }
+
+    .report-tab{ @apply whitespace-nowrap px-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent cursor-pointer transition-colors; }
+    .report-tab:hover{ @apply text-charcoal; }
+    .report-tab.active{ @apply text-primary; border-color:var(--color-primary); }
+
+    .fit-track{ @apply relative h-2.5 rounded-full bg-gray-100; }
+    .fit-comfort{ @apply absolute h-full rounded-full; background:var(--color-primary-soft); }
+    .fit-marker{ @apply absolute -top-1 w-1 rounded-full; height:18px; }
+
+    @keyframes fadeInUp{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none} }
+    .enter{ animation:fadeInUp .45s ease-out both; }
+    .enter-2{ animation-delay:.08s } .enter-3{ animation-delay:.16s }
+    @keyframes drawIn{ to{ stroke-dashoffset:0 } }
+    @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
+
+    /* 轻量 toast */
+    #toast{ @apply fixed left-1/2 -translate-x-1/2 bottom-24 lg:bottom-8 z-50 bg-charcoal text-white text-sm px-4 py-2.5 rounded-[4px] shadow-lg flex items-center gap-2 opacity-0 pointer-events-none transition-all; }
+    #toast.show{ @apply opacity-100; transform:translate(-50%,-6px); }
+
+    /* 专业名词：点击释义 */
+    .term{ text-decoration:underline dotted; text-underline-offset:3px; text-decoration-color:color-mix(in srgb, var(--color-primary) 45%, transparent); cursor:help; transition:color .15s; }
+    .term:hover{ color:var(--color-primary); }
+    #gloss{ position:fixed; z-index:60; max-width:280px; @apply bg-white border border-border rounded-[4px] p-3.5; box-shadow:0 8px 28px rgba(26,28,26,.14); }
+    #gloss .gloss-term{ @apply text-sm font-semibold text-primary mb-1 flex items-center gap-1.5; }
+    #gloss .gloss-def{ @apply text-xs text-gray-600 leading-relaxed; }
+
+    /* 地图图层标签 */
+    .map-tab{ color:#6b7280; transition:all .15s; }
+    .map-tab.active{ background:#fff; color:var(--color-primary); font-weight:500; box-shadow:0 1px 2px rgba(26,28,26,.07); }
+  </style>
+</head>
+<body class="min-h-full pb-28 lg:pb-12">
+
+  <!-- ░░ Header ░░ -->
+  <header class="sticky top-0 z-30 bg-offwhite/90 border-b border-border" style="backdrop-filter:saturate(180%) blur(8px)">
+    <div class="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
+      <a href="#" onclick="goBack(event)" class="flex items-center gap-2 text-sm text-gray-600 hover:text-primary transition-colors">
+        <i class="ph ph-arrow-left"></i> 返回搜索
+      </a>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-primary"></span>
+        <span class="text-sm font-medium tracking-wide">狮城家 LionHome</span>
+      </div>
+      <div class="flex gap-1.5">
+        <button onclick="toast('链接已复制，分享卡含结论 + 盈利分')" class="w-9 h-9 flex items-center justify-center rounded-full border border-border text-gray-400 hover:text-primary hover:border-primary transition-colors" aria-label="分享"><i class="ph ph-share-network"></i></button>
+        <button onclick="toggleFav(this)" class="w-9 h-9 flex items-center justify-center rounded-full border border-border text-gray-400 hover:text-primary hover:border-primary transition-colors" aria-label="收藏"><i class="ph ph-heart"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-[1120px] mx-auto px-4 lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:items-start">
+
+    <!-- ════════ 左：内容流 ════════ -->
+    <main class="min-w-0">
+
+      <!-- ░░ Block 1 · 决策快照（首屏，结论先行）░░ -->
+      <section class="pt-6">
+        <p id="eyebrow" class="text-xs text-gray-500 tracking-wide enter">—</p>
+        <h1 class="text-[28px] md:text-[34px] font-semibold leading-[1.15] mt-1 enter"><span id="projName">—</span> · 一眼看懂</h1>
+
+        <div class="mt-4 flex flex-wrap items-center gap-3 enter enter-2">
+          <span id="verdictBadge" class="verdict-badge is-green">—</span>
+          <span id="verdictNote" class="text-xs text-gray-500">仅由盈利 + 地段 + 适配度得出</span>
+        </div>
+
+        <!-- 一句话结论（模板拼装，非 LLM）-->
+        <p id="conclusion" class="mt-4 text-[17px] md:text-lg leading-[1.8] text-charcoal max-w-2xl enter enter-2">—</p>
+
+        <!-- 快照主体：雷达 + 关键指标 -->
+        <div class="mt-6 grid md:grid-cols-[260px_1fr] gap-6 items-center bg-white border border-border rounded-[4px] p-5 md:p-6 enter enter-3">
+          <!-- 四维雷达（动态）-->
+          <div class="flex flex-col items-center">
+            <svg id="radar" viewBox="-48 0 316 200" class="w-[268px] max-w-full" aria-label="四维评分雷达图">
+              <g fill="none" stroke="#E5E5E5" stroke-width="1">
+                <polygon points="110,30 186,95 156,180 64,180 34,95"/>
+                <polygon points="110,54 162,99 142,156 78,156 58,99" opacity=".7"/>
+                <polygon points="110,78 138,103 128,132 92,132 82,103" opacity=".5"/>
+              </g>
+              <g stroke="#E5E5E5" stroke-width="1">
+                <line x1="110" y1="105" x2="110" y2="30"/>
+                <line x1="110" y1="105" x2="186" y2="95"/>
+                <line x1="110" y1="105" x2="156" y2="180"/>
+                <line x1="110" y1="105" x2="64" y2="180"/>
+                <line x1="110" y1="105" x2="34" y2="95"/>
+              </g>
+              <!-- 数据多边形 + 顶点 + 标签：由 render() 注入 -->
+              <polygon id="radarPoly" points="" fill="rgba(47,79,61,.12)" stroke="#2F4F3D" stroke-width="2"
+                       stroke-dasharray="520" stroke-dashoffset="520" style="animation:drawIn .7s ease-out .3s forwards"/>
+              <g id="radarDots"></g>
+              <g id="radarLabels" font-size="11" font-family="Noto Sans SC" fill="#1A1C1A"></g>
+            </svg>
+            <div class="flex gap-3 text-[11px] text-gray-500 mt-1">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary"></span>已算</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full" style="background:#B8B8B0"></span>即将上线</span>
+            </div>
+          </div>
+
+          <!-- 关键指标条 -->
+          <div>
+            <div class="grid grid-cols-2 gap-y-4 gap-x-3">
+              <div class="metric"><div class="v" id="mTop">—</div><div class="k" id="mTopK">—</div></div>
+              <div class="metric"><div class="v" id="mTenure">—</div><div class="k">产权</div></div>
+              <div class="metric"><div class="v" id="mMrt">—</div><div class="k" id="mMrtK">—</div></div>
+              <div class="metric"><div class="v" id="mUnits">—</div><div class="k">总单位数</div></div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-border flex items-center justify-between">
+              <div>
+                <div class="text-xs text-gray-500">近 12 月成交 PSF 区间</div>
+                <div class="text-lg font-semibold" id="psf" style="font-variant-numeric:tabular-nums">—</div>
+              </div>
+              <span class="honesty-tag"><i class="ph ph-info"></i> 非估价 · 算术换算</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 适配度（与四维同级）-->
+        <div class="mt-4 bg-primary-soft/60 border border-border rounded-[4px] p-5 enter enter-3">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base font-semibold flex items-center gap-2"><i class="ph ph-target text-primary"></i> 这个盘对「你」合不合适</h3>
+            <span class="text-xs text-gray-500">接 购买力计算器</span>
+          </div>
+          <p class="text-sm text-gray-700 leading-relaxed">
+            本盘当前 PSF 下约 <span class="font-semibold text-charcoal" id="fitPrice">—</span> 起；你的舒适区间 <span class="font-semibold text-charcoal" id="fitComfort">—</span>。
+          </p>
+          <div class="mt-3 fit-track">
+            <div class="fit-comfort" id="fitComfortBar" style="left:18%; width:46%"></div>
+            <div class="fit-marker" id="fitMarker" style="left:54%; background:var(--color-fit-in)"></div>
+          </div>
+          <div class="flex justify-between text-[11px] text-gray-400 mt-1">
+            <span>S$1.5M</span><span class="font-medium" id="fitVerdict">—</span><span>S$2.6M</span>
+          </div>
+          <div class="mt-3 flex items-start gap-2 text-sm text-gray-700 bg-white/70 rounded-[4px] p-3">
+            <i class="ph ph-warning-circle text-warn mt-0.5"></i>
+            <span id="absdNote">—</span>
+          </div>
+          <a href="#" onclick="goCalc(event)" class="explain-toggle mt-3">用你的收入精算月供 <i class="ph ph-arrow-right"></i></a>
+        </div>
+
+        <!-- 信任条 -->
+        <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 enter enter-3">
+          <span class="flex items-center gap-1"><i class="ph ph-database"></i> 数据源 URA · OneMap</span>
+          <span class="flex items-center gap-1"><i class="ph ph-clock-counter-clockwise"></i> 最后计算 2026-06-15</span>
+          <span id="scoreDiff" class="text-verdict-green">较上次 +0.3，因新增 4 笔成交</span>
+          <span class="text-gray-400">分数版本 v1.2</span>
+          <a href="#feedback" class="text-primary hover:underline flex items-center gap-1"><i class="ph ph-flag"></i> 发现数据有误？反馈</a>
+        </div>
+      </section>
+
+      <!-- ░░ Block 2 · 四维评分体系 ░░ -->
+      <section class="mt-12">
+        <h2 class="text-xl font-semibold mb-1">四维评分</h2>
+        <p class="text-sm text-gray-500 mb-4">每维满分 10 · 优秀 ≥7 / 良好 ≥5 / 一般 ≥3 / 偏弱 &lt;3 · 每个分数都能点开看怎么算的</p>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <!-- 盈利分 -->
+          <div class="dim-card">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-semibold">盈利分 Profit</h3>
+                  <span class="band-pill" id="profitBand">—</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">近年同户型转售 vs 同区基准</p>
+              </div>
+              <span class="score-num text-[40px]" id="profitScore">—</span>
+            </div>
+            <p class="text-sm text-gray-600 leading-relaxed mt-3" id="profitDesc">—</p>
+            <div class="flex items-center gap-2 mt-3" id="profitMeta"></div>
+            <div class="mt-3 flex items-center justify-between">
+              <span class="explain-toggle" onclick="toggleExplain('e1', this)">怎么算的？ <i class="ph ph-caret-down"></i></span>
+              <a href="#feedback" class="text-xs text-gray-400 hover:text-primary">发现错误？反馈</a>
+            </div>
+            <div id="e1" class="explain-body"><div class="space-y-1.5" id="profitComponents"></div></div>
+          </div>
+
+          <!-- 地段分 -->
+          <div class="dim-card">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-semibold">地段分 Location</h3>
+                  <span class="band-pill" id="locBand">—</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">地铁通达 + 名校距离 + 配套</p>
+              </div>
+              <span class="score-num text-[40px]" id="locScore">—</span>
+            </div>
+            <p class="text-sm text-gray-600 leading-relaxed mt-3" id="locDesc">—</p>
+            <div class="mt-6 flex items-center justify-between">
+              <span class="explain-toggle" onclick="toggleExplain('e2', this)">怎么算的？ <i class="ph ph-caret-down"></i></span>
+              <a href="#feedback" class="text-xs text-gray-400 hover:text-primary">发现错误？反馈</a>
+            </div>
+            <div id="e2" class="explain-body"><div class="space-y-1.5" id="locComponents"></div></div>
+          </div>
+
+          <!-- 退出分（灰显） -->
+          <div class="dim-card is-coming">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-semibold text-gray-500">退出分 Exit</h3>
+                  <span class="band-pill" style="color:#fff;background:var(--color-band-na)">即将上线</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">未来转售/退出的难易</p>
+              </div>
+              <span class="score-num text-[40px] text-gray-300">N/A</span>
+            </div>
+            <p class="text-sm text-gray-400 leading-relaxed mt-3">供应宽松度 + HDB 升级客需求维度正在接入 data.gov.sg 数据，<span class="font-medium">不参与本次结论</span>。</p>
+          </div>
+
+          <!-- 租赁分（灰显） -->
+          <div class="dim-card is-coming">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-base font-semibold text-gray-500">租赁分 Rental</h3>
+                  <span class="band-pill" style="color:#fff;background:var(--color-band-na)">即将上线</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">租金回报 + 出租率 + 跨户型一致性</p>
+              </div>
+              <span class="score-num text-[40px] text-gray-300">N/A</span>
+            </div>
+            <p class="text-sm text-gray-400 leading-relaxed mt-3">毛租金回报率与出租率维度正在接入，<span class="font-medium">不参与本次结论</span>。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ░░ Block 3 · 详情 Tab ░░ -->
+      <section class="mt-12">
+        <div class="border-b border-border overflow-x-auto">
+          <div class="flex gap-6 min-w-max">
+            <span class="report-tab active" onclick="switchTab(event,'t-overview')">概览</span>
+            <span class="report-tab" onclick="switchTab(event,'t-txn')">成交</span>
+            <span class="report-tab" onclick="switchTab(event,'t-price')">价格</span>
+            <span class="report-tab" onclick="switchTab(event,'t-location')">地段</span>
+            <span class="report-tab" onclick="switchTab(event,'t-school')">学校</span>
+            <span class="report-tab" onclick="switchTab(event,'t-alt')">替代</span>
+          </div>
+        </div>
+
+        <!-- 概览 -->
+        <div id="t-overview" class="tab-panel pt-5">
+          <div class="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div class="flex justify-between border-b border-border/60 pb-2"><span class="text-gray-500">地址</span><span class="font-medium" id="ovAddr">—</span></div>
+            <div class="flex justify-between border-b border-border/60 pb-2"><span class="text-gray-500">产权</span><span class="font-medium" id="ovTenure">—</span></div>
+            <div class="flex justify-between border-b border-border/60 pb-2"><span class="text-gray-500">TOP</span><span class="font-medium" id="ovTop">—</span></div>
+            <div class="flex justify-between border-b border-border/60 pb-2"><span class="text-gray-500">总户数</span><span class="font-medium" id="ovUnits">—</span></div>
+            <div class="flex justify-between border-b border-border/60 pb-2"><span class="text-gray-500">开发商</span><span class="font-medium" id="ovDev">—</span></div>
+            <div class="flex justify-between border-b border-border/60 pb-2"><span class="text-gray-500">户型</span><span class="font-medium" id="ovTypes">—</span></div>
+          </div>
+        </div>
+
+        <!-- 成交 -->
+        <div id="t-txn" class="tab-panel pt-5" style="display:none">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-base font-semibold">PSF 走势（近 24 月）</h4>
+            <div class="inline-flex bg-gray-100 rounded-[4px] p-0.5 text-xs">
+              <span class="px-2.5 py-1 rounded-[3px] bg-white text-primary shadow-sm font-medium">全部</span>
+              <span class="px-2.5 py-1 rounded-[3px] text-gray-500 cursor-pointer">3 房</span>
+              <span class="px-2.5 py-1 rounded-[3px] text-gray-500 cursor-pointer">4 房</span>
+            </div>
+          </div>
+          <svg viewBox="0 0 600 180" class="w-full h-44 bg-white border border-border rounded-[4px]">
+            <g stroke="#F0F0EE" stroke-width="1">
+              <line x1="40" y1="30" x2="580" y2="30"/><line x1="40" y1="75" x2="580" y2="75"/><line x1="40" y1="120" x2="580" y2="120"/>
+            </g>
+            <polyline fill="none" stroke="#2F4F3D" stroke-width="2.5" points="40,130 130,118 220,108 310,92 400,84 490,70 580,58"/>
+            <g fill="#2F4F3D"><circle cx="40" cy="130" r="3"/><circle cx="220" cy="108" r="3"/><circle cx="400" cy="84" r="3"/><circle cx="580" cy="58" r="3"/></g>
+            <g font-size="10" fill="#9CA3AF" font-family="Noto Sans SC">
+              <text x="40" y="160">2024Q3</text><text x="290" y="160" text-anchor="middle">2025Q3</text><text x="580" y="160" text-anchor="end">2026Q2</text>
+              <text x="34" y="34" text-anchor="end">2000</text><text x="34" y="124" text-anchor="end">1700</text>
+            </g>
+          </svg>
+          <p class="text-xs text-gray-400 mt-3">成交明细按 URA 缓存渲染，可按户型筛选（原型从略）。</p>
+        </div>
+
+        <!-- 价格 -->
+        <div id="t-price" class="tab-panel pt-5" style="display:none">
+          <div class="bg-white border border-border rounded-[4px] p-5">
+            <div class="flex items-start gap-2 mb-3">
+              <span class="honesty-tag mt-0.5"><i class="ph ph-info"></i> 非估价</span>
+              <p class="text-sm text-gray-600 leading-relaxed">以下为「近 12 月成交 PSF 区间 × 面积」的算术换算，<span class="font-medium">不构成估价</span>。</p>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4 text-sm">
+              <div class="p-3 bg-cream/50 rounded-[4px]"><div class="text-gray-500 text-xs">3 房（~1000 sqft）换算总价</div><div class="text-lg font-semibold mt-0.5" id="priceRange">—</div></div>
+              <div class="p-3 bg-cream/50 rounded-[4px]"><div class="text-gray-500 text-xs">首付 25% / 月供（30 年 @ 1.65%）</div><div class="text-lg font-semibold mt-0.5" id="priceMonthly">—</div></div>
+            </div>
+            <a href="#" onclick="goCalc(event)" class="explain-toggle mt-4">用你的收入精算月供 <i class="ph ph-arrow-right"></i></a>
+          </div>
+        </div>
+
+        <!-- 地段 -->
+        <div id="t-location" class="tab-panel pt-5" style="display:none">
+          <ul class="space-y-2.5 text-sm" id="locList"></ul>
+          <p class="text-xs text-gray-400 mt-3">完整地图见右侧（移动端在下方折叠区）。</p>
+        </div>
+
+        <!-- 学校 -->
+        <div id="t-school" class="tab-panel pt-5" style="display:none">
+          <table class="w-full text-sm">
+            <thead class="text-xs text-gray-500 border-b border-border"><tr class="text-left"><th class="py-2 font-medium">小学</th><th class="font-medium">距离</th><th class="font-medium text-right">P1 报名热度</th></tr></thead>
+            <tbody id="schoolRows"></tbody>
+          </table>
+          <p class="honesty-tag mt-3"><i class="ph ph-info"></i> 报名历史为往年数据，仅供方向参考</p>
+        </div>
+
+        <!-- 替代（仅入口）-->
+        <div id="t-alt" class="tab-panel pt-5" style="display:none">
+          <p class="text-sm text-gray-600 mb-3">同区/同价位近似盘（跨盘「A 比 B 好」结论统一由对比器产出，此处仅作发现与跳转）：</p>
+          <div class="space-y-2" id="altList"></div>
+        </div>
+      </section>
+
+      <!-- 移动端：伴随地图折叠（懒加载占位）-->
+      <section class="mt-10 lg:hidden">
+        <button onclick="loadMap('mMobile', this)" class="w-full flex items-center justify-between bg-white border border-border rounded-[4px] p-4 hover:border-gray-300 transition-colors">
+          <span class="flex items-center gap-2 text-sm font-medium"><i class="ph ph-map-trifold text-primary"></i> 展开地图</span>
+          <i class="ph ph-caret-down text-gray-400"></i>
+        </button>
+        <div id="mMobile" class="hidden mt-2 h-56 rounded-[4px] bg-cream/70 border border-border flex items-center justify-center text-sm text-gray-400">
+          <span><i class="ph ph-spinner"></i> 地图按需加载…（点击才初始化，保 LCP）</span>
+        </div>
+      </section>
+
+      <!-- ░░ Block 5 · 转化 CTA ░░ -->
+      <section class="mt-12 bg-white border border-border rounded-[4px] p-5 md:p-6">
+        <h3 class="text-lg font-semibold">下一步</h3>
+        <p class="text-sm text-gray-500 mt-1 mb-4">无需登录即可看完整报告；保存 / 深度报告 / 约顾问需登录。</p>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <button onclick="toast('已进入深度报告留资流（Module 4）')" class="btn-primary sm:col-span-2"><i class="ph ph-file-text"></i> 要这个盘的深度报告（免费）</button>
+          <button onclick="goCompare()" class="btn-secondary"><i class="ph ph-scales"></i> 和另一个盘对比</button>
+          <button onclick="toast('已为你预约 15 分钟顾问回拨')" class="btn-secondary"><i class="ph ph-phone-call"></i> 约 15 分钟顾问</button>
+        </div>
+        <div class="flex items-center justify-between mt-4 pt-4 border-t border-border text-sm">
+          <span class="flex items-center gap-2 text-gray-600"><i class="ph ph-bell-ringing"></i> 降价 / 新成交提醒</span>
+          <button onclick="toggleAlert(this)" class="w-11 h-6 rounded-full bg-gray-300 relative transition-colors">
+            <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform"></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 数据反馈 -->
+      <section id="feedback" class="mt-6 text-sm text-gray-500 flex items-center gap-2">
+        <i class="ph ph-flag"></i> 发现某个分数或数据有误？<a href="#" onclick="event.preventDefault();toast('已进入数据核实队列，谢谢')" class="text-primary hover:underline">告诉我们</a>，会进入核实队列。
+      </section>
+
+      <!-- 合规免责（常驻）-->
+      <footer class="mt-10 pt-6 border-t border-border">
+        <p class="text-[11px] text-gray-400 leading-relaxed">
+          本页分数与结论由公开数据（URA / OneMap / MOE / data.gov.sg）按既定方法论计算，<span class="text-gray-500">仅供参考，不构成估价、投资建议或受 CEA 监管的物业咨询</span>。价格均为近 12 月成交 PSF 区间的算术换算，非估价。请在决策前咨询持牌专业人士。
+        </p>
+      </footer>
+    </main>
+
+    <!-- ════════ 右：伴随地图（桌面 sticky）════════ -->
+    <aside class="hidden lg:block sticky top-20">
+      <div class="rounded-[4px] border border-border overflow-hidden bg-white">
+        <div class="px-4 py-3 border-b border-border flex items-center justify-between">
+          <span class="text-sm font-medium flex items-center gap-2"><i class="ph ph-map-trifold text-primary"></i> 地图</span>
+          <div class="inline-flex bg-gray-100 rounded-[4px] p-0.5 text-[11px]">
+            <span class="map-tab active px-2 py-1 rounded-[3px] cursor-pointer" onclick="switchMapLayer(event,'overview')">概览</span>
+            <span class="map-tab px-2 py-1 rounded-[3px] cursor-pointer" onclick="switchMapLayer(event,'transit')">交通</span>
+            <span class="map-tab px-2 py-1 rounded-[3px] cursor-pointer" onclick="switchMapLayer(event,'school')">学校</span>
+          </div>
+        </div>
+        <div class="relative h-[420px] bg-cream/60 flex items-center justify-center">
+          <svg viewBox="0 0 360 420" class="w-full h-full opacity-80">
+            <rect width="360" height="420" fill="#F5F1E8"/>
+            <g stroke="#E0DBCD" stroke-width="6" fill="none"><path d="M0,120 H360 M0,260 H360 M120,0 V420 M250,0 V420"/></g>
+            <g id="mapMarkers"></g>
+          </svg>
+          <div id="mapLegend" class="absolute bottom-3 left-3 right-3 bg-white/90 rounded-[4px] p-2.5 text-xs text-gray-600 flex items-center gap-x-3 gap-y-1 flex-wrap"></div>
+        </div>
+      </div>
+      <p class="text-[11px] text-gray-400 mt-2 px-1">地图随上方标签切换证据图层 · 移动端默认折叠懒加载</p>
+    </aside>
+  </div>
+
+  <!-- 移动端吸底 CTA -->
+  <div class="fixed bottom-0 inset-x-0 lg:hidden bg-offwhite/95 border-t border-border p-3 z-30" style="backdrop-filter:blur(8px);padding-bottom:calc(.75rem + env(safe-area-inset-bottom))">
+    <div class="max-w-[1120px] mx-auto flex gap-2">
+      <button onclick="goCompare()" class="w-12 h-12 flex items-center justify-center rounded-[4px] border border-border bg-white text-gray-500" aria-label="对比"><i class="ph ph-scales text-lg"></i></button>
+      <button onclick="toast('已进入深度报告留资流（Module 4）')" class="btn-primary flex-1"><i class="ph ph-file-text"></i> 要免费深度报告</button>
+    </div>
+  </div>
+
+  <div id="toast"><i class="ph ph-check-circle"></i><span id="toastText"></span></div>
+
+  <!-- 专业名词释义弹窗 -->
+  <div id="gloss" class="hidden">
+    <div class="gloss-term"><i class="ph ph-book-open text-primary"></i><span id="glossTerm"></span></div>
+    <div class="gloss-def" id="glossDef"></div>
+  </div>
+
+  <script>
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ─────────────── 数据（mock，真实环境接 projects / project_scores）───────────────
+    const PROJECTS = {
+      'the-gazania': {
+        name:'The Gazania', eyebrow:'D19 · 实龙岗 · 永久地契公寓', tenure:'永久地契', tenureEn:'Freehold',
+        top:'2023', units:'250', dev:'SingHaiyi', types:'2–5 房', addr:'How Sun Drive, D19',
+        mrt:'Kovan MRT', mrtWalk:8,
+        verdict:{label:'值得入候选', cls:'is-green'},
+        conclusion:'盈利记录不错但算不上突出，<span class="text-primary">值得比一比</span>。地段优秀，最近地铁约 8 分钟、1 公里内有 2 所小学。退出与租赁两维数据仍在接入，本次结论暂不计入。',
+        psf:'S$1,780 – 1,980', diff:'较上次 +0.3，因新增 4 笔成交',
+        profit:{score:6.8, desc:'近 3 年转售 CAGR 跑赢 D19 基准约 1.2pp，但样本集中在 3 房；大户型交易过少不计入。', regime:{label:'流动活跃', tip:'近 12 月成交活跃、买卖盘充足'}, honesty:null,
+          components:[['3 房转售 CAGR（近 3 年）','+4.1% /年'],['D19 同期基准','+2.9% /年'],['样本笔数（计入）','18 笔（3 房）'],['4 房 / 5 房','交易 <3 笔，excluded',true],['置信度','high']]},
+        location:{score:7.8, desc:'步行 8 分钟到 Kovan MRT；1km 内 2 所小学（含一所热门）；周边商场、菜场、餐饮密度高。',
+          components:[['最近 MRT 步行','8 分钟（Kovan）'],['1km 内小学','2 所'],['配套密度（OneMap）','高（前 20%）'],['置信度','high']]},
+        fit:{price:'S$2.05M', comfort:'S$1.80–2.20M', inBudget:true, markerPct:54, comfortLeft:18, comfortWidth:46,
+          verdict:'本盘 S$2.05M ✓ 在区间内', absd:'你作为 <span class="font-medium">PR 买第二套</span>，ABSD 约 <span class="font-medium">30%（≈ S$615,000）</span>，已计入上方负担。'},
+        price:{range:'S$1.78M – 1.98M', monthly:'S$495K / ~S$5,260'},
+        locList:[['train-simple','Kovan MRT（NE13）· 步行 8 分钟'],['bus','多条巴士线 · 门口 2 分钟'],['shopping-bag','Heartland Mall · 步行 9 分钟'],['bowl-food','Kovan 熟食中心 · 步行 7 分钟']],
+        schools:[['Xinmin Primary','0.6 km','热门 · 常超额'],['Paya Lebar Methodist','0.9 km','中等']],
+        alt:[['The Tre Ver · D19','盈利 6.5 · PSF 1,720–1,900'],['Affinity at Serangoon · D19','盈利 6.1 · PSF 1,650–1,840']]
+      },
+      'jadescape': {
+        name:'Jadescape', eyebrow:'D20 · 碧山 · 99 年地契公寓', tenure:'99 年地契', tenureEn:'99-yr',
+        top:'2022', units:'1206', dev:'Qingjian Realty', types:'1–5 房', addr:'Shunfu Road, D20',
+        mrt:'Marymount MRT', mrtWalk:4,
+        verdict:{label:'值得比较', cls:'is-amber'},
+        conclusion:'盈利数据偏薄、部分来自相似盘估算，方向上中等，<span class="text-primary">值得多比几个</span>。地段非常好，地铁仅 4 分钟。退出与租赁两维数据仍在接入，本次结论暂不计入。',
+        psf:'S$2,100 – 2,340', diff:'较上次 −0.1，成交无明显变化',
+        profit:{score:5.6, desc:'本盘近 12 月转售样本偏少，部分指标由 3 个相似盘（同区+价位+楼龄）估算，方向性看。', regime:{label:'惜售', tip:'持有者出售意愿低、挂盘少'}, honesty:{label:'相似盘估算', icon:'info'},
+          components:[['本盘近 12 月转售','5 笔（偏少）'],['相似盘集合','3 个（D20 同价位）'],['估算 CAGR','+2.6% /年'],['置信度','estimated_similar',true]]},
+        location:{score:8.2, desc:'步行 4 分钟到 Marymount MRT；近 Bishan-AMK 公园；商场与名校资源密集。',
+          components:[['最近 MRT 步行','4 分钟（Marymount）'],['1km 内小学','3 所'],['配套密度（OneMap）','很高（前 10%）'],['置信度','high']]},
+        fit:{price:'S$2.6M', comfort:'S$1.80–2.20M', inBudget:false, markerPct:84, comfortLeft:18, comfortWidth:46,
+          verdict:'本盘 S$2.6M ⚠ 略超区间', absd:'你作为 <span class="font-medium">PR 买第二套</span>，ABSD 约 <span class="font-medium">30%（≈ S$780,000）</span>，已计入上方负担。'},
+        price:{range:'S$2.10M – 2.34M', monthly:'S$585K / ~S$6,210'},
+        locList:[['train-simple','Marymount MRT（CC16）· 步行 4 分钟'],['tree','Bishan-AMK 公园 · 步行 6 分钟'],['shopping-bag','Junction 8 · 一站地铁'],['bowl-food','Shunfu 熟食中心 · 步行 5 分钟']],
+        schools:[['Ai Tong School','0.5 km','超热门 · 长期超额'],['Catholic High','0.8 km','热门']],
+        alt:[['Sky Vue · D20','盈利 5.9 · PSF 1,980–2,180'],['Bishan Loft · D20','盈利 6.3 · PSF 1,750–1,920']]
+      },
+      'normanton-park': {
+        name:'Normanton Park', eyebrow:'D05 · 金文泰 · 99 年地契公寓', tenure:'99 年地契', tenureEn:'99-yr',
+        top:'2024', units:'1862', dev:'Kingsford', types:'1–5 房 + 排屋', addr:'Normanton Park, D05',
+        mrt:'Kent Ridge MRT', mrtWalk:12,
+        verdict:{label:'谨慎比较', cls:'is-orange'},
+        conclusion:'新盘转售样本少，盈利分会随数据增加变化，目前<span class="text-primary">偏谨慎</span>。地段一般，最近地铁步行约 12 分钟。退出与租赁两维数据仍在接入，本次结论暂不计入。',
+        psf:'S$1,900 – 2,180', diff:'新盘 · 首次计算',
+        profit:{score:4.2, desc:'2024 年 TOP，二手转售刚起步，样本不足，分数为早期信号，会随成交累积明显变化。', regime:{label:'新盘 New Project', tip:'TOP 不足 2 年，转售数据仍在形成'}, honesty:{label:'新盘 · 分数会变', icon:'sparkle'},
+          components:[['TOP 至今','约 1.5 年'],['二手转售样本','7 笔（早期）'],['首日认购去化','约 84%'],['置信度','low',true]]},
+        location:{score:5.4, desc:'步行约 12 分钟到 Kent Ridge MRT；近南大与科学园，但日常配套需依赖车程。',
+          components:[['最近 MRT 步行','12 分钟（Kent Ridge）'],['1km 内小学','1 所'],['配套密度（OneMap）','中（依赖周边）'],['置信度','high']]},
+        fit:{price:'S$1.98M', comfort:'S$1.80–2.20M', inBudget:true, markerPct:48, comfortLeft:18, comfortWidth:46,
+          verdict:'本盘 S$1.98M ✓ 在区间内', absd:'你作为 <span class="font-medium">PR 买第二套</span>，ABSD 约 <span class="font-medium">30%（≈ S$594,000）</span>，已计入上方负担。'},
+        price:{range:'S$1.90M – 2.18M', monthly:'S$475K / ~S$5,040'},
+        locList:[['train-simple','Kent Ridge MRT（CC24）· 步行 12 分钟'],['flask','近科学园 / 南洋理工'],['shopping-bag','The Star Vista · 一站地铁'],['car','日常配套部分依赖车程']],
+        schools:[['Pei Tong Primary','1.1 km','中等'],['Fairfield Methodist','1.4 km','中等']],
+        alt:[['Whistler Grand · D05','盈利 4.8 · PSF 1,780–1,960'],['Kent Ridge Hill · D05','盈利 5.1 · PSF 1,950–2,150']]
+      }
+    };
+
+    // ─────────────── 工具 ───────────────
+    const $ = id => document.getElementById(id);
+    function bandOf(s){
+      if(s>=7) return {label:'优秀', color:'var(--color-band-strong)', soft:'var(--color-verdict-green-soft)'};
+      if(s>=5) return {label:'良好', color:'var(--color-band-good)',   soft:'var(--color-verdict-green-soft)'};
+      if(s>=3) return {label:'一般', color:'var(--color-band-fair)',   soft:'var(--color-verdict-amber-soft)'};
+      return     {label:'偏弱', color:'var(--color-band-poor)',   soft:'var(--color-verdict-orange-soft)'};
+    }
+    // 雷达：5 轴向量（score=10 时的端点位移），中心 (110,105)
+    const AX = { profit:[0,-75], location:[76,-10], exit:[46,75], rental:[-46,75], fit:[-76,-10] };
+    const vtx = (axis, s)=>[110 + AX[axis][0]*s/10, 105 + AX[axis][1]*s/10];
+
+    function renderRadar(p){
+      const fitPseudo = p.fit.inBudget ? 7.5 : 4.5;   // 适配在雷达上的视觉强度
+      const order = [['profit',p.profit.score],['location',p.location.score],['exit',1.8],['rental',1.8],['fit',fitPseudo]];
+      const pts = order.map(([a,s])=>vtx(a,s).map(n=>n.toFixed(0)).join(',')).join(' ');
+      $('radarPoly').setAttribute('points', pts);
+      // 顶点
+      const dotColor = {profit:bandOf(p.profit.score).color, location:bandOf(p.location.score).color, exit:'#B8B8B0', rental:'#B8B8B0'};
+      $('radarDots').innerHTML = ['profit','location','exit','rental'].map(a=>{
+        const s = a==='profit'?p.profit.score : a==='location'?p.location.score : 1.8;
+        const [x,y]=vtx(a,s); return `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="3.4" fill="${dotColor[a]}"/>`;
+      }).join('');
+      // 标签
+      $('radarLabels').innerHTML = `
+        <text x="110" y="20" text-anchor="middle">盈利 ${p.profit.score}</text>
+        <text x="192" y="93" text-anchor="start" fill="#2F6B4A">地段 ${p.location.score}</text>
+        <text x="160" y="195" text-anchor="middle" fill="#B8B8B0">退出 N/A</text>
+        <text x="60"  y="195" text-anchor="middle" fill="#B8B8B0">租赁 N/A</text>
+        <text x="26"  y="93" text-anchor="end" fill="${p.fit.inBudget?'#2F6B4A':'#B07A1E'}">适配 ${p.fit.inBudget?'✓':'⚠'}</text>`;
+    }
+
+    function componentsHtml(rows){
+      return rows.map(([k,v,warn])=>`<div class="flex justify-between${warn?' text-warn':''}${k==='置信度'?' pt-1.5 border-t border-border':''}"><span>${k}</span><span class="font-medium">${v}</span></div>`).join('');
+    }
+
+    function render(slug){
+      const p = PROJECTS[slug] || PROJECTS['the-gazania'];
+      document.title = `${p.name} 决策报告 — PSF/学区/转售分析 | 狮城家`;
+
+      // Block 1
+      $('eyebrow').textContent = p.eyebrow;
+      $('projName').textContent = p.name;
+      const vb = $('verdictBadge'); vb.textContent = p.verdict.label; vb.className = 'verdict-badge ' + p.verdict.cls;
+      $('conclusion').innerHTML = p.conclusion;
+      $('mTop').textContent = '已 TOP'; $('mTopK').textContent = p.top + ' 落成';
+      $('mTenure').textContent = p.tenure;
+      $('mMrt').textContent = p.mrtWalk + ' 分钟'; $('mMrtK').textContent = '步行至 ' + p.mrt;
+      $('mUnits').textContent = p.units + ' 户';
+      $('psf').textContent = p.psf;
+      $('scoreDiff').textContent = p.diff;
+
+      // 适配度
+      $('fitPrice').textContent = p.fit.price;
+      $('fitComfort').textContent = p.fit.comfort;
+      $('fitComfortBar').style.left = p.fit.comfortLeft + '%';
+      $('fitComfortBar').style.width = p.fit.comfortWidth + '%';
+      const mk = $('fitMarker'); mk.style.left = p.fit.markerPct + '%';
+      mk.style.background = p.fit.inBudget ? 'var(--color-fit-in)' : 'var(--color-fit-over)';
+      const fv = $('fitVerdict'); fv.textContent = p.fit.verdict;
+      fv.className = 'font-medium ' + (p.fit.inBudget ? 'text-primary' : 'text-warn');
+      $('absdNote').innerHTML = p.fit.absd;
+
+      // 雷达
+      renderRadar(p);
+
+      // 盈利
+      const pb = bandOf(p.profit.score);
+      $('profitScore').textContent = p.profit.score; $('profitScore').style.color = pb.color;
+      const pbp = $('profitBand'); pbp.textContent = pb.label; pbp.style.color = pb.color; pbp.style.background = pb.soft;
+      $('profitDesc').textContent = p.profit.desc;
+      let meta = `<span class="regime-tag" title="${p.profit.regime.tip}"><i class="ph ph-pulse"></i> ${p.profit.regime.label}</span>`;
+      if(p.profit.honesty) meta += `<span class="honesty-tag"><i class="ph ph-${p.profit.honesty.icon}"></i> ${p.profit.honesty.label}</span>`;
+      $('profitMeta').innerHTML = meta;
+      $('profitComponents').innerHTML = componentsHtml(p.profit.components);
+
+      // 地段
+      const lb = bandOf(p.location.score);
+      $('locScore').textContent = p.location.score; $('locScore').style.color = lb.color;
+      const lbp = $('locBand'); lbp.textContent = lb.label; lbp.style.color = lb.color; lbp.style.background = lb.soft;
+      $('locDesc').textContent = p.location.desc;
+      $('locComponents').innerHTML = componentsHtml(p.location.components);
+
+      // Tabs
+      $('ovAddr').textContent = p.addr; $('ovTenure').textContent = p.tenure; $('ovTop').textContent = p.top;
+      $('ovUnits').textContent = p.units; $('ovDev').textContent = p.dev; $('ovTypes').textContent = p.types;
+      $('priceRange').textContent = p.price.range; $('priceMonthly').textContent = p.price.monthly;
+      $('locList').innerHTML = p.locList.map(([ic,t])=>`<li class="flex items-center gap-3"><i class="ph ph-${ic} text-primary text-lg"></i> ${t}</li>`).join('');
+      $('schoolRows').innerHTML = p.schools.map(([n,d,h])=>`<tr class="border-b border-border/50"><td class="py-2.5">${n}</td><td>${d}</td><td class="text-right">${h}</td></tr>`).join('');
+      $('altList').innerHTML = p.alt.map(([n,s])=>`<div class="flex items-center justify-between bg-white border border-border rounded-[4px] p-3.5 hover:border-gray-300 transition-colors"><div><div class="font-medium text-sm">${n}</div><div class="text-xs text-gray-500 mt-0.5">${s}</div></div><button onclick="toast('已加入对比（最多 4 个）')" class="text-xs text-primary border border-primary rounded-[4px] px-3 py-1.5 hover:bg-primary-soft transition-colors">加入对比 ⊕</button></div>`).join('');
+      // 地图：记录当前楼盘并重置为「概览」图层
+      CUR = p; drawMapLayer('overview');
+    }
+
+    // ─────────────── 地图图层（概览 / 交通 / 学校）───────────────
+    let CUR = null;
+    const legDot = c => `<span class="inline-block w-2.5 h-2.5 rounded-full" style="background:${c}"></span>`;
+    const legItem = (c, label) => `<span class="flex items-center gap-1">${legDot(c)} ${label}</span>`;
+    const MAP_BASE = `<circle cx="185" cy="200" r="22" fill="#2F4F3D" opacity=".14"/><circle cx="185" cy="200" r="11" fill="#2F4F3D"/>`;
+    function drawMapLayer(layer){
+      if(!CUR) return;
+      let markers, legend;
+      if(layer === 'transit'){
+        markers = `<line x1="185" y1="200" x2="120" y2="120" stroke="#B07A1E" stroke-width="2" stroke-dasharray="4 4"/>${MAP_BASE}`
+          + `<circle cx="120" cy="120" r="7.5" fill="#B07A1E"/><circle cx="215" cy="112" r="4.5" fill="#9AA0A6"/><circle cx="150" cy="292" r="4.5" fill="#9AA0A6"/>`;
+        legend = legItem('#2F4F3D', CUR.name) + legItem('#B07A1E', `${CUR.mrt}（步行 ${CUR.mrtWalk} 分）`) + legItem('#9AA0A6', '巴士');
+      } else if(layer === 'school'){
+        markers = `<circle cx="185" cy="200" r="86" fill="none" stroke="#5C8A6B" stroke-width="1.5" stroke-dasharray="5 5" opacity=".6"/>${MAP_BASE}`
+          + `<circle cx="122" cy="152" r="6.5" fill="#5C8A6B"/><circle cx="252" cy="248" r="6.5" fill="#5C8A6B"/>`;
+        legend = legItem('#2F4F3D', CUR.name) + legItem('#5C8A6B', `小学（1km 内 ${CUR.schools.length} 所）`) + `<span class="text-gray-400 text-[10px]">虚线＝1km 半径</span>`;
+      } else { // overview
+        markers = `${MAP_BASE}<circle cx="120" cy="120" r="6" fill="#B07A1E"/><circle cx="250" cy="285" r="6" fill="#5C8A6B"/>`;
+        legend = legItem('#2F4F3D', CUR.name) + legItem('#B07A1E', 'MRT') + legItem('#5C8A6B', '学校');
+      }
+      $('mapMarkers').innerHTML = markers;
+      $('mapLegend').innerHTML = legend;
+    }
+    function switchMapLayer(e, layer){
+      document.querySelectorAll('.map-tab').forEach(t=>t.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      drawMapLayer(layer);
+    }
+
+    // ─────────────── 交互 ───────────────
+    function currentSlug(){ return new URLSearchParams(location.search).get('slug') || 'the-gazania'; }
+    function fadeNav(href){
+      if(reduceMotion){ location.href = href; return; }
+      document.body.style.transition='opacity .18s ease'; document.body.style.opacity='0';
+      setTimeout(()=>location.href=href, 180);
+    }
+    function goBack(e){ e.preventDefault(); if(history.length>1){ history.back(); } else { fadeNav('search.html'); } }
+    function goCalc(e){ if(e) e.preventDefault(); fadeNav('../f/index.html'); }
+    function goCompare(){ toast('对比器（Module 5）即将上线，已记下你的对比意向'); }
+
+    function toggleExplain(id, el){
+      const body = $(id); body.classList.toggle('open');
+      const caret = el.querySelector('i'); if(caret) caret.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+    }
+    function switchTab(e, id){
+      document.querySelectorAll('.report-tab').forEach(t=>t.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p=>p.style.display='none');
+      $(id).style.display='block';
+    }
+    function loadMap(id, btn){
+      const m = $(id); m.classList.toggle('hidden');
+      if(!m.dataset.loaded){ setTimeout(()=>{ m.innerHTML='<svg viewBox="0 0 360 220" class="w-full h-full opacity-70"><rect width="360" height="220" fill="#F5F1E8"/><circle cx="185" cy="110" r="9" fill="#2F4F3D"/><circle cx="185" cy="110" r="18" fill="#2F4F3D" opacity=".15"/></svg>'; m.dataset.loaded='1'; }, 500); }
+      btn.querySelector('.ph-caret-down')?.classList.toggle('rotate-180');
+    }
+    function toggleFav(el){ el.classList.toggle('text-primary'); el.classList.toggle('border-primary'); toast(el.classList.contains('text-primary')?'已收藏（需登录同步）':'已取消收藏'); }
+    function toggleAlert(btn){ const dot=btn.querySelector('span'); dot.classList.toggle('translate-x-5'); btn.classList.toggle('bg-primary'); btn.classList.toggle('bg-gray-300'); }
+
+    let toastTimer;
+    function toast(msg){
+      $('toastText').textContent = msg; const t = $('toast'); t.classList.add('show');
+      clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+    }
+
+    // ─────────────── 专业名词释义 ───────────────
+    const GLOSSARY = {
+      'CAGR':'复合年均增长率（Compound Annual Growth Rate）——把多年累计涨幅折算成「平均每年涨多少」，方便跨不同年限比较表现。',
+      'PSF':'每平方英尺单价（Per Square Foot）——新加坡房产最常用的价格单位，= 总价 ÷ 面积（sqft）。',
+      'ABSD':'额外买方印花税（Additional Buyer’s Stamp Duty）——按买家身份与持有套数累加的购房税，例如 PR 买第二套约 30%。',
+      'BSD':'买方印花税（Buyer’s Stamp Duty）——所有购房都要缴的基础印花税，按房价分档累进。',
+      'TDSR':'总偿债比率（Total Debt Servicing Ratio）——MAS 规定每月总还款不得超过月收入的 55%，决定你最多能贷多少。',
+      'TOP':'临时入伙准证（Temporary Occupation Permit）——拿到 TOP 即可入住，常用来标记楼盘的落成/交付年份。',
+      'MRT':'地铁（Mass Rapid Transit）——新加坡城市轨道交通；到最近 MRT 的步行时间是地段评分的重要因子。',
+      'CPF':'中央公积金（Central Provident Fund）——新加坡强制储蓄，普通账户（OA）可用于支付首付与月供。',
+      'AVM':'自动估价模型（Automated Valuation Model）——用算法直接给出估价。本工具明确不做 AVM，只呈现成交 PSF 区间。',
+      'URA':'市区重建局（Urban Redevelopment Authority）——新加坡规划与房产成交数据的官方来源。',
+      'OneMap':'新加坡政府官方地图服务——提供地铁 / 学校 / 配套位置与步行时间，用于地段评分。',
+      '置信度':'分数的可靠程度：high（数据充足）/ low（样本少）/ estimated_similar（用相似盘估算）。用来提示这个分数能信几分。',
+      'estimated_similar':'相似盘估算——本盘自身数据不足，分数由同区、同价位、楼龄相近的相似盘推算，仅作方向性参考。',
+      'excluded':'不计入——该户型 / 项目样本太少或不符合口径，已从评分中剔除，避免少量异常成交带偏分数。',
+      'P1 报名':'小学一年级报名（Primary 1）——新加坡按距离、校友等分阶段录取；「超额」表示报名人数多于学额、竞争激烈。',
+      'en-bloc':'集体出售——整栋楼业主集体把项目卖给开发商重建，是老盘的一种退出方式。',
+      '永久地契':'Freehold——产权没有年限、可永久持有，通常比同地段 99 年地契更保值。',
+      '99 年地契':'99-year Leasehold——产权 99 年，到期需续约或归还，通常比永久地契便宜。',
+      '毛租金回报率':'Gross Rental Yield——年租金 ÷ 房价，衡量出租回报的粗略指标（未扣除税费等持有成本）。'
+    };
+    function buildGlossRegex(){
+      const parts = Object.keys(GLOSSARY).sort((a,b)=>b.length-a.length).map(t=>{
+        const esc = t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+        return /^[A-Za-z0-9]+$/.test(t) ? `\\b${esc}\\b` : esc;   // 纯英文词加边界，避免误匹配单词内部
+      });
+      return new RegExp('('+parts.join('|')+')','g');
+    }
+    function linkifyGlossary(root){
+      const re = buildGlossRegex();
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(node){
+          if(!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          const p = node.parentElement;
+          if(!p || p.closest('.term, svg, script, style, a, button, #gloss, #toast, kbd')) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      const targets = []; while(walker.nextNode()) targets.push(walker.currentNode);
+      targets.forEach(node=>{
+        const text = node.nodeValue; re.lastIndex = 0;
+        if(!re.test(text)) return; re.lastIndex = 0;
+        const frag = document.createDocumentFragment(); let last = 0, m;
+        while((m = re.exec(text))){
+          const term = m[1], start = m.index;
+          if(start > last) frag.appendChild(document.createTextNode(text.slice(last, start)));
+          const span = document.createElement('span');
+          span.className = 'term'; span.textContent = term; span.dataset.term = term;
+          frag.appendChild(span); last = start + term.length;
+        }
+        if(last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+        node.parentNode.replaceChild(frag, node);
+      });
+    }
+    function showGloss(term, el){
+      const def = GLOSSARY[term]; if(!def) return;
+      const g = $('gloss'); $('glossTerm').textContent = term; $('glossDef').textContent = def;
+      g.classList.remove('hidden');
+      const r = el.getBoundingClientRect(), gw = g.offsetWidth, gh = g.offsetHeight, pad = 12;
+      let left = r.left, top = r.bottom + 8;
+      if(left + gw > innerWidth - pad) left = innerWidth - gw - pad;
+      if(left < pad) left = pad;
+      if(top + gh > innerHeight - pad) top = r.top - gh - 8;   // 下方放不下 → 放上方
+      g.style.left = left + 'px'; g.style.top = Math.max(pad, top) + 'px';
+    }
+    document.addEventListener('click', e=>{
+      const t = e.target.closest('.term');
+      if(t){ e.stopPropagation(); showGloss(t.dataset.term, t); return; }
+      if(!e.target.closest('#gloss')) $('gloss').classList.add('hidden');
+    });
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape') $('gloss').classList.add('hidden'); });
+    addEventListener('scroll', ()=>$('gloss').classList.add('hidden'), {passive:true});
+
+    // init
+    render(currentSlug());
+    linkifyGlossary(document.body);
+    window.addEventListener('pageshow', ()=>{ document.body.style.opacity='1'; });
+  </script>
+</body>
+</html>
