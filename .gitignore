@@ -57,3 +57,6 @@ yarn-error.log*
 # generated types (regenerate from migrations)
 # keep this committed so devs can typecheck without a running db
 # lib/supabase/database.types.ts
+
+# Claude local artifacts (installed skills etc.) — not committed
+.claude/

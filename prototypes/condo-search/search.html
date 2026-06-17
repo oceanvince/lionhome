@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#FCFBF9">
+  <title>狮城家 · 楼盘决策搜索</title>
+
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary: #2F4F3D;
+      --color-primary-soft: #EAEFEB;
+      --color-charcoal: #1A1C1A;
+      --color-offwhite: #FCFBF9;
+      --color-cream: #F5F1E8;
+      --color-border: #E5E5E5;
+      --color-warn: #8B3A1F;
+      --color-warn-soft: #F8EFE8;
+      --color-verdict-green: #2F6B4A;  --color-verdict-green-soft: #E7F0EA;
+      --color-verdict-amber: #B07A1E;  --color-verdict-amber-soft: #F7F0E0;
+      --color-verdict-orange: #B5562A; --color-verdict-orange-soft: #F7ECE4;
+      --color-band-strong: #2F6B4A; --color-band-good: #5C8A6B;
+      --color-band-fair: #B07A1E;   --color-band-poor: #B5562A; --color-band-na: #B8B8B0;
+      --color-fit-in: #2F6B4A; --color-fit-over: #B07A1E;
+      --font-serif: 'Noto Serif SC', Georgia, serif;
+      --font-sans: 'Noto Sans SC', 'Inter', system-ui, sans-serif;
+    }
+    body { @apply bg-offwhite text-charcoal font-sans antialiased; letter-spacing:.01em; }
+    h1,h2,h3,h4 { @apply font-serif; }
+
+    .btn-primary{ @apply w-full bg-primary text-white py-3.5 px-6 rounded-[4px] font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 cursor-pointer; min-height:52px; border:none; }
+    .btn-secondary{ @apply w-full bg-white border border-border text-charcoal py-3.5 px-6 rounded-[4px] font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer; min-height:52px; }
+
+    .verdict-badge{ @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium; }
+    .verdict-badge.is-green { color:var(--color-verdict-green);  background:var(--color-verdict-green-soft); }
+    .verdict-badge.is-amber { color:var(--color-verdict-amber);  background:var(--color-verdict-amber-soft); }
+    .verdict-badge.is-orange{ color:var(--color-verdict-orange); background:var(--color-verdict-orange-soft); }
+    .verdict-badge::before{ content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+    .honesty-tag{ @apply inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-[3px]; color:var(--color-warn); background:var(--color-warn-soft); }
+
+    .project-card{ @apply bg-white border border-border rounded-[4px] p-5 transition-all cursor-pointer; }
+    .project-card:hover{ @apply border-gray-300 shadow-sm; }
+    .card-action{ @apply w-9 h-9 flex items-center justify-center rounded-full border border-border bg-white text-gray-400 hover:text-primary hover:border-primary transition-colors cursor-pointer; }
+    .card-action.is-on{ @apply text-primary border-primary bg-primary-soft; }
+
+    .tag{ @apply inline-flex items-center gap-1 text-xs text-gray-600 font-light; }
+    .seg-wrap{ @apply inline-flex bg-gray-100 rounded-[4px] p-0.5; }
+    .seg{ @apply px-3 py-1.5 text-xs font-medium text-gray-500 rounded-[3px] cursor-pointer transition-all; }
+    .seg.active{ @apply bg-white text-primary shadow-sm; }
+    .fit-dot{ @apply inline-block w-2 h-2 rounded-full align-middle; }
+
+    .ac-row{ @apply flex items-center justify-between px-4 py-3 hover:bg-cream/60 cursor-pointer transition-colors; }
+    @keyframes fadeInUp{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+    .enter{ animation:fadeInUp .4s ease-out both; }
+    @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
+    /* big score */
+    .score-num{ font-family:var(--font-serif); font-weight:600; font-variant-numeric:tabular-nums; line-height:1; }
+  </style>
+</head>
+<body class="min-h-full">
+
+  <!-- ░░ Header ░░ -->
+  <header class="sticky top-0 z-30 bg-offwhite/90 backdrop-blur border-b border-border" style="backdrop-filter:saturate(180%) blur(8px)">
+    <div class="max-w-[1120px] mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-primary"></span>
+        <span class="text-sm font-medium tracking-wide">狮城家 LionHome</span>
+      </div>
+      <nav class="hidden md:flex items-center gap-6 text-sm text-gray-600">
+        <a class="hover:text-primary transition-colors" href="#">楼盘搜索</a>
+        <a class="hover:text-primary transition-colors" href="../f/index.html">购买力计算器</a>
+        <a class="hover:text-primary transition-colors" href="#">买家测评</a>
+      </nav>
+      <button class="card-action md:hidden" aria-label="菜单"><i class="ph ph-list text-lg"></i></button>
+    </div>
+  </header>
+
+  <main class="max-w-[1120px] mx-auto px-4 pb-24">
+
+    <!-- ░░ 搜索区 ░░ -->
+    <section class="pt-8 md:pt-12 enter">
+      <p class="text-xs text-gray-500 tracking-wide mb-2">楼盘决策报告</p>
+      <h1 class="text-2xl md:text-[32px] font-semibold leading-tight mb-1">这个盘，值不值得你花时间看？</h1>
+      <p class="text-sm md:text-base text-gray-600 leading-relaxed mb-5 max-w-xl">
+        搜一个楼盘，直接给你<span class="text-charcoal font-medium">一句结论 + 盈利/地段评分 + 你买不买得起</span>。不是房源列表，是单盘决策。
+      </p>
+
+      <!-- 搜索框 + 自动补全 -->
+      <div class="relative max-w-2xl">
+        <div class="flex items-center gap-2 bg-white border border-border rounded-[4px] px-4 h-[52px] focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+          <i class="ph ph-magnifying-glass text-gray-400 text-lg"></i>
+          <input id="searchInput" class="flex-1 bg-transparent outline-none text-base placeholder:text-gray-400"
+                 placeholder="输入楼盘名 / 区 / 街道 / 邮编…" value="The Gaz" autocomplete="off" oninput="toggleAC(true)" onfocus="toggleAC(true)">
+          <kbd class="hidden md:inline text-[11px] text-gray-400 border border-border rounded px-1.5 py-0.5">Enter</kbd>
+        </div>
+
+        <!-- 自动补全下拉（默认收起，聚焦搜索框才弹出）-->
+        <div id="acPanel" style="display:none" class="absolute left-0 right-0 mt-1 bg-white border border-border rounded-[4px] shadow-md overflow-hidden z-20">
+          <div class="px-4 pt-3 pb-1 text-[11px] text-gray-400 tracking-wide">楼盘匹配</div>
+          <div class="ac-row" onclick="goReport('the-gazania')">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-building-apartment text-gray-400"></i>
+              <span class="text-sm"><span class="text-primary font-medium">The Gaz</span>ania</span>
+              <span class="text-xs text-gray-400">· D19 · 永久</span>
+            </div>
+            <span class="text-xs text-gray-400">盈利分 6.8</span>
+          </div>
+          <div class="ac-row" onclick="goReport('jadescape')">
+            <div class="flex items-center gap-2">
+              <i class="ph ph-building-apartment text-gray-400"></i>
+              <span class="text-sm">Jade<span class="text-primary font-medium">scape</span></span>
+              <span class="text-xs text-gray-400">· D20 · 99 年</span>
+            </div>
+            <span class="text-xs text-gray-400">盈利分 5.6</span>
+          </div>
+          <div class="border-t border-border px-4 py-2.5 text-xs text-gray-500 flex items-center gap-2 hover:bg-cream/60 cursor-pointer">
+            <i class="ph ph-map-pin"></i> 按区浏览 D19 的全部楼盘
+          </div>
+        </div>
+      </div>
+
+      <!-- 空查询引导（自动补全关闭时露出） -->
+      <div class="flex flex-wrap items-center gap-2 mt-4 text-xs">
+        <span class="text-gray-400">热门：</span>
+        <button onclick="goReport('the-gazania')" class="tag border border-border rounded-full px-2.5 py-1 hover:border-primary hover:text-primary transition-colors">The Gazania</button>
+        <button onclick="goReport('normanton-park')" class="tag border border-border rounded-full px-2.5 py-1 hover:border-primary hover:text-primary transition-colors">Normanton Park</button>
+        <button onclick="goReport('jadescape')" class="tag border border-border rounded-full px-2.5 py-1 hover:border-primary hover:text-primary transition-colors">Jadescape</button>
+        <button class="tag border border-border rounded-full px-2.5 py-1 hover:border-primary hover:text-primary transition-colors"><i class="ph ph-map-pin-line"></i> 按区浏览</button>
+      </div>
+    </section>
+
+    <!-- ░░ 结果工具条 ░░ -->
+    <section class="mt-9 flex items-center justify-between flex-wrap gap-3">
+      <div class="text-sm text-gray-600">
+        <span class="text-charcoal font-medium">D19 · 实龙岗</span> 区域 <span class="font-medium">12</span> 个项目
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-gray-400 hidden sm:inline">排序</span>
+        <div class="seg-wrap">
+          <span class="seg active">盈利分</span>
+          <span class="seg">PSF 低→高</span>
+          <span class="seg">TOP 新→旧</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ░░ 项目卡片列表 ░░ -->
+    <section class="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+      <!-- 卡片 1：值得入候选 · 适配在预算内 -->
+      <article class="project-card enter" onclick="goReport('the-gazania')">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-semibold leading-snug">The Gazania</h3>
+            <p class="text-xs text-gray-500 mt-0.5">D19 · 实龙岗</p>
+          </div>
+          <div class="flex gap-1.5" onclick="event.stopPropagation()">
+            <button class="card-action" aria-label="收藏" onclick="this.classList.toggle('is-on')"><i class="ph ph-heart text-base"></i></button>
+            <button class="card-action" aria-label="加入对比" onclick="this.classList.toggle('is-on')"><i class="ph ph-plus-circle text-base"></i></button>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between">
+          <span class="verdict-badge is-green">值得入候选</span>
+          <div class="text-right">
+            <span class="score-num text-[32px]" style="color:var(--color-band-good)">6.8</span>
+            <span class="text-xs text-gray-400 block -mt-1">盈利分 / 10</span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-border space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">近 12 月成交 PSF</span>
+            <span class="font-medium psf">S$1,780–1,980</span>
+          </div>
+          <div class="flex flex-wrap gap-x-3 gap-y-1.5 pt-1">
+            <span class="tag"><i class="ph ph-seal-check text-gray-400"></i> 永久</span>
+            <span class="tag"><i class="ph ph-calendar-dots text-gray-400"></i> 2023 TOP</span>
+            <span class="tag"><i class="ph ph-buildings text-gray-400"></i> 250 户</span>
+            <span class="tag"><i class="ph ph-train-simple text-gray-400"></i> MRT 步行 8 分</span>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center gap-1.5 text-xs">
+          <span class="fit-dot" style="background:var(--color-fit-in)"></span>
+          <span class="text-gray-600">在你预算内 · 约 S$2.05M 起</span>
+        </div>
+      </article>
+
+      <!-- 卡片 2：值得比较 · 相似盘估算 · 略超预算 -->
+      <article class="project-card enter" style="animation-delay:.06s" onclick="goReport('jadescape')">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-semibold leading-snug">Jadescape</h3>
+            <p class="text-xs text-gray-500 mt-0.5">D20 · 碧山</p>
+          </div>
+          <div class="flex gap-1.5" onclick="event.stopPropagation()">
+            <button class="card-action" aria-label="收藏" onclick="this.classList.toggle('is-on')"><i class="ph ph-heart text-base"></i></button>
+            <button class="card-action is-on" aria-label="加入对比" onclick="this.classList.toggle('is-on')"><i class="ph ph-plus-circle text-base"></i></button>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between">
+          <span class="verdict-badge is-amber">值得比较</span>
+          <div class="text-right">
+            <span class="score-num text-[32px]" style="color:var(--color-band-fair)">5.6</span>
+            <span class="text-xs text-gray-400 block -mt-1">盈利分 / 10</span>
+          </div>
+        </div>
+        <div class="mt-2 flex justify-end">
+          <span class="honesty-tag"><i class="ph ph-info"></i> 相似盘估算</span>
+        </div>
+
+        <div class="mt-3 pt-4 border-t border-border space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">近 12 月成交 PSF</span>
+            <span class="font-medium psf">S$2,100–2,340</span>
+          </div>
+          <div class="flex flex-wrap gap-x-3 gap-y-1.5 pt-1">
+            <span class="tag"><i class="ph ph-seal-check text-gray-400"></i> 99 年</span>
+            <span class="tag"><i class="ph ph-calendar-dots text-gray-400"></i> 2022 TOP</span>
+            <span class="tag"><i class="ph ph-buildings text-gray-400"></i> 1206 户</span>
+            <span class="tag"><i class="ph ph-train-simple text-gray-400"></i> MRT 步行 4 分</span>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center gap-1.5 text-xs">
+          <span class="fit-dot" style="background:var(--color-fit-over)"></span>
+          <span class="text-gray-600">略超舒适区间 · 约 S$2.6M 起</span>
+        </div>
+      </article>
+
+      <!-- 卡片 3：谨慎比较 · 新盘 -->
+      <article class="project-card enter" style="animation-delay:.12s" onclick="goReport('normanton-park')">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="text-lg font-semibold leading-snug">Normanton Park</h3>
+            <p class="text-xs text-gray-500 mt-0.5">D05 · 金文泰</p>
+          </div>
+          <div class="flex gap-1.5" onclick="event.stopPropagation()">
+            <button class="card-action" aria-label="收藏" onclick="this.classList.toggle('is-on')"><i class="ph ph-heart text-base"></i></button>
+            <button class="card-action" aria-label="加入对比" onclick="this.classList.toggle('is-on')"><i class="ph ph-plus-circle text-base"></i></button>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between">
+          <span class="verdict-badge is-orange">谨慎比较</span>
+          <div class="text-right">
+            <span class="score-num text-[32px]" style="color:var(--color-band-poor)">4.2</span>
+            <span class="text-xs text-gray-400 block -mt-1">盈利分 / 10</span>
+          </div>
+        </div>
+        <div class="mt-2 flex justify-end">
+          <span class="honesty-tag"><i class="ph ph-sparkle"></i> 新盘 · 分数会随数据变化</span>
+        </div>
+
+        <div class="mt-3 pt-4 border-t border-border space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">近 12 月成交 PSF</span>
+            <span class="font-medium psf">S$1,900–2,180</span>
+          </div>
+          <div class="flex flex-wrap gap-x-3 gap-y-1.5 pt-1">
+            <span class="tag"><i class="ph ph-seal-check text-gray-400"></i> 99 年</span>
+            <span class="tag"><i class="ph ph-calendar-dots text-gray-400"></i> 2024 TOP</span>
+            <span class="tag"><i class="ph ph-buildings text-gray-400"></i> 1862 户</span>
+            <span class="tag"><i class="ph ph-train-simple text-gray-400"></i> MRT 步行 12 分</span>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center gap-1.5 text-xs">
+          <span class="fit-dot" style="background:var(--color-fit-in)"></span>
+          <span class="text-gray-600">在你预算内 · 约 S$1.98M 起</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- ░░ 零结果兜底（演示：默认隐藏，可切换查看） ░░ -->
+    <section id="zeroState" class="hidden mt-6">
+      <div class="bg-cream/60 border border-dashed border-border rounded-[4px] p-6 text-center">
+        <i class="ph ph-map-pin-area text-3xl text-gray-400"></i>
+        <h3 class="text-lg font-semibold mt-2">这个盘我们还没收录</h3>
+        <p class="text-sm text-gray-600 mt-1 max-w-sm mx-auto leading-relaxed">要不要按区帮你找几个近似的？或者留个联系方式，收录后第一时间通知你。</p>
+        <div class="flex flex-col sm:flex-row gap-2 justify-center mt-4 max-w-sm mx-auto">
+          <button class="btn-secondary"><i class="ph ph-map-pin"></i> 按区浏览近似盘</button>
+          <button class="btn-primary"><i class="ph ph-bell"></i> 收录后通知我</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 演示开关 -->
+    <div class="mt-8 text-center">
+      <button onclick="toggleZero()" class="text-xs text-gray-400 hover:text-primary transition-colors underline underline-offset-2">
+        切换演示：搜索结果 ⇄ 零结果兜底
+      </button>
+    </div>
+  </main>
+
+  <footer class="border-t border-border">
+    <div class="max-w-[1120px] mx-auto px-4 py-6 text-[11px] text-gray-400 leading-relaxed">
+      分数与结论由公开数据（URA / OneMap / MOE / data.gov.sg）按既定方法论计算，仅供参考，不构成估价、投资建议或受 CEA 监管的物业咨询。PSF 为近 12 月成交区间的算术换算，非估价。
+    </div>
+  </footer>
+
+  <script>
+    // ── 页面间转场：淡出后带 slug 跳转 ──
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function goReport(slug){
+      const go = ()=> location.href = 'report.html?slug=' + encodeURIComponent(slug);
+      if(reduceMotion){ go(); return; }
+      document.body.style.transition = 'opacity .18s ease';
+      document.body.style.opacity = '0';
+      setTimeout(go, 180);
+    }
+    function toggleAC(show){
+      const p = document.getElementById('acPanel');
+      const v = document.getElementById('searchInput').value.trim();
+      p.style.display = (show && v.length) ? 'block' : 'none';
+    }
+    document.addEventListener('click', e=>{
+      if(!e.target.closest('#acPanel') && !e.target.closest('#searchInput')){
+        document.getElementById('acPanel').style.display='none';
+      }
+    });
+    function toggleZero(){
+      const results = document.querySelectorAll('main > section');
+      const zero = document.getElementById('zeroState');
+      const grid = document.querySelectorAll('main > section')[2];
+      const toolbar = document.querySelectorAll('main > section')[1];
+      const hidden = zero.classList.contains('hidden');
+      zero.classList.toggle('hidden');
+      grid.classList.toggle('hidden', hidden);
+      toolbar.classList.toggle('hidden', hidden);
+    }
+    // init：自动补全默认收起，聚焦/输入搜索框才弹出（避免盖住下方结果卡片）
+    // 从报告页返回（bfcache）时恢复不透明，避免停留在淡出态
+    window.addEventListener('pageshow', ()=>{ document.body.style.opacity='1'; });
+  </script>
+</body>
+</html>
