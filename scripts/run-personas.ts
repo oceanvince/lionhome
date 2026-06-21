@@ -86,8 +86,7 @@ function flagsFor(p: Persona, v2: V2ComputeResult): string[] {
 
   // expected band checks — "feasible" = transaction可行（首付/税付得起），不含应急金缓冲
   if (p.expect) {
-    const txnAffordable =
-      !b.infeasible_reason && p.input.availableCash >= b.transaction_cash_total;
+    const txnAffordable = !b.infeasible_reason && p.input.availableCash >= b.transaction_cash_total;
     if (p.expect.feasible === true && !txnAffordable) {
       flags.push("🔴 expected feasible but transaction not affordable");
     }
@@ -287,7 +286,11 @@ const eExtras = (() => {
       const ovr = r.breakEvenOverride!;
       const delta = ovr - def;
       const meaning =
-        delta > 0.01 ? "租金更低 → g\\* 更高（更难)" : delta < -0.01 ? "租金更高 → g\\* 更低（更容易）" : "差异不大";
+        delta > 0.01
+          ? "租金更低 → g\\* 更高（更难)"
+          : delta < -0.01
+            ? "租金更高 → g\\* 更低（更容易）"
+            : "差异不大";
       return `| ${r.persona.id} | ${fmtPct(def)} | ${fmtPct(ovr)} | ${meaning} |`;
     }),
     ``,
@@ -311,12 +314,16 @@ const flagsSection = (() => {
         const score = (r: PersonaResult) =>
           r.flags.reduce(
             (s, f) =>
-              s + (f.startsWith("🔴") ? 1000 : f.startsWith("❌") ? 100 : f.startsWith("⚠️") ? 10 : 1),
+              s +
+              (f.startsWith("🔴") ? 1000 : f.startsWith("❌") ? 100 : f.startsWith("⚠️") ? 10 : 1),
             0
           );
         return score(b) - score(a);
       })
-      .map((r) => `| ${r.persona.id} | ${r.persona.label.replace(/\|/g, "\\|")} | ${r.flags.join("<br>")} |`),
+      .map(
+        (r) =>
+          `| ${r.persona.id} | ${r.persona.label.replace(/\|/g, "\\|")} | ${r.flags.join("<br>")} |`
+      ),
     ``,
   ];
   return lines.join("\n");
@@ -336,7 +343,12 @@ const compareTable = (() => {
     ``,
   ];
   for (const b of buckets) {
-    lines.push(`### ${b.label}`, ``, `| ID | 身份 | 套数 | 平衡区 | g* 平衡 |`, `|---|---|---|---|---|`);
+    lines.push(
+      `### ${b.label}`,
+      ``,
+      `| ID | 身份 | 套数 | 平衡区 | g* 平衡 |`,
+      `|---|---|---|---|---|`
+    );
     for (const id of b.ids) {
       const r = results.find((x) => x.persona.id === id);
       if (!r) continue;

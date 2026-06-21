@@ -1549,7 +1549,8 @@ export default function CalculatorPage() {
                     <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.6 }}>
                       <span style={{ fontWeight: 500, color: C.charcoal }}>
                         URA PPI 2014–2024 名义年化约{" "}
-                        {(result.break_even!.regional_historical * 100).toFixed(1)}%（全岛均值，不代表具体项目；含通胀）
+                        {(result.break_even!.regional_historical * 100).toFixed(1)}
+                        %（全岛均值，不代表具体项目；含通胀）
                       </span>
                       <br />
                       <span style={{ color: C.gray500 }}>
