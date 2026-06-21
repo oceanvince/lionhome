@@ -35,6 +35,12 @@ function monthlyPayment(principal: number, annualRate: number, years: number): n
   return (principal * i * Math.pow(1 + i, N)) / (Math.pow(1 + i, N) - 1);
 }
 
+// Mortgage stamp ($500) + conveyancing + valuation, capped. Part of the cash a
+// buyer must actually bring to completion, so feasibility and display must agree.
+export function estimateLegalFees(price: number): number {
+  return Math.round(500 + Math.min(3500, price * 0.002));
+}
+
 function getLtvCap(
   age: number,
   tenureYears: number,
@@ -107,7 +113,9 @@ export function isFeasibleAtPrice(
   const cashDown = downPayment - cpfUsed;
   const bsd = calculateBsd(price, params.bsdSlabs);
   const absd = calculateAbsd(price, params.residency, params.propertyCount, params.absdMatrix);
-  const totalCashNeeded = cashDown + bsd + absd;
+  // Legal fees are part of the cash due at completion; include them so the
+  // feasibility check matches the displayed transaction_cash_total.
+  const totalCashNeeded = cashDown + bsd + absd + estimateLegalFees(price);
   return totalCashNeeded <= params.availableCash;
 }
 
@@ -200,9 +208,8 @@ export function buildOutput(
   const cashDown = downPayment - cpfUsed;
   const bsd = calculateBsd(price, params.bsdSlabs);
   const absd = calculateAbsd(price, params.residency, params.propertyCount, params.absdMatrix);
-  // Simple legal fees estimate: mortgage stamp ($500) + conveyancing + valuation
-  const legalFees = Math.round(500 + Math.min(3500, price * 0.002));
-  const totalCash = cashDown + bsd + absd;
+  const legalFees = estimateLegalFees(price);
+  const totalCash = cashDown + bsd + absd + legalFees;
 
   const monthlyBase = monthlyPayment(loan, params.displayRate, params.tenureYears);
   const monthlyStress = monthlyPayment(loan, params.tdsr.stress_rate, params.tenureYears);
