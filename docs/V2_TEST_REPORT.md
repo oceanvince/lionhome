@@ -3,7 +3,7 @@
 > 自动生成。源：[tests/personas/personas.ts](../tests/personas/personas.ts)
 > 跑：`npx tsx scripts/run-personas.ts`
 
-**总数：58** | **🔴 与预期不符：5** | **⚠️/❌ 有边界信号：31**
+**总数：58** | **🔴 与预期不符：0** | **⚠️/❌ 有边界信号：31**
 
 ## 旗的含义
 
@@ -30,14 +30,14 @@
 > 
 | ID | 画像 | 舒适区 | 平衡区 (月供占比) | 压力区 | 平衡中点 → 需现金 | 现金可行 | g* 平衡 | 旗 |
 |---|---|---|---|---|---|---|---|---|
-A01 | SC · 月入 12K · 35岁 · 30万现金 · 20万CPF · 首套 | 97 万 – 121 万 | 121 万 – 133 万 (35.0%) | 133 万 – 175 万 | 127 万 → S$ 307,903 | ⚠️ 应急金差 S$ 7,903 | -0.1% | ℹ balanced emergency fund short: S$ 7,903 (交易可行，应急金不够)<br>🔴 balanced g* -0.1% outside expected 1.0% – 3.0%
+A01 | SC · 月入 12K · 35岁 · 30万现金 · 20万CPF · 首套 | 97 万 – 121 万 | 121 万 – 133 万 (35.0%) | 133 万 – 175 万 | 127 万 → S$ 307,903 | ⚠️ 应急金差 S$ 7,903 | -0.1% | ℹ balanced emergency fund short: S$ 7,903 (交易可行，应急金不够)
 A02 | SC · 月入 18K · 35岁 · 50万现金 · 25万CPF · 首套 | 145 万 – 181 万 | 181 万 – 199 万 (35.0%) | 199 万 – 258 万 | 190 万 → S$ 517,794 | ⚠️ 应急金差 S$ 17,794 | 0.4% | ℹ balanced emergency fund short: S$ 17,794 (交易可行，应急金不够)
 A03 | SC · 月入 30K · 40岁 · 100万现金 · 40万CPF · 首套 | 228 万 – 285 万 | 285 万 – 285 万 (24.9%) | 285 万 – 285 万 | 285 万 → S$ 1,196,600 | ⚠️ 应急金差 S$ 196,600 | 1.2% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 196,600 (交易可行，应急金不够)
 A04 | SC · 月入 50K · 45岁 · 200万现金 · 50万CPF · 首套 | 401 万 – 501 万 | 501 万 – 501 万 (26.3%) | 501 万 – 501 万 | 501 万 → S$ 2,328,700 | ⚠️ 应急金差 S$ 328,700 | 2.4% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 328,700 (交易可行，应急金不够)
 A05 | PR · 月入 12K · 32岁 · 30万现金 · 10万CPF · 首套 | 86 万 – 107 万 | 107 万 – 118 万 (33.7%) | 118 万 – 121 万 | 113 万 → S$ 350,760 | ⚠️ 应急金差 S$ 50,760 | 2.1% | ℹ balanced emergency fund short: S$ 50,760 (交易可行，应急金不够)
-A06 | PR · 月入 17.5K · 35岁 · 35万现金 · 20万CPF · 首套（你的画像） | 122 万 – 152 万 | 152 万 – 164 万 (32.3%) | 164 万 – 164 万 | 158 万 → S$ 441,760 | ⚠️ 应急金差 S$ 91,760 | 1.3% | ℹ balanced emergency fund short: S$ 91,760 (交易可行，应急金不够)<br>🔴 balanced g* 1.3% outside expected 1.5% – 2.5%
+A06 | PR · 月入 17.5K · 35岁 · 35万现金 · 20万CPF · 首套（你的画像） | 122 万 – 152 万 | 152 万 – 164 万 (32.3%) | 164 万 – 164 万 | 158 万 → S$ 441,760 | ⚠️ 应急金差 S$ 91,760 | 1.3% | ℹ balanced emergency fund short: S$ 91,760 (交易可行，应急金不够)
 A07 | PR · 月入 25K · 38岁 · 60万现金 · 30万CPF · 首套 | 134 万 – 168 万 | 168 万 – 168 万 (17.6%) | 168 万 – 168 万 | 168 万 → S$ 762,460 | ⚠️ 应急金差 S$ 162,460 | 1.0% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 162,460 (交易可行，应急金不够)
-A08 | SC · 月入 25K · 32岁 · 60万现金 · 35万CPF · 首套（spec §11 #2 验收） | 194 万 – 242 万 | 242 万 – 267 万 (35.0%) | 267 万 – 324 万 | 255 万 → S$ 633,314 | ⚠️ 应急金差 S$ 33,314 | 0.7% | ℹ balanced emergency fund short: S$ 33,314 (交易可行，应急金不够)<br>🔴 balanced g* 0.7% outside expected 1.8% – 2.8%
+A08 | SC · 月入 25K · 32岁 · 60万现金 · 35万CPF · 首套（spec §11 #2 验收） | 194 万 – 242 万 | 242 万 – 267 万 (35.0%) | 267 万 – 324 万 | 255 万 → S$ 633,314 | ⚠️ 应急金差 S$ 33,314 | 0.7% | ℹ balanced emergency fund short: S$ 33,314 (交易可行，应急金不够)
 A09 | SC · 月入 15K · 28岁 · 25万现金 · 10万CPF · 首套 | 99 万 – 124 万 | 124 万 – 124 万 (29.6%) | 124 万 – 124 万 | 124 万 → S$ 346,180 | ⚠️ 应急金差 S$ 96,180 | 1.3% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 96,180 (交易可行，应急金不够)
 A10 | PR 夫妻合并 · 月入 22K · 33岁 · 45万现金 · 25万CPF · 首套 | 153 万 – 191 万 | 191 万 – 207 万 (32.4%) | 207 万 – 207 万 | 199 万 → S$ 565,300 | ⚠️ 应急金差 S$ 115,300 | 1.4% | ℹ balanced emergency fund short: S$ 115,300 (交易可行，应急金不够)
 ## B · 身份边界（15）— ABSD 决策核心区
@@ -53,9 +53,9 @@ B01 | SC 二套 · 月入 25K · 60万现金 · 40万CPF | 102 万 – 128 万 |
 B02 | SC 三套 · 月入 50K · 200万现金 · 50万CPF | 224 万 – 280 万 | 280 万 – 280 万 (12.0%) | 280 万 – 280 万 | 280 万 → S$ 2,323,600 | ⚠️ 应急金差 S$ 323,600 | — | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 323,600 (交易可行，应急金不够)
 B03 | PR 二套 · 月入 25K · 60万现金 · 30万CPF | 82 万 – 102 万 | 102 万 – 102 万 (8.8%) | 102 万 – 102 万 | 102 万 → S$ 759,940 | ⚠️ 应急金差 S$ 159,940 | — | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 159,940 (交易可行，应急金不够)
 B04 | PR 三套 · 月入 40K · 150万现金 · 40万CPF | 162 万 – 202 万 | 202 万 – 202 万 (10.9%) | 202 万 – 202 万 | 202 万 → S$ 1,756,600 | ⚠️ 应急金差 S$ 256,600 | — | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 256,600 (交易可行，应急金不够)
-B05 | 外籍 WP · 月入 25K · 80万现金 · CPF=0 · 首套 | 59 万 – 74 万 | 74 万 – 74 万 (7.8%) | 74 万 – 74 万 | 74 万 → S$ 960,780 | ⚠️ 应急金差 S$ 160,780 | 11.2% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 160,780 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大)<br>🔴 expected infeasible but transaction is affordable
+B05 | 外籍 WP · 月入 25K · 80万现金 · CPF=0 · 首套 | 59 万 – 74 万 | 74 万 – 74 万 (7.8%) | 74 万 – 74 万 | 74 万 → S$ 960,780 | ⚠️ 应急金差 S$ 160,780 | 11.2% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 160,780 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大)
 B06 | 外籍无身份 · 月入 50K · 200万现金 · 首套 | 147 万 – 184 万 | 184 万 – 184 万 (9.7%) | 184 万 – 184 万 | 184 万 → S$ 2,327,600 | ⚠️ 应急金差 S$ 327,600 | 11.3% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 327,600 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大)
-B07 | 外籍 WP · 月入 15K · 50万现金 · 首套 | 50 万 – 57 万 | 57 万 – 57 万 (13.6%) | 57 万 – 57 万 | 57 万 → S$ 596,840 | ⚠️ 应急金差 S$ 96,840 | 11.0% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 96,840 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大)<br>🔴 expected infeasible but transaction is affordable
+B07 | 外籍 WP · 月入 15K · 50万现金 · 首套 | 50 万 – 57 万 | 57 万 – 57 万 (13.6%) | 57 万 – 57 万 | 57 万 → S$ 596,840 | ⚠️ 应急金差 S$ 96,840 | 11.0% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 96,840 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大)
 B08 | 外籍 WP 二套 · 月入 40K · 200万现金 | 134 万 – 168 万 | 168 万 – 168 万 (9.0%) | 168 万 – 168 万 | 168 万 → S$ 2,253,460 | ⚠️ 应急金差 S$ 253,460 | — | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 253,460 (交易可行，应急金不够)
 B09 | SC 首套 · 同 A02 但 12K（最低端）· 比较 ABSD 0% | 90 万 – 112 万 | 112 万 – 124 万 (35.0%) | 124 万 – 141 万 | 118 万 → S$ 314,123 | ⚠️ 应急金差 S$ 14,123 | 1.2% | ℹ balanced emergency fund short: S$ 14,123 (交易可行，应急金不够)
 B10 | PR 首套（高收入）· 月入 50K · 200万现金 · 50万CPF | 365 万 – 456 万 | 456 万 – 456 万 (23.9%) | 456 万 – 456 万 | 456 万 → S$ 2,327,200 | ⚠️ 应急金差 S$ 327,200 | 2.7% | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 327,200 (交易可行，应急金不够)
@@ -174,15 +174,12 @@ F05 | 月供债务 ≥ 月入 × TDSR（透支 TDSR） | — – — | — – �
 
 | ID | 画像 | 旗 |
 |---|---|---|
-| B05 | 外籍 WP · 月入 25K · 80万现金 · CPF=0 · 首套 | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 160,780 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大)<br>🔴 expected infeasible but transaction is affordable |
-| B07 | 外籍 WP · 月入 15K · 50万现金 · 首套 | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 96,840 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大)<br>🔴 expected infeasible but transaction is affordable |
-| A01 | SC · 月入 12K · 35岁 · 30万现金 · 20万CPF · 首套 | ℹ balanced emergency fund short: S$ 7,903 (交易可行，应急金不够)<br>🔴 balanced g* -0.1% outside expected 1.0% – 3.0% |
-| A06 | PR · 月入 17.5K · 35岁 · 35万现金 · 20万CPF · 首套（你的画像） | ℹ balanced emergency fund short: S$ 91,760 (交易可行，应急金不够)<br>🔴 balanced g* 1.3% outside expected 1.5% – 2.5% |
-| A08 | SC · 月入 25K · 32岁 · 60万现金 · 35万CPF · 首套（spec §11 #2 验收） | ℹ balanced emergency fund short: S$ 33,314 (交易可行，应急金不够)<br>🔴 balanced g* 0.7% outside expected 1.8% – 2.8% |
 | D05 | 0 现金 · 月入 25K | ❌ balanced infeasible: INSUFFICIENT_CASH<br>❌ aggressive price = 0 |
 | F05 | 月供债务 ≥ 月入 × TDSR（透支 TDSR） | ❌ balanced infeasible: INSUFFICIENT_CASH<br>❌ aggressive price = 0 |
 | D11 | 负债大户 · 月入 15K · 月供债务 8K · 首套 | ❌ balanced infeasible: INSUFFICIENT_CASH |
+| B05 | 外籍 WP · 月入 25K · 80万现金 · CPF=0 · 首套 | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 160,780 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大) |
 | B06 | 外籍无身份 · 月入 50K · 200万现金 · 首套 | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 327,600 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大) |
+| B07 | 外籍 WP · 月入 15K · 50万现金 · 首套 | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 96,840 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大) |
 | B14 | 外籍首套 · 月入 30K · 80万现金 · vs B12/B13 | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 193,780 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大) |
 | D03 | CPF 富现金薄 · 月入 15K · 现金 15万 · CPF 80万 | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 98,600 (交易可行，应急金不够)<br>ℹ balanced g* < −2% (轻微下跌也划算) |
 | A03 | SC · 月入 30K · 40岁 · 100万现金 · 40万CPF · 首套 | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 196,600 (交易可行，应急金不够) |
@@ -208,8 +205,11 @@ F05 | 月供债务 ≥ 月入 × TDSR（透支 TDSR） | — – — | — – �
 | F02 | 年龄 85（schema max=80，引擎层应不崩） | ℹ balanced emergency fund short: S$ 59,557 (交易可行，应急金不够)<br>⚠️ balanced g* > 5% (赌注极大) |
 | F04 | 收入 1 亿/年（超极端） | ⚠️ tiers degenerate (三档收敛)<br>ℹ balanced emergency fund short: S$ 19,238,500 (交易可行，应急金不够) |
 | F03 | 现金 1 亿（远超 30M 房价上限） | ⚠️ tiers degenerate (三档收敛) |
+| A01 | SC · 月入 12K · 35岁 · 30万现金 · 20万CPF · 首套 | ℹ balanced emergency fund short: S$ 7,903 (交易可行，应急金不够) |
 | A02 | SC · 月入 18K · 35岁 · 50万现金 · 25万CPF · 首套 | ℹ balanced emergency fund short: S$ 17,794 (交易可行，应急金不够) |
 | A05 | PR · 月入 12K · 32岁 · 30万现金 · 10万CPF · 首套 | ℹ balanced emergency fund short: S$ 50,760 (交易可行，应急金不够) |
+| A06 | PR · 月入 17.5K · 35岁 · 35万现金 · 20万CPF · 首套（你的画像） | ℹ balanced emergency fund short: S$ 91,760 (交易可行，应急金不够) |
+| A08 | SC · 月入 25K · 32岁 · 60万现金 · 35万CPF · 首套（spec §11 #2 验收） | ℹ balanced emergency fund short: S$ 33,314 (交易可行，应急金不够) |
 | A10 | PR 夫妻合并 · 月入 22K · 33岁 · 45万现金 · 25万CPF · 首套 | ℹ balanced emergency fund short: S$ 115,300 (交易可行，应急金不够) |
 | B09 | SC 首套 · 同 A02 但 12K（最低端）· 比较 ABSD 0% | ℹ balanced emergency fund short: S$ 14,123 (交易可行，应急金不够) |
 | B11 | SC 首套 vs B09 PR 首套同画像（重复对比组） | ℹ balanced emergency fund short: S$ 14,123 (交易可行，应急金不够) |
