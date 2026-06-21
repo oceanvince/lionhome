@@ -113,8 +113,9 @@ describe("computeTiers", () => {
   });
 
   it("flags degenerate when cash caps all three tiers to the same price", () => {
-    // High income (TDSR never binds) but tiny cash → LTV/cash binds equally for every ratio.
-    const params = profile({ annualIncome: 2_000_000, availableCash: 200_000, availableCpf: 0 });
+    // High income (TDSR never binds); cash net of the emergency reserve (income × 0.55)
+    // is small → LTV/cash binds equally for every ratio.
+    const params = profile({ annualIncome: 2_000_000, availableCash: 1_400_000, availableCpf: 0 });
     const t = computeTiers(params);
     expect(t.degenerate).toBe(true);
     expect(t.comfortable.price_high).toBe(t.aggressive.price_high);

@@ -1,6 +1,11 @@
 import type { BsdSlab, AbsdMatrixEntry, LtvRule, TdsrConfig } from "./types";
 import { calculateBsd, calculateAbsd } from "./index";
 
+// Emergency reserve set aside before a purchase is considered feasible.
+// × annual income ≈ 6.6 months. Shared by the engine (feasibility constraint)
+// and the display layer (cash_gap), so both speak the same language.
+export const EMERGENCY_FUND_RATIO = 0.55;
+
 export interface CalcOutputs {
   max_price: number;
   loan_amount: number;
@@ -116,7 +121,11 @@ export function isFeasibleAtPrice(
   // Legal fees are part of the cash due at completion; include them so the
   // feasibility check matches the displayed transaction_cash_total.
   const totalCashNeeded = cashDown + bsd + absd + estimateLegalFees(price);
-  return totalCashNeeded <= params.availableCash;
+  // A recommended price must leave the emergency reserve intact, so compare
+  // against cash net of it — "recommended" then truly means affordable.
+  const emergencyReserve = params.annualIncome * EMERGENCY_FUND_RATIO;
+  const effectiveCash = Math.max(0, params.availableCash - emergencyReserve);
+  return totalCashNeeded <= effectiveCash;
 }
 
 // Backward-compatible: max price at the MAS TDSR cap (55%).
