@@ -9,6 +9,8 @@ export {
   buildOutput,
   COMFORT_RATIO,
   BALANCED_RATIO,
+  EMERGENCY_FUND_RATIO,
+  estimateLegalFees,
 } from "./tdsr";
 export type {
   CalcOutputs,

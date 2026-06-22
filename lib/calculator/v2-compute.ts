@@ -1,4 +1,4 @@
-import { computeTiers, solveMaxPurchasePrice } from "@/lib/tax";
+import { computeTiers, solveMaxPurchasePrice, EMERGENCY_FUND_RATIO } from "@/lib/tax";
 import type { CalcOutputs, PriceTier, PriceTierKey, SolveParams } from "@/lib/tax";
 import {
   breakEvenFromCalcOutputs,
@@ -12,8 +12,6 @@ import type {
   TierData,
   V2ComputeResult,
 } from "./v2-types";
-
-const EMERGENCY_FUND_RATIO = 0.55; // × annual income ≈ 6.6 months
 
 export interface V2ComputeParams {
   solveParams: SolveParams;

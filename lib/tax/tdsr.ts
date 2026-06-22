@@ -1,6 +1,11 @@
 import type { BsdSlab, AbsdMatrixEntry, LtvRule, TdsrConfig } from "./types";
 import { calculateBsd, calculateAbsd } from "./index";
 
+// Emergency reserve set aside before a purchase is considered feasible.
+// × annual income ≈ 6.6 months. Shared by the engine (feasibility constraint)
+// and the display layer (cash_gap), so both speak the same language.
+export const EMERGENCY_FUND_RATIO = 0.55;
+
 export interface CalcOutputs {
   max_price: number;
   loan_amount: number;
@@ -33,6 +38,12 @@ function monthlyPayment(principal: number, annualRate: number, years: number): n
   const i = annualRate / 12;
   const N = years * 12;
   return (principal * i * Math.pow(1 + i, N)) / (Math.pow(1 + i, N) - 1);
+}
+
+// Mortgage stamp ($500) + conveyancing + valuation, capped. Part of the cash a
+// buyer must actually bring to completion, so feasibility and display must agree.
+export function estimateLegalFees(price: number): number {
+  return Math.round(500 + Math.min(3500, price * 0.002));
 }
 
 function getLtvCap(
@@ -107,8 +118,14 @@ export function isFeasibleAtPrice(
   const cashDown = downPayment - cpfUsed;
   const bsd = calculateBsd(price, params.bsdSlabs);
   const absd = calculateAbsd(price, params.residency, params.propertyCount, params.absdMatrix);
-  const totalCashNeeded = cashDown + bsd + absd;
-  return totalCashNeeded <= params.availableCash;
+  // Legal fees are part of the cash due at completion; include them so the
+  // feasibility check matches the displayed transaction_cash_total.
+  const totalCashNeeded = cashDown + bsd + absd + estimateLegalFees(price);
+  // A recommended price must leave the emergency reserve intact, so compare
+  // against cash net of it — "recommended" then truly means affordable.
+  const emergencyReserve = params.annualIncome * EMERGENCY_FUND_RATIO;
+  const effectiveCash = Math.max(0, params.availableCash - emergencyReserve);
+  return totalCashNeeded <= effectiveCash;
 }
 
 // Backward-compatible: max price at the MAS TDSR cap (55%).
@@ -200,9 +217,8 @@ export function buildOutput(
   const cashDown = downPayment - cpfUsed;
   const bsd = calculateBsd(price, params.bsdSlabs);
   const absd = calculateAbsd(price, params.residency, params.propertyCount, params.absdMatrix);
-  // Simple legal fees estimate: mortgage stamp ($500) + conveyancing + valuation
-  const legalFees = Math.round(500 + Math.min(3500, price * 0.002));
-  const totalCash = cashDown + bsd + absd;
+  const legalFees = estimateLegalFees(price);
+  const totalCash = cashDown + bsd + absd + legalFees;
 
   const monthlyBase = monthlyPayment(loan, params.displayRate, params.tenureYears);
   const monthlyStress = monthlyPayment(loan, params.tdsr.stress_rate, params.tenureYears);

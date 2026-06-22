@@ -763,6 +763,17 @@ export default function CalculatorPage() {
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#D1D5DB" }} />
             <span style={{ fontSize: 12, color: C.gray500, fontWeight: 300 }}>无需注册</span>
           </div>
+          <p
+            style={{
+              fontSize: 11,
+              color: C.gray500,
+              fontWeight: 300,
+              marginTop: 12,
+              lineHeight: 1.5,
+            }}
+          >
+            适用于新加坡<strong style={{ fontWeight: 500 }}>私人住宅</strong>的银行贷款初步测算。
+          </p>
         </div>
 
         <div
@@ -841,7 +852,7 @@ export default function CalculatorPage() {
               />
               <path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" stroke="currentColor" strokeWidth="1.2" />
             </svg>
-            <span>您的数据已被加密处理</span>
+            <span>无需注册即可测算</span>
           </div>
         </div>
       </div>
@@ -1327,8 +1338,6 @@ export default function CalculatorPage() {
                   }}
                 >
                   首付 = 房价 × 25%。CPF 最多可抵扣房价的 20%，剩下房价的 5% 必须现金。
-                  <br />
-                  BSD 与 ABSD 必须现金 / 支票支付，CPF 不可。
                 </p>
               </div>
 
@@ -1539,8 +1548,9 @@ export default function CalculatorPage() {
                   >
                     <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.6 }}>
                       <span style={{ fontWeight: 500, color: C.charcoal }}>
-                        新加坡私宅过去 10 年实际涨{" "}
-                        {(result.break_even!.regional_historical * 100).toFixed(1)}% / 年
+                        URA PPI 2014–2024 名义年化约{" "}
+                        {(result.break_even!.regional_historical * 100).toFixed(1)}
+                        %（全岛均值，不代表具体项目；含通胀）
                       </span>
                       <br />
                       <span style={{ color: C.gray500 }}>
