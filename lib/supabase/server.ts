@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "./database.types";
 
-type ServerClient = ReturnType<typeof createServerClient<Database>>;
+export type ServerClient = ReturnType<typeof createServerClient<Database>>;
 
 interface CookieToSet {
   name: string;

@@ -80,79 +80,84 @@
 
 ```sql
 alter table projects
-  add column slug            varchar(160) unique,                  -- URL，见 §3 slug 规则
-  add column lat             numeric(9,6),
-  add column lng             numeric(9,6),
-  add column psf_min         numeric(10,2),                        -- 近 12 月成交 PSF 区间（缓存）
-  add column psf_max         numeric(10,2),
-  add column psf_period_end  date,                                 -- PSF 区间数据截止日
-  add column status          varchar(16) not null default 'stub';  -- active / hidden / stub
+  add column slug            varchar(160) unique,                  -- URL slug，决定 /condo/{slug} 地址；唯一，生成规则见 §3
+  add column lat             numeric(9,6),                         -- 纬度（WGS84）；地段评分与地图打点用，由 OneMap geocode 得到
+  add column lng             numeric(9,6),                         -- 经度（WGS84）；同上
+  add column psf_min         numeric(10,2),                        -- 近 12 月成交 PSF 区间下界（缓存自 project_transactions）
+  add column psf_max         numeric(10,2),                        -- 近 12 月成交 PSF 区间上界（缓存）
+  add column psf_period_end  date,                                 -- 上面 PSF 区间的数据截止日，界定「近 12 月」口径并对外展示
+  add column status          varchar(16) not null default 'stub';  -- 发布状态：active 对外可见 / hidden 下架 / stub 占位未收录
 
+-- 唯一索引：保证 slug 不重复；partial index 跳过 slug 为 null 的 stub 行，避免多条 null 冲突
 create unique index projects_slug_idx on projects (slug) where slug is not null;
+-- 复合索引：搜索结果「按区 + 仅 active」走索引（status 在前先过滤 stub/hidden）
 create index projects_status_district_idx on projects (status, district);
 ```
 
 ### 2.2 新表
 
 ```sql
--- 成交（盈利 / PSF 来源）
+-- 成交记录：盈利分 / PSF 区间的逐笔数据来源，来自 URA
 create table project_transactions (
-  id           uuid primary key default gen_random_uuid(),
-  project_id   uuid not null references projects(id) on delete cascade,
-  txn_date     date not null,
-  price        numeric(14,2) not null,
-  area_sqft    numeric(10,2) not null,
-  psf          numeric(10,2) not null,
-  bedroom_type varchar(20),            -- '1','2',...,'penthouse'；URA 无则 null
-  sale_type    smallint,              -- 1 新销 / 2 转售 / 3 再售（URA typeOfSale）
-  source       varchar(20) not null default 'ura',
-  ingested_at  timestamptz not null default now(),
-  unique (project_id, txn_date, area_sqft, price)   -- 幂等去重键
+  id           uuid primary key default gen_random_uuid(),              -- 主键，自动生成 UUID
+  project_id   uuid not null references projects(id) on delete cascade,  -- 所属楼盘外键；楼盘删除则级联删本盘成交
+  txn_date     date not null,                                           -- 成交日期（URA contractDate），算 CAGR 与「近 12 月」口径
+  price        numeric(14,2) not null,                                  -- 成交总价（S$）
+  area_sqft    numeric(10,2) not null,                                  -- 面积（平方英尺 sqft）
+  psf          numeric(10,2) not null,                                  -- 每平方英尺单价 = price/area_sqft；冗余存便于排序与筛选
+  bedroom_type varchar(20),                                             -- 户型（卧室数）'1'..'5'/'penthouse'；URA 无则 null，盈利分按户型拆分用
+  sale_type    smallint,                                                -- 交易类型：1 新销 / 2 转售 / 3 再售（URA typeOfSale）；盈利分只看转售
+  source       varchar(20) not null default 'ura',                      -- 数据来源标识，多源混入时区分
+  ingested_at  timestamptz not null default now(),                      -- 入库时间戳，供采集管线审计与增量
+  unique (project_id, txn_date, area_sqft, price)                       -- 幂等去重键：同盘同日同面积同价视为同一笔，重复 upsert 不增行
 );
+-- 索引：按楼盘取最近成交（盈利分 / 成交 tab / PSF 走势都按 project + 时间倒序读）
 create index project_txn_proj_date_idx on project_transactions (project_id, txn_date desc);
 
--- 配套（地段 / 学校 / 地图来源）
+-- 周边配套：地段分 / 学校 tab / 伴随地图的数据来源，来自 OneMap + MOE
 create table project_amenities (
-  id           uuid primary key default gen_random_uuid(),
-  project_id   uuid not null references projects(id) on delete cascade,
-  kind         varchar(24) not null,  -- mrt / busstop / school / mall / park ...
-  name         varchar(200) not null,
-  lat          numeric(9,6),
-  lng          numeric(9,6),
-  distance_m   numeric(10,1),
-  walk_minutes numeric(6,1),
-  metadata     jsonb not null default '{}'::jsonb,  -- 学校 P1 热度、MRT 线路等
-  refreshed_at timestamptz not null default now()
+  id           uuid primary key default gen_random_uuid(),              -- 主键
+  project_id   uuid not null references projects(id) on delete cascade,  -- 所属楼盘外键，级联删除
+  kind         varchar(24) not null,                                    -- 配套类型：mrt / busstop / school / mall / park…；按 kind 取对应地图图层
+  name         varchar(200) not null,                                   -- 配套名称（如 Kovan MRT、Xinmin Primary）
+  lat          numeric(9,6),                                            -- 配套纬度（WGS84），地图打点用
+  lng          numeric(9,6),                                            -- 配套经度（WGS84）
+  distance_m   numeric(10,1),                                           -- 到本盘直线距离（米），「1km 内小学」等口径判断用
+  walk_minutes numeric(6,1),                                            -- 到本盘步行分钟（OneMap Routing），最近 MRT 步行子因子
+  metadata     jsonb not null default '{}'::jsonb,                      -- 扩展字段：学校 P1 报名热度、MRT 线路代号等非结构化信息
+  refreshed_at timestamptz not null default now()                       -- 最后刷新时间，地理数据月级更新的审计
 );
+-- 索引：按楼盘 + 类型取配套（如「这个盘 1km 内的 school」）
 create index project_amenity_proj_kind_idx on project_amenities (project_id, kind);
 
--- 评分缓存（确定性 / 可解释 / 带置信度）
+-- 评分缓存：四维分数的算分结果，确定性 / 可解释 / 带置信度（详情页直接读这张）
 create table project_scores (
-  id                 uuid primary key default gen_random_uuid(),
-  project_id         uuid not null references projects(id) on delete cascade,
-  dimension          varchar(12) not null,   -- profit / location / exit / rental
-  score              numeric(4,2),           -- 0-10，null = 数据不足
-  band               varchar(16) not null,   -- excellent/good/fair/poor/insufficient
-  confidence         varchar(20) not null,   -- high / low / estimated_similar
-  components          jsonb not null default '{}'::jsonb,  -- 子因子明细 →「怎么算的」
-  regime             varchar(24),            -- 市场状态标签
-  basis              jsonb not null default '{}'::jsonb,   -- { similarProjects[], txnCount }
-  data_snapshot_date date not null,          -- 数据快照日（漂移解释 §5.4）
-  score_version      varchar(20) not null,   -- 算法版本
-  computed_at        timestamptz not null default now(),
-  unique (project_id, dimension, score_version)
+  id                 uuid primary key default gen_random_uuid(),        -- 主键
+  project_id         uuid not null references projects(id) on delete cascade, -- 所属楼盘外键，级联删除
+  dimension          varchar(12) not null,                             -- 维度：profit 盈利 / location 地段 / exit 退出 / rental 租赁
+  score              numeric(4,2),                                     -- 0–10 分；null = 数据不足，不硬凑
+  band               varchar(16) not null,                             -- 档位枚举：excellent/good/fair/poor/insufficient（与中文档位单一来源映射）
+  confidence         varchar(20) not null,                             -- 置信度：high / low / estimated_similar；驱动数据诚实度标注
+  components         jsonb not null default '{}'::jsonb,               -- 子因子明细，供前端「怎么算的」逐项展开
+  regime             varchar(24),                                      -- 市场状态标签：流动活跃 / 惜售 / new_project…；给分数加语境
+  basis              jsonb not null default '{}'::jsonb,               -- 算分依据 { similarProjects[]:相似盘集合, txnCount:样本笔数 }
+  data_snapshot_date date not null,                                    -- 输入数据快照日；确定性复现 + 漂移解释（§5.4）的锚点
+  score_version      varchar(20) not null,                             -- 算法版本号；迭代时 bump，历史快照可回溯
+  computed_at        timestamptz not null default now(),               -- 本次算分的时间戳
+  unique (project_id, dimension, score_version)                        -- 唯一约束：一个盘的一个维度在某算法版本下只一条
 );
+-- 索引：详情页按楼盘一次取齐四维分数
 create index project_scores_proj_idx on project_scores (project_id);
 
--- 数据纠错闭环（SPEC §7.2）
+-- 数据纠错：用户「发现数据有误？反馈」的落库，进运营核实队列（SPEC §7.2）
 create table project_data_feedback (
-  id          uuid primary key default gen_random_uuid(),
-  project_id  uuid not null references projects(id) on delete cascade,
-  dimension   varchar(12),
-  user_note   text not null,
-  contact     varchar(120),
-  status      varchar(16) not null default 'open',  -- open/reviewing/resolved/rejected
-  created_at  timestamptz not null default now()
+  id          uuid primary key default gen_random_uuid(),              -- 主键
+  project_id  uuid not null references projects(id) on delete cascade,  -- 被反馈的楼盘外键，级联删除
+  dimension   varchar(12),                                             -- 被质疑的维度（可空：泛泛反馈不指定维度）
+  user_note   text not null,                                           -- 用户填写的纠错内容
+  contact     varchar(120),                                            -- 选填联系方式，便于回访（同时是 lead 信号）
+  status      varchar(16) not null default 'open',                     -- 处理状态：open 待处理 / reviewing 核实中 / resolved 已解决 / rejected 驳回
+  created_at  timestamptz not null default now()                       -- 提交时间
 );
 ```
 
@@ -174,14 +179,20 @@ create table project_data_feedback (
 
 ## 4. 在线读路径（详情页）
 
-### 4.1 渲染方式：SSR 直读，不经自有 HTTP API
+### 4.1 渲染方式：SSR 经 repo 层读，不经自有 HTTP API
 
-详情页是 server component，直接用 `getSupabaseServerClient()` 查缓存表拼装 payload（少一跳、利于 LCP/SEO）。对外 REST 仅给「客户端增量交互」用（适配度重算、tab 懒数据、收藏）。
+详情页是 server component，不发自有 HTTP（少一跳、利于 LCP/SEO），但**也不在函数层内联 SQL**——所有 supabase 查询收口到 `lib/condo/repo.ts`（数据访问层）。`report.ts` 只做纯组装、调 repo 取数。既守住「函数层经 repo 读、不直接写 SQL」的分层（BACKEND_TD §1），又拿到 SSR 的性能/SEO。对外 REST 仅给「客户端增量交互」用（适配度重算、tab 懒数据、收藏）。
 
 ```
-app/(tools)/condo/[slug]/page.tsx   ← SSR：getReportData(slug)
-lib/condo/report.ts                 ← 组装：projects + scores + amenities + transactions(近12m)
+app/(tools)/condo/[slug]/page.tsx   ← SSR 编排：调 getReportData(slug)
+lib/condo/report.ts                 ← 纯组装：调 repo 读 → 拼 CondoReport，无 SQL
+lib/condo/repo.ts                   ← 数据访问层（唯一写 supabase 查询的地方）：
+                                       getProjectBySlug / getScores(projId) /
+                                       getRecentTransactions(projId) / getAmenities(projId) / upsertScores …
+lib/project-scoring/*               ← 纯算分：输入 plain data → ProjectScore[]，零 DB、零 repo
 ```
+
+> 三层职责：**repo**（碰 DB，唯一写 SQL）→ **report/scoring**（函数层：经 repo 读、纯组装/纯计算）→ **page/cron**（编排）。写也同理走 repo（见 §5、§6），函数层不出现裸 supabase 调用。
 
 `getReportData(slug)` 返回结构（即「决策快照 + 四维 + tabs」一次取齐，避免瀑布）：
 
@@ -235,13 +246,15 @@ POST /api/v1/condo/fit
 
 ```
 lib/project-scoring/
-  types.ts          // ProjectScore / MarketRegime / band 单一来源常量映射
+  types.ts          // ProjectScore / MarketRegime / ScoringInput / band 单一来源常量映射
   profit.ts         // computeProfitScore(txns, regionalBaseline) → 同户型 CAGR vs 基准
   location.ts       // computeLocationScore(amenities) → MRT步行 + 1km小学 + 配套密度
   verdict.ts        // 四维分档 → 一句话结论（模板拼装，禁 LLM 幻觉数字）
   similar.ts        // 相似盘聚类（区+价位+TOP楼龄）→ 盈利样本不足时回退
-  index.ts          // scoreProject(projectId, snapshot) 编排，写 project_scores
+  index.ts          // scoreProject(input: ScoringInput) → ProjectScore[]：纯编排，零 DB
 ```
+
+> **纯函数边界**：`scoreProject` 入参是 **plain data**（`{ transactions, amenities, regionalBaseline, projectMeta }`，由 cron 经 `repo` 读好后喂进来），输出 `ProjectScore[]`，**自身不碰 DB**——可直接喂黄金样本单测（SPEC §13）。持久化在 cron 层经 `repo.upsertScores(scores)` 完成（见 §6），函数层不出现裸 supabase 调用。
 
 特性（SPEC §5.1）：**确定性**（同 `data_snapshot_date` 同输出）、**可解释**（返回 `components`）、**带置信度**。
 
@@ -280,9 +293,9 @@ lib/project-scoring/
 
 | Job | 频率 | 动作 | 幂等 |
 | --- | --- | --- | --- |
-| `ingest-ura-transactions` | 夜间 | 取 URA token → 拉增量成交 → SVY21→WGS84 → upsert `project_transactions` → 刷 `projects.psf_min/max` | upsert 唯一键 |
-| `recompute-scores` | 夜间（成交后） | 对受影响 project 跑 `scoreProject` → 写 `project_scores`（新 snapshot） | 按 snapshot_date |
-| `geocode-amenities` | 月级 / 新项目入库 | OneMap geocode + themes + walk 时间 → `project_amenities` | 按 (proj,kind,name) |
+| `ingest-ura-transactions` | 夜间 | 取 URA token → 拉增量成交 → SVY21→WGS84 → `repo.upsertTransactions()` → `repo.refreshPsfRange()` | upsert 唯一键 |
+| `recompute-scores` | 夜间（成交后） | `repo` 读成交/配套/基准 → `scoreProject(input)`（纯）→ `repo.upsertScores()`（新 snapshot） | 按 snapshot_date |
+| `geocode-amenities` | 月级 / 新项目入库 | OneMap geocode + themes + walk 时间 → `repo.upsertAmenities()` | 按 (proj,kind,name) |
 | `ingest-hdb-supply`（V2.1） | 夜间 | data.gov.sg HDB resale + 未来供应 → 退出维度 | — |
 
 冷启动（SPEC §6.3）：先**人工 seed 50–100 热门盘**（`status='active'`），管线再增量回填；未铺满时搜索只露「按区浏览/留资」，**绝不空列表**。
