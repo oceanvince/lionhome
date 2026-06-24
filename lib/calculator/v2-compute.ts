@@ -1,4 +1,9 @@
-import { computeTiers, solveMaxPurchasePrice, EMERGENCY_FUND_RATIO } from "@/lib/tax";
+import {
+  computeTiers,
+  solveMaxPurchasePrice,
+  computeMarketFloor,
+  EMERGENCY_FUND_RATIO,
+} from "@/lib/tax";
 import type { CalcOutputs, PriceTier, PriceTierKey, SolveParams } from "@/lib/tax";
 import {
   breakEvenFromCalcOutputs,
@@ -118,6 +123,7 @@ export function computeV2(p: V2ComputeParams): V2ComputeResult {
     tax_rates_version: taxRatesVersion,
     tiers,
     break_even: breakEven,
+    market_floor: computeMarketFloor(solveParams),
     degenerate: t.degenerate,
     legacy_max_price: t.aggressive.price_high,
     outputs: solveMaxPurchasePrice(solveParams),

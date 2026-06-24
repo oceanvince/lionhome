@@ -4,7 +4,12 @@ import React, { useState, useCallback, useRef } from "react";
 import { buildApiPayload, toAmount, isForeigner } from "@/lib/calculator/bucket-maps";
 import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calculator/form-types";
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
-import type { V2ComputeResult, TierData, PriceTierKey } from "@/lib/calculator/v2-types";
+import type {
+  V2ComputeResult,
+  TierData,
+  PriceTierKey,
+  MarketFloor,
+} from "@/lib/calculator/v2-types";
 import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -41,6 +46,24 @@ function fmtRange(low: number, high: number) {
 }
 function fmtWan(n: number) {
   return `S$ ${Math.round(n / 10_000)} 万`;
+}
+
+/**
+ * When a tier resolves to no buyable price (price_high === 0), explain *why*
+ * instead of showing a bare "—". Reuses the engine's infeasible_reason and the
+ * cash_gap it already computed — no recalculation here.
+ */
+function infeasibleNote(td: TierData): string | null {
+  if (td.price_high > 0) return null;
+  const cb = td.cash_breakdown;
+  if (cb.infeasible_reason === "TDSR_EXCEEDED") {
+    return "按当前收入与月供比例，银行可贷额度为 0，暂无法支撑任何房价 —— 提高收入或降低月供占比后再试。";
+  }
+  // INSUFFICIENT_CASH (or unset, treated as cash-limited).
+  if (cb.cash_gap > 0) {
+    return `可用现金低于建议应急储备 ${fmtS(cb.emergency_fund_suggested)}，还差 ${fmtS(cb.cash_gap)} —— 先补足现金才能测算可支持的房价。`;
+  }
+  return "可用现金不足以覆盖首付与税费，暂无法测算可支持的房价。";
 }
 
 const RESIDENCY_LABEL: Record<ResidencyOption, string> = {
@@ -507,6 +530,237 @@ function CostRow({
       >
         {value}
       </span>
+    </div>
+  );
+}
+
+/** ✓ 已满足 / ✕ 还差 X — one gate's verdict. */
+function GateStatus({ ok, shortLabel }: { ok: boolean; shortLabel: string }) {
+  return (
+    <span
+      style={{
+        fontSize: 13,
+        fontWeight: 500,
+        color: ok ? C.primary : C.warn,
+        fontVariantNumeric: "tabular-nums",
+      }}
+    >
+      {ok ? "✓ 已满足" : shortLabel}
+    </span>
+  );
+}
+
+/**
+ * Shown instead of the three-tier result when a profile can't support any tier:
+ * the cheapest private home + the two independent gates (cash, income) and where
+ * the buyer stands against each. Numbers come straight from result.market_floor.
+ */
+function FloorEntryView({
+  floor,
+  residencyLabel,
+  propsLabel,
+  onRestart,
+}: {
+  floor: MarketFloor;
+  residencyLabel: string;
+  propsLabel: string;
+  onRestart: () => void;
+}) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: 430,
+        margin: "0 auto",
+        background: C.offwhite,
+        minHeight: "100dvh",
+      }}
+    >
+      {/* Hero */}
+      <div
+        style={{ padding: "max(40px, env(safe-area-inset-top)) 20px 28px", background: C.cream }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            letterSpacing: "0.2em",
+            fontWeight: 500,
+            textTransform: "uppercase",
+            color: C.primary,
+            marginBottom: 8,
+          }}
+        >
+          您的理性购房决策
+        </div>
+        <div
+          style={{
+            fontFamily: SERIF,
+            fontSize: 28,
+            fontWeight: 600,
+            lineHeight: 1.2,
+            color: C.charcoal,
+          }}
+        >
+          按当前条件，
+          <br />
+          还够不到私宅门槛
+        </div>
+        <p
+          style={{
+            fontSize: 12,
+            color: C.gray500,
+            fontWeight: 300,
+            marginTop: 12,
+            lineHeight: 1.6,
+          }}
+        >
+          基于您 {residencyLabel} · {propsLabel}{" "}
+          的画像，暂时撑不起任何价位。下面是进入新加坡私宅市场的最低要求。
+        </p>
+      </div>
+
+      <div style={{ padding: "28px 20px 100px" }}>
+        {/* Block 1 · 市场最低房价 */}
+        <section style={{ marginBottom: 32 }}>
+          <h3 style={SECTION_TITLE}>① 新加坡私宅最低参考房价</h3>
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: SERIF,
+                fontSize: 32,
+                fontWeight: 600,
+                color: C.charcoal,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {fmtWan(floor.floor_price)}
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: C.gray400,
+                fontWeight: 300,
+                marginTop: 6,
+                lineHeight: 1.6,
+              }}
+            >
+              OCR 私宅地板价 · {floor.floor_as_of} · 参考门槛，非具体房源
+            </div>
+          </div>
+        </section>
+
+        {/* Block 2 · 最低存款（两道口径） */}
+        <section style={{ marginBottom: 32 }}>
+          <h3 style={SECTION_TITLE}>② 买这套，你至少要准备的现金</h3>
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: 20,
+            }}
+          >
+            <CostRow label="最低存款（过户硬性）" value={fmtS(floor.min_cash_transaction)} total />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                fontSize: 13,
+                padding: "6px 0 2px",
+                color: C.gray500,
+                fontWeight: 300,
+              }}
+            >
+              <span>您目前 {fmtS(floor.available_cash)}</span>
+              <GateStatus ok={floor.cash_ok} shortLabel={`还差 ${fmtS(floor.cash_gap)}`} />
+            </div>
+            <CostRow label="＋ 建议应急金（≈6.6 个月）" value={fmtS(floor.emergency_fund)} />
+            <p
+              style={{
+                fontSize: 11,
+                color: C.gray400,
+                fontWeight: 300,
+                marginTop: 12,
+                lineHeight: 1.6,
+              }}
+            >
+              硬性 = 首付现金 + 印花税 +
+              律师费（按可贷标准成数测算）。应急金为额外建议缓冲，不计入过户。
+            </p>
+          </div>
+        </section>
+
+        {/* Block 3 · 最低收入 */}
+        <section style={{ marginBottom: 32 }}>
+          <h3 style={SECTION_TITLE}>③ 能贷到这笔款的最低月收入</h3>
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: 20,
+            }}
+          >
+            <CostRow label="最低家庭月收入" value={fmtS(floor.min_monthly_income)} total />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                fontSize: 13,
+                padding: "6px 0 2px",
+                color: C.gray500,
+                fontWeight: 300,
+              }}
+            >
+              <span>您目前 {fmtS(floor.monthly_income)}/月</span>
+              <GateStatus
+                ok={floor.income_ok}
+                shortLabel={`还差 ${fmtS(Math.max(0, floor.income_gap))}/月`}
+              />
+            </div>
+            <p
+              style={{
+                fontSize: 11,
+                color: C.gray400,
+                fontWeight: 300,
+                marginTop: 12,
+                lineHeight: 1.6,
+              }}
+            >
+              按 MAS TDSR 上限（月供 ≤ 收入
+              55%）反推。现金与收入是两道独立的闸——补足卡住的那道才能进场。
+            </p>
+          </div>
+        </section>
+
+        <button
+          type="button"
+          onClick={onRestart}
+          style={{
+            width: "100%",
+            background: "#fff",
+            color: C.charcoal,
+            padding: "16px 24px",
+            borderRadius: 4,
+            fontWeight: 500,
+            fontSize: 16,
+            minHeight: 56,
+            border: `1px solid ${C.border}`,
+            cursor: "pointer",
+          }}
+        >
+          重新测算
+        </button>
+      </div>
     </div>
   );
 }
@@ -1131,6 +1385,23 @@ export default function CalculatorPage() {
   if (view === "result" && result) {
     const residency = form.residency ?? "pr";
     const isFirst = form.existingProperties === 0;
+
+    const propsLabelEarly =
+      form.existingProperties === 0 ? "首套" : form.existingProperties === 1 ? "第二套" : "第三套+";
+
+    // No tier is buyable (even the 55% MAS-cap tier resolves to 0) → show the
+    // market-entry floor instead of three blank "—" cards.
+    if (result.tiers.aggressive.price_high === 0) {
+      return (
+        <FloorEntryView
+          floor={result.market_floor}
+          residencyLabel={RESIDENCY_LABEL[residency]}
+          propsLabel={propsLabelEarly}
+          onRestart={() => goTo("hero")}
+        />
+      );
+    }
+
     const tier: TierData = result.tiers[selectedTier];
     const cb = tier.cash_breakdown;
     const availableCash = cb.total_cash_needed - cb.cash_gap;
@@ -1232,6 +1503,7 @@ export default function CalculatorPage() {
                   const active = key === selectedTier;
                   const pct = Math.round(td.ratio * 100);
                   const isAgg = key === "aggressive";
+                  const note = infeasibleNote(td);
                   return (
                     <div
                       key={key}
@@ -1279,6 +1551,19 @@ export default function CalculatorPage() {
                       >
                         压力测试月供占月收入 ≤ {pct}%{isAgg && " · 日常生活会吃紧"}
                       </div>
+                      {note && (
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: C.warn,
+                            fontWeight: 300,
+                            marginTop: 8,
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          {note}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
