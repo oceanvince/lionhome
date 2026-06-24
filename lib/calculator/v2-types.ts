@@ -1,6 +1,6 @@
-import type { CalcOutputs, PriceTierKey } from "@/lib/tax";
+import type { CalcOutputs, PriceTierKey, MarketFloor } from "@/lib/tax";
 
-export type { PriceTierKey };
+export type { PriceTierKey, MarketFloor };
 
 /** Cash needed to transact at a tier's midpoint price, plus the suggested emergency fund. */
 export interface CashBreakdown {
@@ -56,6 +56,8 @@ export interface V2ComputeResult {
   tax_rates_version: string;
   tiers: Record<PriceTierKey, TierData>;
   break_even: BreakEvenData | null;
+  /** Market-entry floor (cheapest private home + what this profile would need). Shown when all tiers are infeasible. */
+  market_floor: MarketFloor;
   /** True when cash/LTV caps all three tiers to one price. */
   degenerate: boolean;
   /** Old "max you can buy" (= 55% TDSR cap). Kept for the legacy result page during migration. */

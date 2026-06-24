@@ -21,3 +21,5 @@ export type {
   TiersResult,
 } from "./tdsr";
 export { SEED_TAX_RATES } from "./seed";
+export { computeMarketFloor, PRIVATE_FLOOR } from "./floor";
+export type { MarketFloor } from "./floor";
