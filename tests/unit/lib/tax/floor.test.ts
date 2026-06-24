@@ -37,7 +37,10 @@ describe("computeMarketFloor", () => {
   });
 
   it("accepts a floor-price override (configurability)", () => {
-    const f = computeMarketFloor(profile({ annualIncome: 120_000, availableCash: 10_000 }), 800_000);
+    const f = computeMarketFloor(
+      profile({ annualIncome: 120_000, availableCash: 10_000 }),
+      800_000
+    );
     expect(f.floor_price).toBe(800_000);
   });
 

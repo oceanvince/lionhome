@@ -577,7 +577,9 @@ function FloorEntryView({
       }}
     >
       {/* Hero */}
-      <div style={{ padding: "max(40px, env(safe-area-inset-top)) 20px 28px", background: C.cream }}>
+      <div
+        style={{ padding: "max(40px, env(safe-area-inset-top)) 20px 28px", background: C.cream }}
+      >
         <div
           style={{
             fontSize: 11,
@@ -590,11 +592,30 @@ function FloorEntryView({
         >
           您的理性购房决策
         </div>
-        <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 600, lineHeight: 1.2, color: C.charcoal }}>
-          按当前条件，<br />还够不到私宅门槛
+        <div
+          style={{
+            fontFamily: SERIF,
+            fontSize: 28,
+            fontWeight: 600,
+            lineHeight: 1.2,
+            color: C.charcoal,
+          }}
+        >
+          按当前条件，
+          <br />
+          还够不到私宅门槛
         </div>
-        <p style={{ fontSize: 12, color: C.gray500, fontWeight: 300, marginTop: 12, lineHeight: 1.6 }}>
-          基于您 {residencyLabel} · {propsLabel} 的画像，暂时撑不起任何价位。下面是进入新加坡私宅市场的最低要求。
+        <p
+          style={{
+            fontSize: 12,
+            color: C.gray500,
+            fontWeight: 300,
+            marginTop: 12,
+            lineHeight: 1.6,
+          }}
+        >
+          基于您 {residencyLabel} · {propsLabel}{" "}
+          的画像，暂时撑不起任何价位。下面是进入新加坡私宅市场的最低要求。
         </p>
       </div>
 
@@ -602,11 +623,34 @@ function FloorEntryView({
         {/* Block 1 · 市场最低房价 */}
         <section style={{ marginBottom: 32 }}>
           <h3 style={SECTION_TITLE}>① 新加坡私宅最低参考房价</h3>
-          <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 4, padding: 20 }}>
-            <div style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 600, color: C.charcoal, fontVariantNumeric: "tabular-nums" }}>
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: SERIF,
+                fontSize: 32,
+                fontWeight: 600,
+                color: C.charcoal,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
               {fmtWan(floor.floor_price)}
             </div>
-            <div style={{ fontSize: 12, color: C.gray400, fontWeight: 300, marginTop: 6, lineHeight: 1.6 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: C.gray400,
+                fontWeight: 300,
+                marginTop: 6,
+                lineHeight: 1.6,
+              }}
+            >
               OCR 私宅地板价 · {floor.floor_as_of} · 参考门槛，非具体房源
             </div>
           </div>
@@ -615,15 +659,41 @@ function FloorEntryView({
         {/* Block 2 · 最低存款（两道口径） */}
         <section style={{ marginBottom: 32 }}>
           <h3 style={SECTION_TITLE}>② 买这套，你至少要准备的现金</h3>
-          <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 4, padding: 20 }}>
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: 20,
+            }}
+          >
             <CostRow label="最低存款（过户硬性）" value={fmtS(floor.min_cash_transaction)} total />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 13, padding: "6px 0 2px", color: C.gray500, fontWeight: 300 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                fontSize: 13,
+                padding: "6px 0 2px",
+                color: C.gray500,
+                fontWeight: 300,
+              }}
+            >
               <span>您目前 {fmtS(floor.available_cash)}</span>
               <GateStatus ok={floor.cash_ok} shortLabel={`还差 ${fmtS(floor.cash_gap)}`} />
             </div>
             <CostRow label="＋ 建议应急金（≈6.6 个月）" value={fmtS(floor.emergency_fund)} />
-            <p style={{ fontSize: 11, color: C.gray400, fontWeight: 300, marginTop: 12, lineHeight: 1.6 }}>
-              硬性 = 首付现金 + 印花税 + 律师费（按可贷标准成数测算）。应急金为额外建议缓冲，不计入过户。
+            <p
+              style={{
+                fontSize: 11,
+                color: C.gray400,
+                fontWeight: 300,
+                marginTop: 12,
+                lineHeight: 1.6,
+              }}
+            >
+              硬性 = 首付现金 + 印花税 +
+              律师费（按可贷标准成数测算）。应急金为额外建议缓冲，不计入过户。
             </p>
           </div>
         </section>
@@ -631,14 +701,43 @@ function FloorEntryView({
         {/* Block 3 · 最低收入 */}
         <section style={{ marginBottom: 32 }}>
           <h3 style={SECTION_TITLE}>③ 能贷到这笔款的最低月收入</h3>
-          <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 4, padding: 20 }}>
+          <div
+            style={{
+              background: "#fff",
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: 20,
+            }}
+          >
             <CostRow label="最低家庭月收入" value={fmtS(floor.min_monthly_income)} total />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 13, padding: "6px 0 2px", color: C.gray500, fontWeight: 300 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                fontSize: 13,
+                padding: "6px 0 2px",
+                color: C.gray500,
+                fontWeight: 300,
+              }}
+            >
               <span>您目前 {fmtS(floor.monthly_income)}/月</span>
-              <GateStatus ok={floor.income_ok} shortLabel={`还差 ${fmtS(Math.max(0, floor.income_gap))}/月`} />
+              <GateStatus
+                ok={floor.income_ok}
+                shortLabel={`还差 ${fmtS(Math.max(0, floor.income_gap))}/月`}
+              />
             </div>
-            <p style={{ fontSize: 11, color: C.gray400, fontWeight: 300, marginTop: 12, lineHeight: 1.6 }}>
-              按 MAS TDSR 上限（月供 ≤ 收入 55%）反推。现金与收入是两道独立的闸——补足卡住的那道才能进场。
+            <p
+              style={{
+                fontSize: 11,
+                color: C.gray400,
+                fontWeight: 300,
+                marginTop: 12,
+                lineHeight: 1.6,
+              }}
+            >
+              按 MAS TDSR 上限（月供 ≤ 收入
+              55%）反推。现金与收入是两道独立的闸——补足卡住的那道才能进场。
             </p>
           </div>
         </section>
