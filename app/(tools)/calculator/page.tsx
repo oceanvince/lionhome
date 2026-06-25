@@ -566,6 +566,25 @@ function FloorEntryView({
   propsLabel: string;
   onRestart: () => void;
 }) {
+  // "Reachable" = both gates clear, so the buyer CAN transact the cheapest home —
+  // the affordability engine only capped them below the floor to keep a full
+  // emergency reserve. Distinguish that from a buyer who genuinely can't afford it.
+  const reachable = floor.cash_ok && floor.income_ok;
+  const bufferAfter = floor.available_cash - floor.min_cash_transaction; // cash left after closing
+  const bufferDipped = reachable && bufferAfter < floor.emergency_fund;
+
+  const headline = !reachable
+    ? ["按当前条件，", "还够不到私宅门槛"]
+    : bufferDipped
+      ? ["够得着最低门槛，", "但会动用应急金"]
+      : ["您够得着", "私宅最低门槛"];
+
+  const intro = !reachable
+    ? `基于您 ${residencyLabel} · ${propsLabel} 的画像，暂时撑不起任何价位。下面是进入新加坡私宅市场的最低要求。`
+    : bufferDipped
+      ? `基于您 ${residencyLabel} · ${propsLabel} 的画像，您够得着市场最低私宅（约 ${fmtWan(floor.floor_price)}）——但买它会动用部分应急金。下面是这套最低房的要求。`
+      : `基于您 ${residencyLabel} · ${propsLabel} 的画像，您够得着市场最低私宅（约 ${fmtWan(floor.floor_price)}），且能保住应急金。下面是这套最低房的要求。`;
+
   return (
     <div
       style={{
@@ -601,9 +620,9 @@ function FloorEntryView({
             color: C.charcoal,
           }}
         >
-          按当前条件，
+          {headline[0]}
           <br />
-          还够不到私宅门槛
+          {headline[1]}
         </div>
         <p
           style={{
@@ -614,8 +633,7 @@ function FloorEntryView({
             lineHeight: 1.6,
           }}
         >
-          基于您 {residencyLabel} · {propsLabel}{" "}
-          的画像，暂时撑不起任何价位。下面是进入新加坡私宅市场的最低要求。
+          {intro}
         </p>
       </div>
 
@@ -683,6 +701,24 @@ function FloorEntryView({
               <GateStatus ok={floor.cash_ok} shortLabel={`还差 ${fmtS(floor.cash_gap)}`} />
             </div>
             <CostRow label="＋ 建议应急金（≈6.6 个月）" value={fmtS(floor.emergency_fund)} />
+            {bufferDipped && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  fontSize: 13,
+                  padding: "6px 0 2px",
+                  color: C.warn,
+                  fontWeight: 500,
+                }}
+              >
+                <span>买这套后应急金约余</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                  {fmtS(Math.max(0, bufferAfter))} · 低于建议
+                </span>
+              </div>
+            )}
             <p
               style={{
                 fontSize: 11,
@@ -1389,9 +1425,11 @@ export default function CalculatorPage() {
     const propsLabelEarly =
       form.existingProperties === 0 ? "首套" : form.existingProperties === 1 ? "第二套" : "第三套+";
 
-    // No tier is buyable (even the 55% MAS-cap tier resolves to 0) → show the
-    // market-entry floor instead of three blank "—" cards.
-    if (result.tiers.aggressive.price_high === 0) {
+    // The buyer's responsible max (even the 55% MAS-cap tier) is below the market
+    // floor → any tier price would be a phantom (no private home sells that cheap).
+    // Show the market-entry floor instead. Covers both "can't afford anything" (0)
+    // and "capped just below the floor" cases.
+    if (result.tiers.aggressive.price_high < result.market_floor.floor_price) {
       return (
         <FloorEntryView
           floor={result.market_floor}
