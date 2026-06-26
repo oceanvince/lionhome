@@ -46,7 +46,7 @@ export function estimateLegalFees(price: number): number {
   return Math.round(500 + Math.min(3500, price * 0.002));
 }
 
-function getLtvCap(
+export function getLtvCap(
   age: number,
   tenureYears: number,
   propertyCount: number,
@@ -77,6 +77,25 @@ function maxLoanByRatio(
   // P = PMT × ((1+i)^N − 1) / (i × (1+i)^N)
   const loan = (allowed * (Math.pow(1 + i, N) - 1)) / (i * Math.pow(1 + i, N));
   return Math.max(0, loan);
+}
+
+// Inverse of maxLoanByRatio: the minimum ANNUAL income needed to service `loan`
+// under a monthly-payment-to-income ratio. Amortised at the same MAS stress rate,
+// so the cash gate and the income gate stay consistent with the rest of the engine.
+export function minIncomeForLoan(
+  loan: number,
+  existingMonthlyDebt: number,
+  tdsr: TdsrConfig,
+  tenureYears: number,
+  monthlyRatio: number
+): number {
+  if (loan <= 0) return 0;
+  const i = tdsr.stress_rate / 12;
+  const N = tenureYears * 12;
+  const pmt = i === 0 ? loan / N : (loan * i * Math.pow(1 + i, N)) / (Math.pow(1 + i, N) - 1);
+  // allowed = monthlyIncome × ratio − debt ≥ pmt  ⇒  monthlyIncome ≥ (pmt + debt) / ratio
+  const monthlyIncome = (pmt + existingMonthlyDebt) / monthlyRatio;
+  return monthlyIncome * 12;
 }
 
 export interface SolveParams {
