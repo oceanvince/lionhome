@@ -4,11 +4,11 @@
 >
 > 本文聚焦**决策报告页 `/condo/{slug}`** 的后端实现与**数据源策略**。搜索/对比/Lead 接入只给接口边界，不展开。
 
-| 字段 | 值 |
-| ---- | -- |
-| 范围 | 详情页读路径 + 数据底座 + 评分引擎 + 数据采集管线（MVP） |
-| 栈 | Next.js 15 App Router · Supabase(Postgres) · Zod · TS（沿用现有约定） |
-| 状态 | Draft for grooming |
+| 字段 | 值                                                                    |
+| ---- | --------------------------------------------------------------------- |
+| 范围 | 详情页读路径 + 数据底座 + 评分引擎 + 数据采集管线（MVP）              |
+| 栈   | Next.js 15 App Router · Supabase(Postgres) · Zod · TS（沿用现有约定） |
+| 状态 | Draft for grooming                                                    |
 
 ---
 
@@ -33,22 +33,22 @@
 
 > 这是本文核心。详情页每一块内容都必须能回答「这数据哪来的、多久刷一次、缺了怎么办」。
 
-| 详情页区块（SPEC §4） | 字段 | 来源 | 具体 API / 数据集 | 落库表 | 刷新 |
-| --- | --- | --- | --- | --- | --- |
-| 楼盘档案 | 名称/区/产权/TOP/户数/开发商 | **URA** + 人工 | URA *Developer Sales* / 项目档案；冷启动人工补 | `projects` | 周级 |
-| 决策快照·关键指标 | 地址、经纬度 | **OneMap** | OneMap `/api/common/elastic/search`（地址→坐标） | `projects.lat/lng` | 入库一次 |
-| PSF 区间 / 成交 Tab | 成交价、面积、PSF、户型、成交日 | **URA** | URA *Private Residential Property Transactions*（API v1，按 batch 1–4 / period 拉） | `project_transactions` | **夜间增量** |
-| 盈利分 Profit | 同户型转售 CAGR、同区基准 | **URA** + `lib/finance` | 同上成交数据；基准回退用 `regionalAppreciationLookup` | `project_scores` | 夜间随成交重算 |
-| 地段分 Location | 最近 MRT 步行、1km 小学、配套密度 | **OneMap** | OneMap *Themes*（mrt_station / busstop / 等）+ Routing API（walk 时间） | `project_amenities` | 月级（地理稳定） |
-| 学校 Tab | 小学清单、距离 | **OneMap + MOE** | OneMap 学校 theme + data.gov.sg *School Directory* | `project_amenities`(kind=school) | 学期级 |
-| 学校 Tab | P1 报名热度/历史 | **MOE / data.gov.sg** | P1 报名/排位数据集（半公开，部分需人工年更） | `project_amenities.metadata` | 年级（手动） |
-| 价格 Tab | 首付/月供 | **本地计算** | `computeV2` + `lib/tax`（不依赖外部） | 不落库（即时算） | — |
-| 适配度（与四维同级） | 购买力区间、ABSD 负担 | **本地计算** | `computeV2` / `calculateAbsd` / `solveMaxPurchasePrice` | 取用户最近一次 `calculator_runs` | 即时 |
-| 退出分 Exit（V2.1） | 供应宽松度、HDB 升级需求 | **data.gov.sg / URA** | HDB Resale Flat Prices + URA 未来供应（GLS/Pipeline） | `project_scores` | 夜间 |
-| 租赁分 Rental（V2.1） | 毛回报率、出租率 | **URA + `lib/finance`** | URA *Rental Contracts* + `estimateMedianRent` | `project_scores` | 夜间 |
-| 替代 Tab | 同区近似盘 | **本地派生** | 我方 `projects`/`project_scores` 聚类查询 | 查询时算 | — |
-| 户型/相册/site plan | 图片、平面 | **人工编辑** | 运营上传（判断/版权类） | `projects.metadata` | 人工 |
-| 伴随地图 | MRT/巴士/学校/配套图层 | **OneMap** | 同 `project_amenities`（带坐标） | `project_amenities` | 月级 |
+| 详情页区块（SPEC §4） | 字段                              | 来源                    | 具体 API / 数据集                                                                   | 落库表                           | 刷新             |
+| --------------------- | --------------------------------- | ----------------------- | ----------------------------------------------------------------------------------- | -------------------------------- | ---------------- |
+| 楼盘档案              | 名称/区/产权/TOP/户数/开发商      | **URA** + 人工          | URA _Developer Sales_ / 项目档案；冷启动人工补                                      | `projects`                       | 周级             |
+| 决策快照·关键指标     | 地址、经纬度                      | **OneMap**              | OneMap `/api/common/elastic/search`（地址→坐标）                                    | `projects.lat/lng`               | 入库一次         |
+| PSF 区间 / 成交 Tab   | 成交价、面积、PSF、户型、成交日   | **URA**                 | URA _Private Residential Property Transactions_（API v1，按 batch 1–4 / period 拉） | `project_transactions`           | **夜间增量**     |
+| 盈利分 Profit         | 同户型转售 CAGR、同区基准         | **URA** + `lib/finance` | 同上成交数据；基准回退用 `regionalAppreciationLookup`                               | `project_scores`                 | 夜间随成交重算   |
+| 地段分 Location       | 最近 MRT 步行、1km 小学、配套密度 | **OneMap**              | OneMap _Themes_（mrt_station / busstop / 等）+ Routing API（walk 时间）             | `project_amenities`              | 月级（地理稳定） |
+| 学校 Tab              | 小学清单、距离                    | **OneMap + MOE**        | OneMap 学校 theme + data.gov.sg _School Directory_                                  | `project_amenities`(kind=school) | 学期级           |
+| 学校 Tab              | P1 报名热度/历史                  | **MOE / data.gov.sg**   | P1 报名/排位数据集（半公开，部分需人工年更）                                        | `project_amenities.metadata`     | 年级（手动）     |
+| 价格 Tab              | 首付/月供                         | **本地计算**            | `computeV2` + `lib/tax`（不依赖外部）                                               | 不落库（即时算）                 | —                |
+| 适配度（与四维同级）  | 购买力区间、ABSD 负担             | **本地计算**            | `computeV2` / `calculateAbsd` / `solveMaxPurchasePrice`                             | 取用户最近一次 `calculator_runs` | 即时             |
+| 退出分 Exit（V2.1）   | 供应宽松度、HDB 升级需求          | **data.gov.sg / URA**   | HDB Resale Flat Prices + URA 未来供应（GLS/Pipeline）                               | `project_scores`                 | 夜间             |
+| 租赁分 Rental（V2.1） | 毛回报率、出租率                  | **URA + `lib/finance`** | URA _Rental Contracts_ + `estimateMedianRent`                                       | `project_scores`                 | 夜间             |
+| 替代 Tab              | 同区近似盘                        | **本地派生**            | 我方 `projects`/`project_scores` 聚类查询                                           | 查询时算                         | —                |
+| 户型/相册/site plan   | 图片、平面                        | **人工编辑**            | 运营上传（判断/版权类）                                                             | `projects.metadata`              | 人工             |
+| 伴随地图              | MRT/巴士/学校/配套图层            | **OneMap**              | 同 `project_amenities`（带坐标）                                                    | `project_amenities`              | 月级             |
 
 ### 1.1 各数据源接入要点
 
@@ -198,15 +198,29 @@ lib/project-scoring/*               ← 纯算分：输入 plain data → Projec
 
 ```ts
 interface CondoReport {
-  project: { slug; name; district; tenure; topYear; totalUnits; developer; lat; lng; psfMin; psfMax; psfPeriodEnd };
-  scores: ProjectScore[];                 // profit/location 有值，exit/rental insufficient
-  verdict: { band: 'green'|'amber'|'orange'; sentence: string };  // 模板拼装，非 LLM（§5）
+  project: {
+    slug;
+    name;
+    district;
+    tenure;
+    topYear;
+    totalUnits;
+    developer;
+    lat;
+    lng;
+    psfMin;
+    psfMax;
+    psfPeriodEnd;
+  };
+  scores: ProjectScore[]; // profit/location 有值，exit/rental insufficient
+  verdict: { band: "green" | "amber" | "orange"; sentence: string }; // 模板拼装，非 LLM（§5）
   keyMetrics: { topYear; tenure; nearestMrt; totalUnits };
   amenities: { mrt: []; schools: []; malls: [] };
-  transactions: ProjectTxn[];             // 近 12 月，供成交 tab + PSF 走势
-  snapshotDate; scoreVersion;
-  diff?: { profit: '+0.3'; reason: '新增 4 笔成交' };   // §5.4
-  disclaimers: string[];                  // 合规免责
+  transactions: ProjectTxn[]; // 近 12 月，供成交 tab + PSF 走势
+  snapshotDate;
+  scoreVersion;
+  diff?: { profit: "+0.3"; reason: "新增 4 笔成交" }; // §5.4
+  disclaimers: string[]; // 合规免责
 }
 ```
 
@@ -215,6 +229,7 @@ interface CondoReport {
 ### 4.2 适配度（个性化，单独算）
 
 适配度依赖**用户**的购买力，不能进项目级缓存。来源优先级：
+
 1. 用户最近一次 `calculator_runs`（登录）或前端 localStorage 缓存的 calc 结果；
 2. 都没有 → 显示「测一下买不买得起 →」。
 
@@ -229,12 +244,12 @@ POST /api/v1/condo/fit
 
 ### 4.3 其余 REST 接口（边界，详情页相关）
 
-| 接口 | 用途 |
-| --- | --- |
-| `GET /api/v1/condo/search?q=` | 自动补全（查 `projects` active，名称/区/邮编模糊） |
-| `GET /api/v1/condo/projects?district=&sort=` | 搜索结果列表（卡片预览：盈利分+结论+PSF） |
-| `POST /api/v1/condo/fit` | 适配度即时计算（§4.2） |
-| `POST /api/v1/condo/feedback` | 数据纠错写入（§7.2，anon 限流） |
+| 接口                                         | 用途                                               |
+| -------------------------------------------- | -------------------------------------------------- |
+| `GET /api/v1/condo/search?q=`                | 自动补全（查 `projects` active，名称/区/邮编模糊） |
+| `GET /api/v1/condo/projects?district=&sort=` | 搜索结果列表（卡片预览：盈利分+结论+PSF）          |
+| `POST /api/v1/condo/fit`                     | 适配度即时计算（§4.2）                             |
+| `POST /api/v1/condo/feedback`                | 数据纠错写入（§7.2，anon 限流）                    |
 
 响应统一 `{ ok, data|error }`，错误码沿用 `INVALID_INPUT` 等，新增 `PROJECT_NOT_FOUND` / `PROJECT_NOT_PUBLISHED`。
 
@@ -260,24 +275,24 @@ lib/project-scoring/
 
 ### 5.1 可复用现有代码（已核对存在）
 
-| 现有 | 用途 |
-| --- | --- |
-| `lib/calculator/v2-compute.ts#computeV2` | 适配度购买力区间、首付/月供 |
+| 现有                                                          | 用途                                 |
+| ------------------------------------------------------------- | ------------------------------------ |
+| `lib/calculator/v2-compute.ts#computeV2`                      | 适配度购买力区间、首付/月供          |
 | `lib/tax/#calculateAbsd/#calculateBsd/#solveMaxPurchasePrice` | 适配度 ABSD 负担、PSF→可负担总价反推 |
-| `lib/finance/rent-estimate.ts#estimateMedianRent` | 租赁维度（V2.1）租金基准 |
-| `lib/finance/index.ts#regionalAppreciationLookup` | 盈利维度同区基准回退 |
+| `lib/finance/rent-estimate.ts#estimateMedianRent`             | 租赁维度（V2.1）租金基准             |
+| `lib/finance/index.ts#regionalAppreciationLookup`             | 盈利维度同区基准回退                 |
 
 ### 5.2 数据诚实度 → 字段映射（SPEC §4.3，可测断言）
 
 引擎输出直接驱动 UI 标注，CI 用黄金样本回归：
 
-| 触发 | 输出 |
-| --- | --- |
-| 近 12 月转售 < 3 笔 | `confidence != 'high'` |
-| 用相似盘估 | `confidence == 'estimated_similar'`，`basis.similarProjects[]` |
-| TOP < 1 年 | `regime == 'new_project'` |
-| 某户型交易太少 | `components.byBedroom[x].excluded == true` |
-| 完全无转售史 | `score == null`, `band == 'insufficient'` |
+| 触发                | 输出                                                           |
+| ------------------- | -------------------------------------------------------------- |
+| 近 12 月转售 < 3 笔 | `confidence != 'high'`                                         |
+| 用相似盘估          | `confidence == 'estimated_similar'`，`basis.similarProjects[]` |
+| TOP < 1 年          | `regime == 'new_project'`                                      |
+| 某户型交易太少      | `components.byBedroom[x].excluded == true`                     |
+| 完全无转售史        | `score == null`, `band == 'insufficient'`                      |
 
 ### 5.3 版本化与漂移解释（SPEC §5.4）
 
@@ -291,12 +306,12 @@ lib/project-scoring/
 
 > 全部 service-role 写。MVP 用 Supabase 定时任务 / Vercel Cron 触发 route handler（`app/api/cron/condo-*`，校验 `CRON_SECRET`）。
 
-| Job | 频率 | 动作 | 幂等 |
-| --- | --- | --- | --- |
-| `ingest-ura-transactions` | 夜间 | 取 URA token → 拉增量成交 → SVY21→WGS84 → `repo.upsertTransactions()` → `repo.refreshPsfRange()` | upsert 唯一键 |
-| `recompute-scores` | 夜间（成交后） | `repo` 读成交/配套/基准 → `scoreProject(input)`（纯）→ `repo.upsertScores()`（新 snapshot） | 按 snapshot_date |
-| `geocode-amenities` | 月级 / 新项目入库 | OneMap geocode + themes + walk 时间 → `repo.upsertAmenities()` | 按 (proj,kind,name) |
-| `ingest-hdb-supply`（V2.1） | 夜间 | data.gov.sg HDB resale + 未来供应 → 退出维度 | — |
+| Job                         | 频率              | 动作                                                                                             | 幂等                |
+| --------------------------- | ----------------- | ------------------------------------------------------------------------------------------------ | ------------------- |
+| `ingest-ura-transactions`   | 夜间              | 取 URA token → 拉增量成交 → SVY21→WGS84 → `repo.upsertTransactions()` → `repo.refreshPsfRange()` | upsert 唯一键       |
+| `recompute-scores`          | 夜间（成交后）    | `repo` 读成交/配套/基准 → `scoreProject(input)`（纯）→ `repo.upsertScores()`（新 snapshot）      | 按 snapshot_date    |
+| `geocode-amenities`         | 月级 / 新项目入库 | OneMap geocode + themes + walk 时间 → `repo.upsertAmenities()`                                   | 按 (proj,kind,name) |
+| `ingest-hdb-supply`（V2.1） | 夜间              | data.gov.sg HDB resale + 未来供应 → 退出维度                                                     | —                   |
 
 冷启动（SPEC §6.3）：先**人工 seed 50–100 热门盘**（`status='active'`），管线再增量回填；未铺满时搜索只露「按区浏览/留资」，**绝不空列表**。
 

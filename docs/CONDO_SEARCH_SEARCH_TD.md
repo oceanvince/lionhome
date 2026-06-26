@@ -4,11 +4,11 @@
 >
 > 本文只聚焦 **SPEC §3「搜索入口与结果」**：搜索框、自动补全、结果列表（卡片预览）、零结果/冷启动兜底。**不重复** CONDO_SEARCH_TD 已覆盖的详情页、评分引擎、采集管线——本文把它们当作**上游已存在的数据底座**来消费。
 
-| 字段 | 值 |
-| ---- | -- |
-| 范围 | 搜索框 + 自动补全 + 结果列表（读路径）+ 防腐层 + 可独立化边界 |
-| 栈 | Next.js 15 App Router · Supabase(Postgres) · Zod · TS（沿用现有约定） |
-| 状态 | Draft for grooming |
+| 字段       | 值                                                                                                               |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| 范围       | 搜索框 + 自动补全 + 结果列表（读路径）+ 防腐层 + 可独立化边界                                                    |
+| 栈         | Next.js 15 App Router · Supabase(Postgres) · Zod · TS（沿用现有约定）                                            |
+| 状态       | Draft for grooming                                                                                               |
 | 两条硬约束 | ① 搜索部分须可被剥离成**独立功能**（与计算器平行的页面）；② 数据库交互的 API **请求与响应都必须有防腐层（ACL）** |
 
 ---
@@ -54,13 +54,13 @@
 
 ### 1.2 范围外（明确委托给其他文档/模块）
 
-| 不做 | 归属 |
-| --- | --- |
-| 详情页 `/condo/{slug}` 渲染、四维评分明细、伴随地图 | CONDO_SEARCH_TD §4 |
-| 评分算法本身（profit/location/…） | `lib/project-scoring/`（CONDO_SEARCH_TD §5） |
-| URA/OneMap 采集、`project_scores` 的**写入** | 离线管线（CONDO_SEARCH_TD §6） |
-| 适配度的**实际计算** | `computeV2`/`lib/tax`（搜索卡只读其结果做「在预算内」轻提示，见 §7） |
-| 跨盘「A 比 B 好」结论 | Module 5 对比器 |
+| 不做                                                | 归属                                                                 |
+| --------------------------------------------------- | -------------------------------------------------------------------- |
+| 详情页 `/condo/{slug}` 渲染、四维评分明细、伴随地图 | CONDO_SEARCH_TD §4                                                   |
+| 评分算法本身（profit/location/…）                   | `lib/project-scoring/`（CONDO_SEARCH_TD §5）                         |
+| URA/OneMap 采集、`project_scores` 的**写入**        | 离线管线（CONDO_SEARCH_TD §6）                                       |
+| 适配度的**实际计算**                                | `computeV2`/`lib/tax`（搜索卡只读其结果做「在预算内」轻提示，见 §7） |
+| 跨盘「A 比 B 好」结论                               | Module 5 对比器                                                      |
 
 ### 1.3 两条硬约束（贯穿全文）
 
@@ -109,12 +109,12 @@ route handler ─► acl ─► service ─► ports(interface) ◄─ adapters(
 
 ### 2.3 「日后独立」的具体兑现
 
-| 独立化诉求 | 本设计如何兑现 |
-| --- | --- |
-| 搜索页能单独路由/单独部署 | 页面在 `app/(tools)/condo/search/`，逻辑全在 `lib/condo-search/`，无反向依赖详情页/计算器 |
-| 数据源将来可换（如换 Typesense / 独立搜索库 / 独立 DB） | 只换 `adapters/`，`service`/`acl`/契约不动（端口隔离） |
-| 对外契约稳定，前端不随后端改 | 出站 ACL 固化 wire DTO（§4.4），DB/评分内部变更被挡在 ACL 内 |
-| 与计算器解耦 | 搜索卡的「适配度提示」只**读**计算器结果做软提示，不调用计算引擎（§7） |
+| 独立化诉求                                              | 本设计如何兑现                                                                            |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 搜索页能单独路由/单独部署                               | 页面在 `app/(tools)/condo/search/`，逻辑全在 `lib/condo-search/`，无反向依赖详情页/计算器 |
+| 数据源将来可换（如换 Typesense / 独立搜索库 / 独立 DB） | 只换 `adapters/`，`service`/`acl`/契约不动（端口隔离）                                    |
+| 对外契约稳定，前端不随后端改                            | 出站 ACL 固化 wire DTO（§4.4），DB/评分内部变更被挡在 ACL 内                              |
+| 与计算器解耦                                            | 搜索卡的「适配度提示」只**读**计算器结果做软提示，不调用计算引擎（§7）                    |
 
 > 红线：搜索域代码**禁止** `import` `@/lib/supabase/database.types`、`@/lib/project-scoring/*` 的内部类型、或详情页组件。需要这些数据时，一律经端口 + ACL 翻译进来。CI 可加 import 边界 lint（如 `eslint-plugin-boundaries` 或简单 grep）守护。
 
@@ -127,14 +127,14 @@ route handler ─► acl ─► service ─► ports(interface) ◄─ adapters(
 ```ts
 // lib/condo-search/domain/models.ts
 
-export type VerdictBand = "green" | "amber" | "orange";   // 值得入候选 / 值得比较 / 谨慎比较
-export type District = `D${number}`;                       // "D19"
+export type VerdictBand = "green" | "amber" | "orange"; // 值得入候选 / 值得比较 / 谨慎比较
+export type District = `D${number}`; // "D19"
 
 /** 评分在卡片上的「视图」——只保留卡片需要的，丢弃评分引擎内部的 components/basis 等 */
 export interface ScoreView {
-  value: number | null;        // 0-10，null = 数据不足
+  value: number | null; // 0-10，null = 数据不足
   band: "excellent" | "good" | "fair" | "poor" | "insufficient";
-  estimated: boolean;          // 是否「相似盘估算」→ 卡片角标（SPEC §4.3）
+  estimated: boolean; // 是否「相似盘估算」→ 卡片角标（SPEC §4.3）
 }
 
 export interface ProjectCard {
@@ -142,26 +142,26 @@ export interface ProjectCard {
   name: string;
   district: District;
   verdict: VerdictBand;
-  profit: ScoreView;           // 卡片主显分（SPEC §3.2）
-  psf: { min: number; max: number; periodEnd: string } | null;  // 近 12 月成交 PSF 区间，非估价
-  tags: string[];             // 产权 / TOP 年份 / 总户数 / 最近 MRT 步行
-  fitHint?: "in_budget" | "slightly_over" | null;  // 适配度软提示（§7）
+  profit: ScoreView; // 卡片主显分（SPEC §3.2）
+  psf: { min: number; max: number; periodEnd: string } | null; // 近 12 月成交 PSF 区间，非估价
+  tags: string[]; // 产权 / TOP 年份 / 总户数 / 最近 MRT 步行
+  fitHint?: "in_budget" | "slightly_over" | null; // 适配度软提示（§7）
 }
 
 export interface Suggestion {
   slug: string;
   name: string;
   district: District;
-  kind: "project" | "district" | "street";  // 补全条目类型
+  kind: "project" | "district" | "street"; // 补全条目类型
 }
 
 export type SortSpec = "profit_desc" | "psf_asc" | "top_desc";
 
 export interface SearchQuery {
-  keyword?: string;            // 已 trim/收敛
+  keyword?: string; // 已 trim/收敛
   district?: District;
   sort: SortSpec;
-  page: number;                // 1-based
+  page: number; // 1-based
   pageSize: number;
 }
 
@@ -183,11 +183,11 @@ export interface SearchResult {
 
 搜索域被三个「外部模型」包围，任何一个直接穿透都会腐蚀搜索的稳定性：
 
-| 外部模型 | 风险（若不隔离） | 由哪道 ACL 挡 |
-| --- | --- | --- |
-| **DB 行**（`projects`/`project_scores`，snake_case、可空、表耦合，归采集/评分管线所有） | 上游加列/改列/改可空性 → 直接打穿到前端 | 出站行映射 ACL（§4.4） |
-| **评分引擎内部类型**（`ProjectScore` 的 `components/basis/regime…`） | 评分算法迭代 bump 结构 → 搜索卡跟着改 | 出站行映射 ACL（只取 `ScoreView`） |
-| **前端宽松入参**（query string，可能脏/缺/超界/恶意） | 脏参数渗进查询逻辑或 SQL | 入站请求 ACL（§4.3） |
+| 外部模型                                                                                | 风险（若不隔离）                        | 由哪道 ACL 挡                      |
+| --------------------------------------------------------------------------------------- | --------------------------------------- | ---------------------------------- |
+| **DB 行**（`projects`/`project_scores`，snake_case、可空、表耦合，归采集/评分管线所有） | 上游加列/改列/改可空性 → 直接打穿到前端 | 出站行映射 ACL（§4.4）             |
+| **评分引擎内部类型**（`ProjectScore` 的 `components/basis/regime…`）                    | 评分算法迭代 bump 结构 → 搜索卡跟着改   | 出站行映射 ACL（只取 `ScoreView`） |
+| **前端宽松入参**（query string，可能脏/缺/超界/恶意）                                   | 脏参数渗进查询逻辑或 SQL                | 入站请求 ACL（§4.3）               |
 
 > 「请求与响应都要有防腐层」在工程上就是：**入站一道**（DTO→域），**出站两段**（DB 行→域，在适配器内；域→wire DTO，在 route 内）。
 
@@ -201,14 +201,22 @@ import { z } from "zod";
 import type { SearchQuery, SortSpec } from "../domain/models";
 
 const SORT_MAP: Record<string, SortSpec> = {
-  profit: "profit_desc", psf: "psf_asc", top: "top_desc",
-  profit_desc: "profit_desc", psf_asc: "psf_asc", top_desc: "top_desc",
+  profit: "profit_desc",
+  psf: "psf_asc",
+  top: "top_desc",
+  profit_desc: "profit_desc",
+  psf_asc: "psf_asc",
+  top_desc: "top_desc",
 };
 
 export const SearchRequestSchema = z.object({
   q: z.string().trim().min(1).max(80).optional(),
-  district: z.string().trim().toUpperCase()
-    .regex(/^D\d{1,2}$/).optional(),         // 收敛成 "D19"
+  district: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^D\d{1,2}$/)
+    .optional(), // 收敛成 "D19"
   sort: z.string().optional(),
   page: z.coerce.number().int().min(1).max(200).default(1),
   pageSize: z.coerce.number().int().min(1).max(24).default(12),
@@ -221,7 +229,7 @@ export function toSearchQuery(dto: SearchRequestDTO): SearchQuery {
   return {
     keyword: dto.q,
     district: dto.district as SearchQuery["district"],
-    sort: (dto.sort && SORT_MAP[dto.sort]) ?? "profit_desc",   // 未知排序回退默认，不报错
+    sort: (dto.sort && SORT_MAP[dto.sort]) ?? "profit_desc", // 未知排序回退默认，不报错
     page: dto.page,
     pageSize: dto.pageSize,
   };
@@ -256,36 +264,53 @@ import type { ProjectCard, ScoreView } from "../domain/models";
 
 // 适配器私有：join projects + 最新 profit 评分后的原始行形状（snake_case）
 interface DbProjectSearchRow {
-  slug: string; name: string; district: string;
-  tenure: string | null; top_year: number | null; total_units: number | null;
-  psf_min: number | null; psf_max: number | null; psf_period_end: string | null;
+  slug: string;
+  name: string;
+  district: string;
+  tenure: string | null;
+  top_year: number | null;
+  total_units: number | null;
+  psf_min: number | null;
+  psf_max: number | null;
+  psf_period_end: string | null;
   nearest_mrt_walk_min: number | null;
-  profit_score: number | null; profit_band: string | null; profit_confidence: string | null;
+  profit_score: number | null;
+  profit_band: string | null;
+  profit_confidence: string | null;
   verdict_band: string | null;
 }
 
-function toScoreView(score: number | null, band: string | null, confidence: string | null): ScoreView {
+function toScoreView(
+  score: number | null,
+  band: string | null,
+  confidence: string | null
+): ScoreView {
   if (score === null) return { value: null, band: "insufficient", estimated: false };
   return {
     value: score,
     band: (band as ScoreView["band"]) ?? "fair",
-    estimated: confidence === "estimated_similar",   // 评分引擎枚举 → 卡片角标布尔
+    estimated: confidence === "estimated_similar", // 评分引擎枚举 → 卡片角标布尔
   };
 }
 
 export function rowToCard(row: DbProjectSearchRow): ProjectCard {
   const tags = [
-    row.tenure, row.top_year ? `${row.top_year} TOP` : null,
+    row.tenure,
+    row.top_year ? `${row.top_year} TOP` : null,
     row.total_units ? `${row.total_units} 户` : null,
     row.nearest_mrt_walk_min ? `MRT ${row.nearest_mrt_walk_min} 分钟` : null,
   ].filter(Boolean) as string[];
 
   return {
-    slug: row.slug, name: row.name, district: row.district as ProjectCard["district"],
+    slug: row.slug,
+    name: row.name,
+    district: row.district as ProjectCard["district"],
     verdict: (row.verdict_band as ProjectCard["verdict"]) ?? "amber",
     profit: toScoreView(row.profit_score, row.profit_band, row.profit_confidence),
-    psf: row.psf_min != null && row.psf_max != null
-      ? { min: row.psf_min, max: row.psf_max, periodEnd: row.psf_period_end ?? "" } : null,
+    psf:
+      row.psf_min != null && row.psf_max != null
+        ? { min: row.psf_min, max: row.psf_max, periodEnd: row.psf_period_end ?? "" }
+        : null,
     tags,
   };
 }
@@ -298,11 +323,13 @@ export function rowToCard(row: DbProjectSearchRow): ProjectCard {
 import type { ProjectCard, SearchResult } from "../domain/models";
 
 export interface ProjectCardDTO {
-  slug: string; name: string; district: string;
+  slug: string;
+  name: string;
+  district: string;
   verdict: "green" | "amber" | "orange";
-  profitScore: number | null;          // 注意：对外是 number|null，不暴露 ScoreView 全貌
+  profitScore: number | null; // 注意：对外是 number|null，不暴露 ScoreView 全貌
   scoreBand: string;
-  estimatedFromSimilar: boolean;       // 角标
+  estimatedFromSimilar: boolean; // 角标
   psfRange: { min: number; max: number; periodEnd: string } | null;
   tags: string[];
   fitHint: "in_budget" | "slightly_over" | null;
@@ -310,17 +337,25 @@ export interface ProjectCardDTO {
 
 export function toCardDTO(card: ProjectCard): ProjectCardDTO {
   return {
-    slug: card.slug, name: card.name, district: card.district, verdict: card.verdict,
-    profitScore: card.profit.value, scoreBand: card.profit.band,
+    slug: card.slug,
+    name: card.name,
+    district: card.district,
+    verdict: card.verdict,
+    profitScore: card.profit.value,
+    scoreBand: card.profit.band,
     estimatedFromSimilar: card.profit.estimated,
-    psfRange: card.psf, tags: card.tags, fitHint: card.fitHint ?? null,
+    psfRange: card.psf,
+    tags: card.tags,
+    fitHint: card.fitHint ?? null,
   };
 }
 
 export function toSearchResultDTO(r: SearchResult) {
   return {
     items: r.items.map(toCardDTO),
-    page: r.page, pageSize: r.pageSize, total: r.total,
+    page: r.page,
+    pageSize: r.pageSize,
+    total: r.total,
     fallback: r.fallback,
   };
 }
@@ -340,10 +375,10 @@ export function toSearchResultDTO(r: SearchResult) {
 
 ### 5.1 端点
 
-| Method | Path | Auth | 用途 |
-| --- | --- | --- | --- |
-| GET | `/api/v1/condo/search?q=&limit=` | anon | 自动补全（SPEC §3.1） |
-| GET | `/api/v1/condo/projects?q=&district=&sort=&page=&pageSize=` | anon | 结果列表（SPEC §3.2） |
+| Method | Path                                                        | Auth | 用途                  |
+| ------ | ----------------------------------------------------------- | ---- | --------------------- |
+| GET    | `/api/v1/condo/search?q=&limit=`                            | anon | 自动补全（SPEC §3.1） |
+| GET    | `/api/v1/condo/projects?q=&district=&sort=&page=&pageSize=` | anon | 结果列表（SPEC §3.2） |
 
 > 与 CONDO_SEARCH_TD §4.3 的接口边界一致；本文给出**完整请求/响应契约 + ACL 落点**。`/condo/fit`（适配度）、`/condo/feedback` 不属搜索部分，见对方文档。
 
@@ -361,19 +396,25 @@ export async function GET(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({
       ok: false,
-      error: { code: "INVALID_INPUT", message: "参数校验失败",
-               fields: parsed.error.errors.map(e => ({ field: e.path.join("."), message: e.message })) },
+      error: {
+        code: "INVALID_INPUT",
+        message: "参数校验失败",
+        fields: parsed.error.errors.map((e) => ({ field: e.path.join("."), message: e.message })),
+      },
     });
   }
-  const query = toSearchQuery(parsed.data);               // 入站 ACL
-  const repo = createSupabaseSearchRepository();          // 端口实现（适配器）
+  const query = toSearchQuery(parsed.data); // 入站 ACL
+  const repo = createSupabaseSearchRepository(); // 端口实现（适配器）
   const service = new SearchService(repo);
   try {
-    const result = await service.run(query);              // 域逻辑（排序/分页/兜底）
-    return NextResponse.json({ ok: true, data: toSearchResultDTO(result) });  // 出站 ACL
+    const result = await service.run(query); // 域逻辑（排序/分页/兜底）
+    return NextResponse.json({ ok: true, data: toSearchResultDTO(result) }); // 出站 ACL
   } catch (err) {
     console.error("[/api/v1/condo/projects]", err);
-    return NextResponse.json({ ok: false, error: { code: "SEARCH_INTERNAL_ERROR", message: "搜索暂不可用，请重试" } });
+    return NextResponse.json({
+      ok: false,
+      error: { code: "SEARCH_INTERNAL_ERROR", message: "搜索暂不可用，请重试" },
+    });
   }
 }
 ```
@@ -381,34 +422,51 @@ export async function GET(req: NextRequest) {
 **成功响应**：
 
 ```jsonc
-{ "ok": true, "data": {
-  "items": [{
-    "slug": "the-gazania-d19", "name": "The Gazania", "district": "D19",
-    "verdict": "green", "profitScore": 6.8, "scoreBand": "good",
-    "estimatedFromSimilar": false,
-    "psfRange": { "min": 1850, "max": 2100, "periodEnd": "2026-05-31" },
-    "tags": ["永久地契", "2023 TOP", "250 户", "MRT 6 分钟"],
-    "fitHint": "in_budget"
-  }],
-  "page": 1, "pageSize": 12, "total": 37, "fallback": "none"
-}}
+{
+  "ok": true,
+  "data": {
+    "items": [
+      {
+        "slug": "the-gazania-d19",
+        "name": "The Gazania",
+        "district": "D19",
+        "verdict": "green",
+        "profitScore": 6.8,
+        "scoreBand": "good",
+        "estimatedFromSimilar": false,
+        "psfRange": { "min": 1850, "max": 2100, "periodEnd": "2026-05-31" },
+        "tags": ["永久地契", "2023 TOP", "250 户", "MRT 6 分钟"],
+        "fitHint": "in_budget",
+      },
+    ],
+    "page": 1,
+    "pageSize": 12,
+    "total": 37,
+    "fallback": "none",
+  },
+}
 ```
 
 ### 5.3 自动补全（`GET /api/v1/condo/search`）
 
 ```jsonc
-{ "ok": true, "data": { "suggestions": [
-  { "slug": "the-gazania-d19", "name": "The Gazania", "district": "D19", "kind": "project" }
-] } }
+{
+  "ok": true,
+  "data": {
+    "suggestions": [
+      { "slug": "the-gazania-d19", "name": "The Gazania", "district": "D19", "kind": "project" },
+    ],
+  },
+}
 ```
 
 零结果（SPEC §3.1）：`suggestions: []` + 前端展示「按区找近似 / 留资」，并埋 `condo_search_zero_result`。
 
 ### 5.4 错误码
 
-| 错误码 | 触发 | 备注 |
-| --- | --- | --- |
-| `INVALID_INPUT` | zod 校验失败 | 附 `fields[]` |
+| 错误码                  | 触发           | 备注                               |
+| ----------------------- | -------------- | ---------------------------------- |
+| `INVALID_INPUT`         | zod 校验失败   | 附 `fields[]`                      |
 | `SEARCH_INTERNAL_ERROR` | 适配器/DB 异常 | 写后端日志；前端给「搜索暂不可用」 |
 
 > 「查无结果」**不是错误**：返回 `ok:true` + 空 `items` + `fallback` 字段，由前端渲染兜底（与 calculator「infeasible 走 ok:true」口径一致）。
@@ -458,11 +516,11 @@ create index if not exists project_scores_profit_latest_idx
 
 > 兑现约束 A：搜索**用**它们的产物，但**不依赖**它们的内部实现。
 
-| 关系 | 解耦方式 |
-| --- | --- |
+| 关系                                | 解耦方式                                                                                                                                                                         |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 卡片「适配度提示」（在预算内/略超） | 前端把已缓存的计算器结果（localStorage `V2ComputeResult`）与卡片 `psfRange` 做**轻量比较**得出 `fitHint`，或经独立的 `/condo/fit` 接口；搜索后端**不调用** `computeV2`/`lib/tax` |
-| 点击卡片 → 详情页 | 仅 `router.push('/condo/{slug}')`，搜索不 import 任何详情页组件/类型 |
-| 「加入对比」 | 仅收集 slug 跳转对比器（Module 5），不在搜索内产出对比结论 |
+| 点击卡片 → 详情页                   | 仅 `router.push('/condo/{slug}')`，搜索不 import 任何详情页组件/类型                                                                                                             |
+| 「加入对比」                        | 仅收集 slug 跳转对比器（Module 5），不在搜索内产出对比结论                                                                                                                       |
 
 这样搜索页可独立存在：即使详情页/计算器尚未上线或被替换，搜索仍能跑（fitHint 退化为 `null`，卡片照常渲染）。
 
@@ -493,11 +551,11 @@ else                                       → fallback = "none"
 
 ## 10. 埋点（SPEC §8.1，搜索相关子集）
 
-| 事件 | 关键属性 | 触发点 |
-| --- | --- | --- |
-| `condo_search_started` | query、entry_point | 搜索框提交/补全选择 |
-| `condo_search_zero_result` | query | `fallback="zero_result"` |
-| `compare_added` | project_slug | 卡片「加入对比」 |
+| 事件                       | 关键属性           | 触发点                   |
+| -------------------------- | ------------------ | ------------------------ |
+| `condo_search_started`     | query、entry_point | 搜索框提交/补全选择      |
+| `condo_search_zero_result` | query              | `fallback="zero_result"` |
+| `compare_added`            | project_slug       | 卡片「加入对比」         |
 
 > 埋点在前端发起，后端不阻塞；命名遵循主 PRD §20 taxonomy。
 
