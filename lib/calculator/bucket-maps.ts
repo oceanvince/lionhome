@@ -17,18 +17,23 @@ export function toAmount(s: string): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+/** Sentinel sent when the buyer leaves the target down-payment blank: cash never
+ *  binds, so price is limited only by income/LTV. */
+export const UNBOUNDED_DOWN_PAYMENT = 1_000_000_000_000;
+
 /** Build the V2 /compute request. tenure/holding/rate fall back to server defaults (30 / 7 / 1.65%). */
 export function buildApiPayload(form: CalculatorFormState, age: number) {
   const residency = RESIDENCY_MAP[form.residency ?? "sc"];
-  const foreigner = isForeigner(form.residency);
+  const target = toAmount(form.targetDownPayment);
 
   return {
     residency,
     existing_properties: form.existingProperties,
     annual_income: toAmount(form.incomeMonthly) * 12,
     age,
-    available_cash: toAmount(form.cash),
-    available_cpf: foreigner ? 0 : toAmount(form.cpf),
+    // Target down payment is the cash-to-close budget. Blank → unbounded.
+    available_cash: target > 0 ? target : UNBOUNDED_DOWN_PAYMENT,
+    available_cpf: 0,
     ...(form.timeline ? { timeline: form.timeline } : {}),
   };
 }

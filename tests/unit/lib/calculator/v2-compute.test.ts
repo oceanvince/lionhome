@@ -44,10 +44,10 @@ describe("computeV2 — response shape", () => {
     expect(Object.keys(r.tiers)).toEqual(["comfortable", "balanced", "aggressive"]);
     expect(r.break_even).not.toBeNull();
     expect(r.legacy_max_price).toBe(r.tiers.aggressive.price_high);
-    // emergency fund ≈ 6.6 months income
-    expect(r.tiers.balanced.cash_breakdown.emergency_fund_suggested).toBe(
-      Math.round(300_000 * 0.55)
-    );
+    // viability gate is computed and exposes the min-income / min-down-payment bar
+    expect(r.viability.min_viable_price).toBeGreaterThan(0);
+    expect(Number.isFinite(r.viability.min_monthly_income)).toBe(true);
+    expect(Number.isFinite(r.viability.min_down_payment)).toBe(true);
   });
 
   it("comfortable stress monthly is ≈ 30% of income when TDSR binds", () => {
