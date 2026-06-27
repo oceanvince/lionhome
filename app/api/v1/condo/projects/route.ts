@@ -1,12 +1,19 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { listCards } from "@/lib/condo/search";
+import { listCards, computeFallback } from "@/lib/condo/search";
+import { countActiveProjects } from "@/lib/condo/repo";
 
 export const runtime = "nodejs";
 
 const QuerySchema = z.object({
-  district: z.string().max(10).optional(),
+  // Normalize + validate the district to "D<digits>" (in-bound ACL, §12-⑥).
+  district: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^D\d{1,2}$/)
+    .optional(),
   sort: z.enum(["profit", "psf_asc", "top_desc"]).default("profit"),
   limit: z.coerce.number().int().min(1).max(60).default(30),
 });
@@ -29,8 +36,23 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const db = await getSupabaseServerClient();
-  const cards = await listCards(db, parsed.data);
-
-  return NextResponse.json({ ok: true, data: { cards, count: cards.length } });
+  try {
+    const db = await getSupabaseServerClient();
+    const [cards, activeCount] = await Promise.all([
+      listCards(db, parsed.data),
+      countActiveProjects(db),
+    ]);
+    const fallback = computeFallback({
+      activeCount,
+      resultCount: cards.length,
+      filtered: Boolean(parsed.data.district),
+    });
+    return NextResponse.json({ ok: true, data: { cards, count: cards.length, fallback } });
+  } catch (err) {
+    console.error("[/api/v1/condo/projects]", err);
+    return NextResponse.json({
+      ok: false,
+      error: { code: "SEARCH_INTERNAL_ERROR", message: "搜索暂不可用，请重试" },
+    });
+  }
 }

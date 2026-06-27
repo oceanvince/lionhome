@@ -16,6 +16,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ServerClient } from "@/lib/supabase/server";
 import type { ProjectScore, TxnLite, AmenityLite } from "@/lib/project-scoring";
 import type { CondoProject } from "./types";
+import {
+  devFixturesEnabled,
+  devListActiveProjects,
+  devSearchActiveProjects,
+  devGetScoresForProjects,
+  devCountActiveProjects,
+} from "./dev-fixtures";
 
 /** Public boundary: callers pass the real (typed) supabase client. */
 export type DbClient = ServerClient;
@@ -162,13 +169,23 @@ export async function getAmenities(db: DbClient, projectId: string): Promise<Ame
   return data.map(mapAmenity);
 }
 
+/**
+ * Escape LIKE/ILIKE wildcards so user input matches literally — a bare `%` or
+ * `_` would otherwise turn autocomplete into a full-table scan (test-set §12-⑥,
+ * S10/X04). Postgres' default LIKE escape char is backslash.
+ */
+export function escapeLike(term: string): string {
+  return term.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 /** Autocomplete over active projects by name / district (SPEC §3.1). */
 export async function searchActiveProjects(
   db: DbClient,
   q: string,
   limit = 8
 ): Promise<CondoProject[]> {
-  const term = q.trim();
+  if (devFixturesEnabled()) return devSearchActiveProjects(q, limit);
+  const term = escapeLike(q.trim());
   if (!term) return [];
   const { data, error } = await raw(db)
     .from("projects")
@@ -176,8 +193,10 @@ export async function searchActiveProjects(
     .eq("status", "active")
     .or(`name.ilike.%${term}%,district.ilike.%${term}%`)
     .limit(limit);
-  if (error || !data) return [];
-  return data.map(mapProject);
+  // A DB error is NOT "zero results" — surface it so the route can return
+  // SEARCH_INTERNAL_ERROR instead of masking an outage as an empty list (§12-⑤).
+  if (error) throw new Error(`searchActiveProjects: ${error.message}`);
+  return (data ?? []).map(mapProject);
 }
 
 /** Active projects in a district, for the search-results list (SPEC §3.2). */
@@ -185,6 +204,7 @@ export async function listActiveProjects(
   db: DbClient,
   opts: { district?: string; sort?: "profit" | "psf_asc" | "top_desc"; limit?: number } = {}
 ): Promise<CondoProject[]> {
+  if (devFixturesEnabled()) return devListActiveProjects(opts);
   let q = raw(db).from("projects").select(PROJECT_COLS).eq("status", "active");
   if (opts.district) q = q.eq("district", opts.district);
   if (opts.sort === "psf_asc") q = q.order("psf_min", { ascending: true, nullsFirst: false });
@@ -192,8 +212,19 @@ export async function listActiveProjects(
     q = q.order("top_year", { ascending: false, nullsFirst: false });
   else q = q.order("name", { ascending: true });
   const { data, error } = await q.limit(opts.limit ?? 30);
-  if (error || !data) return [];
-  return data.map(mapProject);
+  if (error) throw new Error(`listActiveProjects: ${error.message}`); // §12-⑤
+  return (data ?? []).map(mapProject);
+}
+
+/** Count of published projects — drives the cold-start fallback (SPEC §6.3). */
+export async function countActiveProjects(db: DbClient): Promise<number> {
+  if (devFixturesEnabled()) return devCountActiveProjects();
+  const { count, error } = await raw(db)
+    .from("projects")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "active");
+  if (error) throw new Error(`countActiveProjects: ${error.message}`); // §12-⑤
+  return count ?? 0;
 }
 
 /** Latest score per (project, dimension) for a set of projects — card verdicts. */
@@ -203,14 +234,15 @@ export async function getScoresForProjects(
 ): Promise<Map<string, ProjectScore[]>> {
   const out = new Map<string, ProjectScore[]>();
   if (projectIds.length === 0) return out;
+  if (devFixturesEnabled()) return devGetScoresForProjects(projectIds);
   const { data, error } = await raw(db)
     .from("project_scores")
     .select("*")
     .in("project_id", projectIds)
     .order("computed_at", { ascending: false });
-  if (error || !data) return out;
+  if (error) throw new Error(`getScoresForProjects: ${error.message}`); // §12-⑤
   const seen = new Set<string>(); // project_id|dimension → keep newest
-  for (const row of data) {
+  for (const row of data ?? []) {
     const k = `${row.project_id}|${row.dimension}`;
     if (seen.has(k)) continue;
     seen.add(k);
