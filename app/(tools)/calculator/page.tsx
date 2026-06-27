@@ -58,7 +58,7 @@ const ABSD_RATE_LABEL: Record<ResidencyOption, string> = {
 const TIER_NAME: Record<PriceTierKey, string> = {
   comfortable: "舒适区",
   balanced: "平衡区",
-  aggressive: "压力区",
+  aggressive: "上限区",
 };
 // Max purchasing power first (压力区), comfortable last.
 const TIER_ORDER: PriceTierKey[] = ["aggressive", "balanced", "comfortable"];
@@ -441,7 +441,7 @@ function Toast({ visible }: { visible: boolean }) {
         whiteSpace: "nowrap",
       }}
     >
-      ✓ 已为您准备好，顾问将在 24 小时内联系
+      ✓ 已为你准备好，顾问将在 24 小时内联系
     </div>
   );
 }
@@ -555,7 +555,7 @@ function InterceptView({
             marginBottom: 8,
           }}
         >
-          您的理性购房决策
+          你的购房预算
         </div>
         <div
           style={{
@@ -606,7 +606,7 @@ function InterceptView({
                 fontWeight: 300,
               }}
             >
-              <span>您目前 {fmtS(monthlyIncome)}/月</span>
+              <span>你目前 {fmtS(monthlyIncome)}/月</span>
               <span style={{ fontSize: 13, fontWeight: 500, color: incomeOk ? C.primary : C.warn }}>
                 {incomeOk
                   ? "✓ 已满足"
@@ -628,7 +628,7 @@ function InterceptView({
                     fontWeight: 300,
                   }}
                 >
-                  <span>您目前 {fmtS(targetDownPayment)}</span>
+                  <span>你目前 {fmtS(targetDownPayment)}</span>
                   <span
                     style={{ fontSize: 13, fontWeight: 500, color: budgetOk ? C.primary : C.warn }}
                   >
@@ -734,6 +734,8 @@ export default function CalculatorPage() {
   );
   const [runId, setRunId] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
+  // Lead-sharing consent must be explicit (PDPA s.13). Default unchecked.
+  const [leadConsent, setLeadConsent] = useState(false);
 
   const setField = useCallback(
     <K extends keyof CalculatorFormState>(key: K, val: CalculatorFormState[K]) =>
@@ -838,6 +840,12 @@ export default function CalculatorPage() {
   }
 
   async function handleWhatsApp() {
+    if (!leadConsent) {
+      // 没勾选 PDPA 同意，滚动到 checkbox 并高亮提示。不发起任何保存/分享行为。
+      const el = document.getElementById("lead-consent-box");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     const id = runId ?? (await saveReport());
     const text = id
       ? `Hi 狮城家，我的报告编号是 ${id}，请帮我看这个区间的房。`
@@ -910,7 +918,7 @@ export default function CalculatorPage() {
               marginBottom: 12,
             }}
           >
-            理性购房决策
+            新加坡购房预算测算
           </p>
           <h1
             style={{
@@ -924,10 +932,12 @@ export default function CalculatorPage() {
           >
             新加坡买房，
             <br />
-            我该花多少钱？
+            我适合买多少钱的房子？
           </h1>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 12, color: C.gray500, fontWeight: 300 }}>3 分钟理性决策</span>
+            <span style={{ fontSize: 12, color: C.gray500, fontWeight: 300 }}>
+              3 分钟看懂你的购房预算
+            </span>
             <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#D1D5DB" }} />
             <span style={{ fontSize: 12, color: C.gray500, fontWeight: 300 }}>无需注册</span>
           </div>
@@ -940,7 +950,7 @@ export default function CalculatorPage() {
               lineHeight: 1.5,
             }}
           >
-            适用于新加坡<strong style={{ fontWeight: 500 }}>私人住宅</strong>的银行贷款初步测算。
+            根据收入、存款和购房计划，估算适合你的购房预算。
           </p>
         </div>
 
@@ -954,9 +964,18 @@ export default function CalculatorPage() {
           }}
         >
           {[
-            { t: "我该看多少钱档次的房", s: "舒适 · 平衡 · 压力 三档区间，避免月供吃紧" },
-            { t: "手里应该攒多少现金", s: "首付 · 印花税 · 律师费，一笔笔拆给您看" },
-            { t: "买还是租，到底哪个划算", s: "告诉您 break-even 涨幅，赌注一目了然" },
+            {
+              t: "我适合买多少钱的房子？",
+              s: "舒适 · 平衡 · 上限 三档预算，提前看清月供压力",
+            },
+            {
+              t: "我的现金够不够买房？",
+              s: "首付 · 印花税 · 月供逐项拆解",
+            },
+            {
+              t: "买房还是租房更划算？",
+              s: "买租对比，理性决策",
+            },
           ].map(({ t, s }) => (
             <div key={t} style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
               <div
@@ -995,33 +1014,37 @@ export default function CalculatorPage() {
         </div>
 
         <div style={{ flexShrink: 0, padding: "24px 20px max(24px, env(safe-area-inset-bottom))" }}>
-          <BtnPrimary onClick={() => goTo("step1")}>开始测算</BtnPrimary>
-          <div
+          <BtnPrimary onClick={() => goTo("step1")}>快速测算</BtnPrimary>
+          <p
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              fontSize: 12,
+              textAlign: "center",
+              fontSize: 11,
               color: C.gray400,
               marginTop: 12,
               fontWeight: 300,
+              lineHeight: 1.6,
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <rect
-                x="2"
-                y="6"
-                width="10"
-                height="7"
-                rx="1"
-                stroke="currentColor"
-                strokeWidth="1.2"
-              />
-              <path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
-            <span>无需注册即可测算</span>
-          </div>
+            点击「快速测算」即表示你已阅读并同意{" "}
+            <a
+              href="/legal/terms"
+              style={{ color: C.gray500, textDecoration: "underline" }}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              使用条款
+            </a>{" "}
+            和{" "}
+            <a
+              href="/legal/privacy"
+              style={{ color: C.gray500, textDecoration: "underline" }}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              隐私政策
+            </a>
+            。本工具结果仅供参考，不构成财务或投资建议。
+          </p>
         </div>
       </div>
     );
@@ -1035,11 +1058,11 @@ export default function CalculatorPage() {
     const ltvWarn = ageSum > 65;
     return (
       <div style={STEP_PAGE}>
-        <StepHeader label="步骤 1 / 3 · 您和这次买房" onBack={() => goTo("hero")} />
+        <StepHeader label="步骤 1 / 3 · 你和这次买房" onBack={() => goTo("hero")} />
         <div style={{ flex: 1 }}>
           <QuestionTitle
-            title="关于您的身份"
-            sub="这三项决定您的印花税率、贷款成数与 CPF 可用性。"
+            title="关于你的身份"
+            sub="这三项决定你的印花税率、贷款成数与 CPF 可用性。"
           />
 
           <div style={{ marginBottom: 24 }}>
@@ -1129,9 +1152,9 @@ export default function CalculatorPage() {
   if (view === "step2") {
     return (
       <div style={STEP_PAGE}>
-        <StepHeader label="步骤 2 / 3 · 您的钱" onBack={() => goTo("step1")} />
+        <StepHeader label="步骤 2 / 3 · 你的钱" onBack={() => goTo("step1")} />
         <div style={{ flex: 1 }}>
-          <QuestionTitle title="您的收入与首付" sub="直接填写您的实际数字，估个大概也行。" />
+          <QuestionTitle title="你的收入与首付" sub="直接填写你的实际数字，估个大概也行。" />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <MoneyInput
@@ -1176,10 +1199,10 @@ export default function CalculatorPage() {
   if (view === "step3") {
     return (
       <div style={STEP_PAGE}>
-        <StepHeader label="步骤 3 / 3 · 您的计划" onBack={() => goTo("step2")} />
+        <StepHeader label="步骤 3 / 3 · 你的计划" onBack={() => goTo("step2")} />
         <div style={{ flex: 1 }}>
           <QuestionTitle
-            title="您打算何时买？"
+            title="你打算何时买？"
             sub="这一项不影响计算，只用于后续匹配合适节奏的顾问。"
           />
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1272,7 +1295,7 @@ export default function CalculatorPage() {
               color: C.charcoal,
             }}
           >
-            正在为您理性决策
+            正在为你测算购房预算
           </h3>
           <p style={{ fontSize: 14, color: C.gray500, fontWeight: 300 }}>
             {LOADING_TEXTS[loadingIdx]}
@@ -1369,7 +1392,7 @@ export default function CalculatorPage() {
                 marginBottom: 8,
               }}
             >
-              您的理性购房决策
+              你的购房预算
             </div>
             <div
               style={{
@@ -1380,7 +1403,7 @@ export default function CalculatorPage() {
                 color: C.charcoal,
               }}
             >
-              基于您 {RESIDENCY_LABEL[residency]} · {propsLabel} 的画像
+              基于你 {RESIDENCY_LABEL[residency]} · {propsLabel} 的画像
             </div>
             <p style={{ fontSize: 12, color: C.gray500, fontWeight: 300, marginTop: 12 }}>
               以下三档房价对应不同月供压力，平衡区为推荐。
@@ -1390,7 +1413,7 @@ export default function CalculatorPage() {
           <div style={{ padding: "28px 20px 100px" }}>
             {/* Block 1 · 三档房价区间 */}
             <section style={{ marginBottom: 32 }}>
-              <h3 style={SECTION_TITLE}>① 您理性可支持的房价</h3>
+              <h3 style={SECTION_TITLE}>① 你适合买多少钱的房子</h3>
               {result.degenerate && (
                 <p
                   style={{
@@ -1401,7 +1424,7 @@ export default function CalculatorPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  您的现金封顶限制了三档收敛到同一价位 —— 想买更高需先增加现金。
+                  你的现金封顶限制了三档收敛到同一价位 —— 想买更高需先增加现金。
                 </p>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1527,7 +1550,7 @@ export default function CalculatorPage() {
                       ✓ 首付充足
                     </div>
                     <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.6 }}>
-                      您的目标首付 {fmtS(targetAmount)} ≥ 过户现金 {fmtS(cb.transaction_cash_total)}
+                      你的目标首付 {fmtS(targetAmount)} ≥ 过户现金 {fmtS(cb.transaction_cash_total)}
                       ，可以放心进场看房。
                     </p>
                   </div>
@@ -1591,7 +1614,7 @@ export default function CalculatorPage() {
                   }}
                 >
                   <div style={{ marginBottom: 20 }}>
-                    <InputLabel>如果不买，您打算每月花多少租房？</InputLabel>
+                    <InputLabel>如果不买，你打算每月花多少租房？</InputLabel>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -1617,7 +1640,7 @@ export default function CalculatorPage() {
                       }}
                     />
                     <p style={{ fontSize: 12, color: C.gray400, fontWeight: 300, marginTop: 8 }}>
-                      默认按当前选中区间估算，直接填您的真实数字会更准。
+                      默认按当前选中区间估算，直接填你的真实数字会更准。
                     </p>
                   </div>
 
@@ -1731,7 +1754,7 @@ export default function CalculatorPage() {
                       </span>
                       <br />
                       <span style={{ color: C.gray500 }}>
-                        您怎么看未来 {years} 年这套房的涨幅？
+                        你怎么看未来 {years} 年这套房的涨幅？
                       </span>
                     </p>
                   </div>
@@ -1749,7 +1772,7 @@ export default function CalculatorPage() {
                 >
                   <p style={{ fontSize: 12, color: C.gray500, fontWeight: 300, lineHeight: 1.6 }}>
                     二套及以上不显示“买 vs 租”对比 ——
-                    您的决策逻辑是投资回报率而非居住成本，建议结合租金回报率 + 增值预期单独评估。
+                    你的决策逻辑是投资回报率而非居住成本，建议结合租金回报率 + 增值预期单独评估。
                   </p>
                 </div>
               </section>
@@ -1757,6 +1780,47 @@ export default function CalculatorPage() {
 
             {/* CTA */}
             <section style={{ marginTop: 8 }}>
+              {/* Lead-sharing consent — must be explicit (unchecked by default) per PDPA s.13 */}
+              <label
+                id="lead-consent-box"
+                htmlFor="lead-consent-checkbox"
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  padding: 12,
+                  marginBottom: 12,
+                  background: "#FAF8F2",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 4,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  color: C.gray500,
+                  lineHeight: 1.6,
+                }}
+              >
+                <input
+                  id="lead-consent-checkbox"
+                  type="checkbox"
+                  checked={leadConsent}
+                  onChange={(e) => setLeadConsent(e.target.checked)}
+                  style={{ marginTop: 3, accentColor: C.primary, cursor: "pointer" }}
+                />
+                <span>
+                  我同意 LionHome 与一位匹配的合作中介分享我的测算结果和联系方式，
+                  仅用于本次购房咨询。详见{" "}
+                  <a
+                    href="/legal/data-sharing"
+                    style={{ color: C.primary, textDecoration: "underline" }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    信息分享说明
+                  </a>
+                  。
+                </span>
+              </label>
               <BtnPrimary onClick={handleWhatsApp}>找顾问帮我看这个区间的房</BtnPrimary>
               <div style={{ height: 12 }} />
               <BtnSecondary onClick={resetAll}>换一组参数再测</BtnSecondary>
@@ -1774,6 +1838,47 @@ export default function CalculatorPage() {
                 55% · 利率 {rate.toFixed(2)}% / 压力 4%（MAS 标准）。税率与法规以 IRAS / MAS
                 最新公告为准。
               </p>
+            </section>
+
+            {/* Legal links */}
+            <section
+              style={{
+                marginTop: 16,
+                paddingTop: 16,
+                borderTop: `1px solid ${C.border}`,
+                display: "flex",
+                gap: 16,
+                fontSize: 11,
+                color: C.gray400,
+                fontWeight: 300,
+                flexWrap: "wrap",
+              }}
+            >
+              <a
+                href="/legal/terms"
+                style={{ color: C.gray500, textDecoration: "underline" }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                使用条款
+              </a>
+              <a
+                href="/legal/privacy"
+                style={{ color: C.gray500, textDecoration: "underline" }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                隐私政策
+              </a>
+              <a
+                href="/legal/data-sharing"
+                style={{ color: C.gray500, textDecoration: "underline" }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                信息分享说明
+              </a>
+              <span style={{ marginLeft: "auto" }}>© LionHome</span>
             </section>
           </div>
         </div>
