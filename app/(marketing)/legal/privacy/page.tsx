@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose prose-sm prose-neutral mx-auto max-w-2xl space-y-6 py-8">
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-widest text-neutral-500">
+        <p className="text-xs tracking-widest text-neutral-500 uppercase">
           Privacy Policy · 隐私政策
         </p>
         <h1 className="text-2xl font-semibold">LionHome 隐私政策</h1>
@@ -29,14 +29,15 @@ export default function PrivacyPage() {
         </p>
         <ul className="list-disc pl-5 text-sm leading-relaxed text-neutral-700">
           <li>
-            <strong>测算输入</strong>：身份（公民/PR/外籍）、年龄、家庭月收入、可动用现金、CPF 余额、
-            持有房产数、购买计划等。这些数据用于计算你的购房预算。
+            <strong>测算输入</strong>：身份（公民/PR/外籍）、年龄、家庭月收入、可动用现金、CPF
+            余额、 持有房产数、购买计划等。这些数据用于计算你的购房预算。
           </li>
           <li>
             <strong>留资信息</strong>（仅在你主动联系顾问时）：姓名、WhatsApp/手机号。
           </li>
           <li>
-            <strong>使用日志</strong>：访问时间、设备类型、浏览器类型、IP 地址（用于安全和性能监控）。
+            <strong>使用日志</strong>：访问时间、设备类型、浏览器类型、IP
+            地址（用于安全和性能监控）。
           </li>
         </ul>
         <p className="text-sm leading-relaxed text-neutral-700">

@@ -6,7 +6,9 @@ export default function TermsPage() {
   return (
     <article className="prose prose-sm prose-neutral mx-auto max-w-2xl space-y-6 py-8">
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-widest text-neutral-500">Terms of Use · 使用条款</p>
+        <p className="text-xs tracking-widest text-neutral-500 uppercase">
+          Terms of Use · 使用条款
+        </p>
         <h1 className="text-2xl font-semibold">LionHome 使用条款</h1>
         <p className="text-xs text-neutral-500">
           最近更新：{new Date().toISOString().split("T")[0]}
@@ -38,7 +40,8 @@ export default function TermsPage() {
             <strong>可能与</strong>银行实际审批结果、IRAS 实际税务处理结果有差异；
           </li>
           <li>
-            适用范围限于<strong>新加坡私人住宅银行贷款</strong>。HDB、EC、商业地产、海外房产不在覆盖范围。
+            适用范围限于<strong>新加坡私人住宅银行贷款</strong>
+            。HDB、EC、商业地产、海外房产不在覆盖范围。
           </li>
         </ul>
         <p className="text-sm leading-relaxed text-neutral-700">
@@ -123,9 +126,7 @@ export default function TermsPage() {
       </section>
 
       <hr className="border-neutral-200" />
-      <p className="text-xs text-neutral-500">
-        使用本工具即表示你已阅读、理解并同意以上全部条款。
-      </p>
+      <p className="text-xs text-neutral-500">使用本工具即表示你已阅读、理解并同意以上全部条款。</p>
     </article>
   );
 }
