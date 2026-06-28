@@ -1,11 +1,17 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
-import { buildApiPayload, toAmount, isForeigner } from "@/lib/calculator/bucket-maps";
+import {
+  buildApiPayload,
+  toAmount,
+  isForeigner,
+  minDownPaymentForViable,
+} from "@/lib/calculator/bucket-maps";
 import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calculator/form-types";
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
 import type { V2ComputeResult, TierData, PriceTierKey, Viability } from "@/lib/calculator/v2-types";
 import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
+import { MIN_VIABLE_PRICE } from "@/lib/tax";
 
 /* ─────────────────────────────────────────────────────────────────────
    COLORS / TOKENS
@@ -365,6 +371,7 @@ function MoneyInput({
   suffix,
   hint,
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
@@ -373,6 +380,8 @@ function MoneyInput({
   suffix?: string;
   hint?: string;
   placeholder?: string;
+  /** Red border + red hint, e.g. when the entered value is below an allowed minimum. */
+  error?: boolean;
 }) {
   return (
     <div>
@@ -381,7 +390,7 @@ function MoneyInput({
         style={{
           display: "flex",
           alignItems: "center",
-          border: `1px solid ${C.border}`,
+          border: `1px solid ${error ? C.warn : C.border}`,
           borderRadius: 4,
           padding: "0 16px",
           background: "#fff",
@@ -413,7 +422,13 @@ function MoneyInput({
       </div>
       {hint && (
         <p
-          style={{ fontSize: 11, color: C.gray400, fontWeight: 300, marginTop: 6, lineHeight: 1.6 }}
+          style={{
+            fontSize: 11,
+            color: error ? C.warn : C.gray400,
+            fontWeight: error ? 500 : 300,
+            marginTop: 6,
+            lineHeight: 1.6,
+          }}
         >
           {hint}
         </p>
@@ -750,8 +765,14 @@ export default function CalculatorPage() {
 
   const foreigner = isForeigner(form.residency);
   const step1Ready = form.residency !== null;
-  // Income is required; target down payment is optional (blank = no cash limit).
-  const step2Ready = toAmount(form.incomeMonthly) > 0;
+  // Minimum target down payment to close the cheapest viable home, for this profile.
+  const minDownPayment = minDownPaymentForViable(form, form.age);
+  const targetDownPaymentNum = toAmount(form.targetDownPayment);
+  // A target down payment below the minimum can't close any home → block it here.
+  const targetBelowMin = targetDownPaymentNum > 0 && targetDownPaymentNum < minDownPayment;
+  // Income is required; target down payment is optional (blank = no cash limit) but,
+  // if given, must cover at least the minimum.
+  const step2Ready = toAmount(form.incomeMonthly) > 0 && !targetBelowMin;
   const step3Ready = form.timeline !== null;
 
   /* ─── Submit ─────────────────────────────────────────────────── */
@@ -1175,10 +1196,13 @@ export default function CalculatorPage() {
               value={form.targetDownPayment}
               onChange={(v) => setField("targetDownPayment", v)}
               placeholder="例如 500000"
+              error={targetBelowMin}
               hint={
-                toAmount(form.targetDownPayment) > 0
-                  ? `≈ ${toAmount(form.targetDownPayment) / 10000} 万 · 用于覆盖首付 + 印花税 + 律师费`
-                  : "留空则不限首付，房价只受收入与贷款成数限制"
+                targetBelowMin
+                  ? `目标首付至少 ${fmtS(minDownPayment)} —— 这是买一套 ${fmtWan(MIN_VIABLE_PRICE)} 起步房的最低首付（含印花税 + 律师费）`
+                  : targetDownPaymentNum > 0
+                    ? `≈ ${targetDownPaymentNum / 10000} 万 · 用于覆盖首付 + 印花税 + 律师费`
+                    : `留空则不限首付，房价只受收入与贷款成数限制（最低首付约 ${fmtS(minDownPayment)}）`
               }
             />
           </div>
