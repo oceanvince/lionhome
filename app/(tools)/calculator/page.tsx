@@ -4,12 +4,7 @@ import React, { useState, useCallback, useRef } from "react";
 import { buildApiPayload, toAmount, isForeigner } from "@/lib/calculator/bucket-maps";
 import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calculator/form-types";
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
-import type {
-  V2ComputeResult,
-  TierData,
-  PriceTierKey,
-  MarketFloor,
-} from "@/lib/calculator/v2-types";
+import type { V2ComputeResult, TierData, PriceTierKey, Viability } from "@/lib/calculator/v2-types";
 import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -48,24 +43,6 @@ function fmtWan(n: number) {
   return `S$ ${Math.round(n / 10_000)} 万`;
 }
 
-/**
- * When a tier resolves to no buyable price (price_high === 0), explain *why*
- * instead of showing a bare "—". Reuses the engine's infeasible_reason and the
- * cash_gap it already computed — no recalculation here.
- */
-function infeasibleNote(td: TierData): string | null {
-  if (td.price_high > 0) return null;
-  const cb = td.cash_breakdown;
-  if (cb.infeasible_reason === "TDSR_EXCEEDED") {
-    return "按当前收入与月供比例，银行可贷额度为 0，暂无法支撑任何房价 —— 提高收入或降低月供占比后再试。";
-  }
-  // INSUFFICIENT_CASH (or unset, treated as cash-limited).
-  if (cb.cash_gap > 0) {
-    return `可用现金低于建议应急储备 ${fmtS(cb.emergency_fund_suggested)}，还差 ${fmtS(cb.cash_gap)} —— 先补足现金才能测算可支持的房价。`;
-  }
-  return "可用现金不足以覆盖首付与税费，暂无法测算可支持的房价。";
-}
-
 const RESIDENCY_LABEL: Record<ResidencyOption, string> = {
   sc: "新加坡公民",
   pr: "PR",
@@ -83,7 +60,8 @@ const TIER_NAME: Record<PriceTierKey, string> = {
   balanced: "平衡区",
   aggressive: "上限区",
 };
-const TIER_ORDER: PriceTierKey[] = ["comfortable", "balanced", "aggressive"];
+// Max purchasing power first (压力区), comfortable last.
+const TIER_ORDER: PriceTierKey[] = ["aggressive", "balanced", "comfortable"];
 
 /* ─────────────────────────────────────────────────────────────────────
    PRIMITIVES
@@ -534,56 +512,25 @@ function CostRow({
   );
 }
 
-/** ✓ 已满足 / ✕ 还差 X — one gate's verdict. */
-function GateStatus({ ok, shortLabel }: { ok: boolean; shortLabel: string }) {
-  return (
-    <span
-      style={{
-        fontSize: 13,
-        fontWeight: 500,
-        color: ok ? C.primary : C.warn,
-        fontVariantNumeric: "tabular-nums",
-      }}
-    >
-      {ok ? "✓ 已满足" : shortLabel}
-    </span>
-  );
-}
-
 /**
- * Shown instead of the three-tier result when a profile can't support any tier:
- * the cheapest private home + the two independent gates (cash, income) and where
- * the buyer stands against each. Numbers come straight from result.market_floor.
+ * Shown instead of the result when the buyer's max purchasing power falls below
+ * the viable-home bar (viability.min_viable_price). Tells them, gently, what it
+ * would take to start — no judgemental framing.
  */
-function FloorEntryView({
-  floor,
-  residencyLabel,
-  propsLabel,
+function InterceptView({
+  viability,
+  monthlyIncome,
+  targetDownPayment,
   onRestart,
 }: {
-  floor: MarketFloor;
-  residencyLabel: string;
-  propsLabel: string;
+  viability: Viability;
+  monthlyIncome: number;
+  targetDownPayment: number | null;
   onRestart: () => void;
 }) {
-  // "Reachable" = both gates clear, so the buyer CAN transact the cheapest home —
-  // the affordability engine only capped them below the floor to keep a full
-  // emergency reserve. Distinguish that from a buyer who genuinely can't afford it.
-  const reachable = floor.cash_ok && floor.income_ok;
-  const bufferAfter = floor.available_cash - floor.min_cash_transaction; // cash left after closing
-  const bufferDipped = reachable && bufferAfter < floor.emergency_fund;
-
-  const headline = !reachable
-    ? ["按当前条件，", "还够不到私宅门槛"]
-    : bufferDipped
-      ? ["够得着最低门槛，", "但会动用应急金"]
-      : ["你够得着", "私宅最低门槛"];
-
-  const intro = !reachable
-    ? `基于你 ${residencyLabel} · ${propsLabel} 的画像，暂时撑不起任何价位。下面是进入新加坡私宅市场的最低要求。`
-    : bufferDipped
-      ? `基于你 ${residencyLabel} · ${propsLabel} 的画像，你够得着市场最低私宅（约 ${fmtWan(floor.floor_price)}）——但买它会动用部分应急金。下面是这套最低房的要求。`
-      : `基于你 ${residencyLabel} · ${propsLabel} 的画像，你够得着市场最低私宅（约 ${fmtWan(floor.floor_price)}），且能保住应急金。下面是这套最低房的要求。`;
+  const incomeOk = monthlyIncome >= viability.min_monthly_income;
+  const hasBudget = targetDownPayment !== null;
+  const budgetOk = !hasBudget || targetDownPayment >= viability.min_down_payment;
 
   return (
     <div
@@ -595,7 +542,6 @@ function FloorEntryView({
         minHeight: "100dvh",
       }}
     >
-      {/* Hero */}
       <div
         style={{ padding: "max(40px, env(safe-area-inset-top)) 20px 28px", background: C.cream }}
       >
@@ -620,9 +566,9 @@ function FloorEntryView({
             color: C.charcoal,
           }}
         >
-          {headline[0]}
+          离开始看房，
           <br />
-          {headline[1]}
+          就差一点点
         </div>
         <p
           style={{
@@ -633,14 +579,13 @@ function FloorEntryView({
             lineHeight: 1.6,
           }}
         >
-          {intro}
+          按目前的条件，能看的房价还偏低，先不急着出结果。下面是开始正式测算需要达到的水平——补齐后再来即可。
         </p>
       </div>
 
       <div style={{ padding: "28px 20px 100px" }}>
-        {/* Block 1 · 市场最低房价 */}
         <section style={{ marginBottom: 32 }}>
-          <h3 style={SECTION_TITLE}>① 新加坡私宅最低参考房价</h3>
+          <h3 style={SECTION_TITLE}>① 开始测算需要达到</h3>
           <div
             style={{
               background: "#fff",
@@ -649,43 +594,7 @@ function FloorEntryView({
               padding: 20,
             }}
           >
-            <div
-              style={{
-                fontFamily: SERIF,
-                fontSize: 32,
-                fontWeight: 600,
-                color: C.charcoal,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {fmtWan(floor.floor_price)}
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: C.gray400,
-                fontWeight: 300,
-                marginTop: 6,
-                lineHeight: 1.6,
-              }}
-            >
-              OCR 私宅地板价 · {floor.floor_as_of} · 参考门槛，非具体房源
-            </div>
-          </div>
-        </section>
-
-        {/* Block 2 · 最低存款（两道口径） */}
-        <section style={{ marginBottom: 32 }}>
-          <h3 style={SECTION_TITLE}>② 买这套，你至少要准备的现金</h3>
-          <div
-            style={{
-              background: "#fff",
-              border: `1px solid ${C.border}`,
-              borderRadius: 4,
-              padding: 20,
-            }}
-          >
-            <CostRow label="最低存款（过户硬性）" value={fmtS(floor.min_cash_transaction)} total />
+            <CostRow label="家庭月收入" value={`≥ ${fmtS(viability.min_monthly_income)}`} total />
             <div
               style={{
                 display: "flex",
@@ -697,72 +606,40 @@ function FloorEntryView({
                 fontWeight: 300,
               }}
             >
-              <span>你目前 {fmtS(floor.available_cash)}</span>
-              <GateStatus ok={floor.cash_ok} shortLabel={`还差 ${fmtS(floor.cash_gap)}`} />
+              <span>你目前 {fmtS(monthlyIncome)}/月</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: incomeOk ? C.primary : C.warn }}>
+                {incomeOk
+                  ? "✓ 已满足"
+                  : `还差 ${fmtS(Math.max(0, viability.min_monthly_income - monthlyIncome))}/月`}
+              </span>
             </div>
-            <CostRow label="＋ 建议应急金（≈6.6 个月）" value={fmtS(floor.emergency_fund)} />
-            {bufferDipped && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "baseline",
-                  fontSize: 13,
-                  padding: "6px 0 2px",
-                  color: C.warn,
-                  fontWeight: 500,
-                }}
-              >
-                <span>买这套后应急金约余</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>
-                  {fmtS(Math.max(0, bufferAfter))} · 低于建议
-                </span>
-              </div>
+
+            {hasBudget && (
+              <>
+                <CostRow label="目标首付预算" value={`≥ ${fmtS(viability.min_down_payment)}`} />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    fontSize: 13,
+                    padding: "6px 0 2px",
+                    color: C.gray500,
+                    fontWeight: 300,
+                  }}
+                >
+                  <span>你目前 {fmtS(targetDownPayment)}</span>
+                  <span
+                    style={{ fontSize: 13, fontWeight: 500, color: budgetOk ? C.primary : C.warn }}
+                  >
+                    {budgetOk
+                      ? "✓ 已满足"
+                      : `还差 ${fmtS(Math.max(0, viability.min_down_payment - targetDownPayment))}`}
+                  </span>
+                </div>
+              </>
             )}
-            <p
-              style={{
-                fontSize: 11,
-                color: C.gray400,
-                fontWeight: 300,
-                marginTop: 12,
-                lineHeight: 1.6,
-              }}
-            >
-              硬性 = 首付现金 + 印花税 +
-              律师费（按可贷标准成数测算）。应急金为额外建议缓冲，不计入过户。
-            </p>
-          </div>
-        </section>
 
-        {/* Block 3 · 最低收入 */}
-        <section style={{ marginBottom: 32 }}>
-          <h3 style={SECTION_TITLE}>③ 能贷到这笔款的最低月收入</h3>
-          <div
-            style={{
-              background: "#fff",
-              border: `1px solid ${C.border}`,
-              borderRadius: 4,
-              padding: 20,
-            }}
-          >
-            <CostRow label="最低家庭月收入" value={fmtS(floor.min_monthly_income)} total />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                fontSize: 13,
-                padding: "6px 0 2px",
-                color: C.gray500,
-                fontWeight: 300,
-              }}
-            >
-              <span>你目前 {fmtS(floor.monthly_income)}/月</span>
-              <GateStatus
-                ok={floor.income_ok}
-                shortLabel={`还差 ${fmtS(Math.max(0, floor.income_gap))}/月`}
-              />
-            </div>
             <p
               style={{
                 fontSize: 11,
@@ -772,8 +649,9 @@ function FloorEntryView({
                 lineHeight: 1.6,
               }}
             >
-              按 MAS TDSR 上限（月供 ≤ 收入
-              55%）反推。现金与收入是两道独立的闸——补足卡住的那道才能进场。
+              {hasBudget
+                ? "收入决定能贷多少、首付决定要付多少——两项都达到，就能开始三档测算。"
+                : "未填目标首付时只看收入。收入达到后即可开始三档测算；也可回上一步填入目标首付。"}
             </p>
           </div>
         </section>
@@ -872,8 +750,8 @@ export default function CalculatorPage() {
 
   const foreigner = isForeigner(form.residency);
   const step1Ready = form.residency !== null;
-  // Income and cash are required (cash 0 is a valid "insufficient" outcome, but must be entered); CPF optional.
-  const step2Ready = toAmount(form.incomeMonthly) > 0 && form.cash !== "";
+  // Income is required; target down payment is optional (blank = no cash limit).
+  const step2Ready = toAmount(form.incomeMonthly) > 0;
   const step3Ready = form.timeline !== null;
 
   /* ─── Submit ─────────────────────────────────────────────────── */
@@ -973,7 +851,7 @@ export default function CalculatorPage() {
       ? `Hi 狮城家，我的报告编号是 ${id}，请帮我看这个区间的房。`
       : `Hi 狮城家，请帮我看看适合我的房。`;
     window.open(
-      `https://api.whatsapp.com/send?phone=6580565348&text=${encodeURIComponent(text)}`,
+      `https://api.whatsapp.com/send?phone=6591115568&text=${encodeURIComponent(text)}`,
       "_blank"
     );
     setToastVisible(true);
@@ -1269,14 +1147,14 @@ export default function CalculatorPage() {
   }
 
   /* ═══════════════════════════════════════════════════════════════
-     STEP 2 — 收入 / 现金 / CPF
+     STEP 2 — 收入 / 目标首付
   ═══════════════════════════════════════════════════════════════ */
   if (view === "step2") {
     return (
       <div style={STEP_PAGE}>
         <StepHeader label="步骤 2 / 3 · 你的钱" onBack={() => goTo("step1")} />
         <div style={{ flex: 1 }}>
-          <QuestionTitle title="你的收入与现金" sub="直接填写你的实际数字，估个大概也行。" />
+          <QuestionTitle title="你的收入与首付" sub="直接填写你的实际数字，估个大概也行。" />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <MoneyInput
@@ -1293,26 +1171,16 @@ export default function CalculatorPage() {
             />
 
             <MoneyInput
-              label="可动用现金（不含 CPF，含父母赞助）"
-              value={form.cash}
-              onChange={(v) => setField("cash", v)}
+              label="目标首付（含现金 + CPF，可选填）"
+              value={form.targetDownPayment}
+              onChange={(v) => setField("targetDownPayment", v)}
               placeholder="例如 500000"
-              hint={toAmount(form.cash) > 0 ? `≈ ${toAmount(form.cash) / 10000} 万` : undefined}
+              hint={
+                toAmount(form.targetDownPayment) > 0
+                  ? `≈ ${toAmount(form.targetDownPayment) / 10000} 万 · 用于覆盖首付 + 印花税 + 律师费`
+                  : "留空则不限首付，房价只受收入与贷款成数限制"
+              }
             />
-
-            {!foreigner && (
-              <MoneyInput
-                label="CPF OA 余额（可粗估）"
-                value={form.cpf}
-                onChange={(v) => setField("cpf", v)}
-                placeholder="例如 200000"
-                hint={
-                  toAmount(form.cpf) > 0
-                    ? `≈ ${toAmount(form.cpf) / 10000} 万 · 登录 cpf.gov.sg 可查精确数额`
-                    : "登录 cpf.gov.sg 可查精确数额，估个大概也行"
-                }
-              />
-            )}
           </div>
         </div>
 
@@ -1445,19 +1313,18 @@ export default function CalculatorPage() {
     const residency = form.residency ?? "pr";
     const isFirst = form.existingProperties === 0;
 
-    const propsLabelEarly =
-      form.existingProperties === 0 ? "首套" : form.existingProperties === 1 ? "第二套" : "第三套+";
+    const hasBudget = form.targetDownPayment !== "";
+    const targetAmount = toAmount(form.targetDownPayment);
+    const monthlyIncome = toAmount(form.incomeMonthly);
 
-    // The buyer's responsible max (even the 55% MAS-cap tier) is below the market
-    // floor → any tier price would be a phantom (no private home sells that cheap).
-    // Show the market-entry floor instead. Covers both "can't afford anything" (0)
-    // and "capped just below the floor" cases.
-    if (result.tiers.aggressive.price_high < result.market_floor.floor_price) {
+    // Max purchasing power is below the viable-home bar → intercept and tell the
+    // buyer what it would take, instead of showing tiers that don't mean much.
+    if (result.tiers.aggressive.price_high < result.viability.min_viable_price) {
       return (
-        <FloorEntryView
-          floor={result.market_floor}
-          residencyLabel={RESIDENCY_LABEL[residency]}
-          propsLabel={propsLabelEarly}
+        <InterceptView
+          viability={result.viability}
+          monthlyIncome={monthlyIncome}
+          targetDownPayment={hasBudget ? targetAmount : null}
           onRestart={() => goTo("hero")}
         />
       );
@@ -1465,8 +1332,9 @@ export default function CalculatorPage() {
 
     const tier: TierData = result.tiers[selectedTier];
     const cb = tier.cash_breakdown;
-    const availableCash = cb.total_cash_needed - cb.cash_gap;
-    const cashShort = cb.cash_gap > 0;
+    // Cash shortfall only applies when the buyer set a target down payment.
+    const cashGap = Math.max(0, cb.transaction_cash_total - targetAmount);
+    const cashShort = hasBudget && cashGap > 0;
 
     // Live break-even (Block 3 only) via the shared core — identical to the server formula.
     const upfront = cb.down_payment_cash + cb.bsd + cb.absd + cb.legal_fees_est;
@@ -1485,9 +1353,10 @@ export default function CalculatorPage() {
 
     const propsLabel =
       form.existingProperties === 0 ? "首套" : form.existingProperties === 1 ? "第二套" : "第三套+";
-    const incomeLabel = `S$ ${toAmount(form.incomeMonthly).toLocaleString("en-US")}/月`;
-    const cashLabel = `S$ ${toAmount(form.cash).toLocaleString("en-US")}`;
-    const cpfLabel = foreigner ? "CPF=0" : `S$ ${toAmount(form.cpf).toLocaleString("en-US")}`;
+    const incomeLabel = `S$ ${monthlyIncome.toLocaleString("en-US")}/月`;
+    const downPaymentLabel = hasBudget
+      ? `目标首付 S$ ${targetAmount.toLocaleString("en-US")}`
+      : "首付不限";
     const lowerTierName =
       selectedTier === "aggressive"
         ? "平衡区"
@@ -1564,7 +1433,6 @@ export default function CalculatorPage() {
                   const active = key === selectedTier;
                   const pct = Math.round(td.ratio * 100);
                   const isAgg = key === "aggressive";
-                  const note = infeasibleNote(td);
                   return (
                     <div
                       key={key}
@@ -1612,19 +1480,6 @@ export default function CalculatorPage() {
                       >
                         压力测试月供占月收入 ≤ {pct}%{isAgg && " · 日常生活会吃紧"}
                       </div>
-                      {note && (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: C.warn,
-                            fontWeight: 300,
-                            marginTop: 8,
-                            lineHeight: 1.6,
-                          }}
-                        >
-                          {note}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -1657,23 +1512,14 @@ export default function CalculatorPage() {
                   按 <span style={{ fontWeight: 500, color: C.charcoal }}>{fmtWan(cb.price)}</span>
                   （区间中点）测算。
                 </p>
-                <CostRow label="首付现金部分" value={fmtS(cb.down_payment_cash)} />
-                {cb.down_payment_cpf > 0 && (
-                  <CostRow label="CPF 抵扣" value={fmtS(cb.down_payment_cpf)} />
-                )}
+                <CostRow label="首付（房价 − 可贷金额）" value={fmtS(cb.down_payment_cash)} />
                 <CostRow label="BSD 买方印花税（累进）" value={fmtS(cb.bsd)} />
                 <CostRow
                   label={`ABSD 额外印花税（${ABSD_RATE_LABEL[residency]}）`}
                   value={fmtS(cb.absd)}
                 />
                 <CostRow label="律师 / 估价 / 杂费" value={fmtS(cb.legal_fees_est)} />
-                <CostRow label="交易现金需求" value={fmtS(cb.transaction_cash_total)} strongTop />
-                <CostRow
-                  label="+ 应急金（约 6.6 个月收入）"
-                  value={fmtS(cb.emergency_fund_suggested)}
-                  noTop
-                />
-                <CostRow label="你实际应有现金 ≥" value={fmtS(cb.total_cash_needed)} total />
+                <CostRow label="过户现金合计" value={fmtS(cb.transaction_cash_total)} total />
                 <p
                   style={{
                     fontSize: 12,
@@ -1683,65 +1529,73 @@ export default function CalculatorPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  首付 = 房价 × 25%。CPF 最多可抵扣房价的 20%，剩下房价的 5% 必须现金。
+                  首付 = 房价 − 可贷金额（标准成数约 75%）。以上为过户时需准备的现金合计。
                 </p>
               </div>
 
-              {/* Feasibility / Diagnosis */}
-              {!cashShort ? (
-                <div
-                  style={{ marginTop: 16, background: C.primarySoft, borderRadius: 4, padding: 16 }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 500, color: C.primary, marginBottom: 4 }}>
-                    ✓ 你的现金充足
-                  </div>
-                  <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.6 }}>
-                    你当前现金 {fmtS(availableCash)} ≥ 应有现金 {fmtS(cb.total_cash_needed)}
-                    ，可以放心进场看房。
-                  </p>
-                </div>
-              ) : (
-                <div
-                  style={{ marginTop: 16, background: C.warnSoft, borderRadius: 4, padding: 16 }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 500, color: C.warn, marginBottom: 6 }}>
-                    还差 {fmtS(cb.cash_gap)} 现金
-                  </div>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: "#4B5563",
-                      fontWeight: 300,
-                      marginBottom: 10,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    你当前现金不足以买这档房。可选方案：
-                  </p>
+              {/* Feasibility / Diagnosis — only when a target down payment was given. */}
+              {hasBudget &&
+                (!cashShort ? (
                   <div
                     style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                      fontSize: 12,
-                      color: "#374151",
+                      marginTop: 16,
+                      background: C.primarySoft,
+                      borderRadius: 4,
+                      padding: 16,
                     }}
                   >
-                    <div>
-                      → 再攒约 <b>{fmtS(cb.cash_gap)}</b>
+                    <div
+                      style={{ fontSize: 14, fontWeight: 500, color: C.primary, marginBottom: 4 }}
+                    >
+                      ✓ 首付充足
                     </div>
-                    <div>
-                      → 降一档到 <b>{lowerTierName}</b>
+                    <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.6 }}>
+                      你的目标首付 {fmtS(targetAmount)} ≥ 过户现金 {fmtS(cb.transaction_cash_total)}
+                      ，可以放心进场看房。
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    style={{ marginTop: 16, background: C.warnSoft, borderRadius: 4, padding: 16 }}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 500, color: C.warn, marginBottom: 6 }}>
+                      还差 {fmtS(cashGap)} 现金
                     </div>
-                    <div>
-                      →{" "}
-                      {foreigner
-                        ? "拿到 PR 后再买，ABSD 从 60% 降到 5%"
-                        : "父母赞助补足 / 延长贷款年限"}
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: "#4B5563",
+                        fontWeight: 300,
+                        marginBottom: 10,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      目标首付不足以买这档房。可选方案：
+                    </p>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        fontSize: 12,
+                        color: "#374151",
+                      }}
+                    >
+                      <div>
+                        → 再备约 <b>{fmtS(cashGap)}</b>
+                      </div>
+                      <div>
+                        → 降一档到 <b>{lowerTierName}</b>
+                      </div>
+                      <div>
+                        →{" "}
+                        {foreigner
+                          ? "拿到 PR 后再买，ABSD 从 60% 降到 5%"
+                          : "延长贷款年限 / 父母赞助补足"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                ))}
             </section>
 
             {/* Block 3 · 买 vs 租 break-even (first property only) */}
@@ -1978,7 +1832,7 @@ export default function CalculatorPage() {
             >
               <p style={{ fontSize: 12, color: C.gray500, fontWeight: 300, lineHeight: 1.7 }}>
                 基于 {RESIDENCY_LABEL[residency]} · {propsLabel} · {form.age} 岁 · 月入{" "}
-                {incomeLabel} · 现金 {cashLabel} · {cpfLabel} 测算。
+                {incomeLabel} · {downPaymentLabel} 测算。
                 <br />
                 ABSD {Math.round(cb.absd_rate * 100)}% · LTV {Math.round(cb.ltv_cap * 100)}% · TDSR
                 55% · 利率 {rate.toFixed(2)}% / 压力 4%（MAS 标准）。税率与法规以 IRAS / MAS

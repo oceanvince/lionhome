@@ -6,7 +6,7 @@ export default function DataSharingPage() {
   return (
     <article className="prose prose-sm prose-neutral mx-auto max-w-2xl space-y-6 py-8">
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-widest text-neutral-500">
+        <p className="text-xs tracking-widest text-neutral-500 uppercase">
           Data Sharing · 信息分享
         </p>
         <h1 className="text-2xl font-semibold">信息分享说明</h1>
@@ -17,8 +17,8 @@ export default function DataSharingPage() {
 
       <section className="space-y-2">
         <p className="text-sm leading-relaxed text-neutral-700">
-          当你在测算页面主动选择「找顾问帮我看这个区间的房」类操作时，
-          LionHome 会与一位合作中介分享你的测算信息。本页详细列出分享的范围、目的和你的权利。
+          当你在测算页面主动选择「找顾问帮我看这个区间的房」类操作时， LionHome
+          会与一位合作中介分享你的测算信息。本页详细列出分享的范围、目的和你的权利。
         </p>
       </section>
 
@@ -81,7 +81,12 @@ export default function DataSharingPage() {
         <p className="text-sm leading-relaxed text-neutral-700">
           若你认为合作中介违反约定，可通过工具内 WhatsApp 入口告知 LionHome，
           我们将停止与该中介合作；亦可直接向{" "}
-          <a href="https://www.cea.gov.sg" className="underline" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://www.cea.gov.sg"
+            className="underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             CEA
           </a>{" "}
           或{" "}
