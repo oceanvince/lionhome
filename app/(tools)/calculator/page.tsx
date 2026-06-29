@@ -1,17 +1,12 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
-import {
-  buildApiPayload,
-  toAmount,
-  isForeigner,
-  minDownPaymentForViable,
-} from "@/lib/calculator/bucket-maps";
+import { buildApiPayload, toAmount, isForeigner } from "@/lib/calculator/bucket-maps";
 import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calculator/form-types";
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
 import type { V2ComputeResult, TierData, PriceTierKey, Viability } from "@/lib/calculator/v2-types";
 import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
-import { MIN_VIABLE_PRICE } from "@/lib/tax";
+import { MIN_DOWN_PAYMENT, MIN_VIABLE_PRICE_ENABLED } from "@/lib/tax";
 
 /* ─────────────────────────────────────────────────────────────────────
    COLORS / TOKENS
@@ -765,10 +760,10 @@ export default function CalculatorPage() {
 
   const foreigner = isForeigner(form.residency);
   const step1Ready = form.residency !== null;
-  // Minimum target down payment to close the cheapest viable home, for this profile.
-  const minDownPayment = minDownPaymentForViable(form, form.age);
+  // Flat minimum target down payment, enforced at input time.
+  const minDownPayment = MIN_DOWN_PAYMENT;
   const targetDownPaymentNum = toAmount(form.targetDownPayment);
-  // A target down payment below the minimum can't close any home → block it here.
+  // A target down payment below the minimum is blocked here.
   const targetBelowMin = targetDownPaymentNum > 0 && targetDownPaymentNum < minDownPayment;
   // Income is required; target down payment is optional (blank = no cash limit) but,
   // if given, must cover at least the minimum.
@@ -1199,10 +1194,10 @@ export default function CalculatorPage() {
               error={targetBelowMin}
               hint={
                 targetBelowMin
-                  ? `目标首付至少 ${fmtS(minDownPayment)} —— 这是买一套 ${fmtWan(MIN_VIABLE_PRICE)} 起步房的最低首付（含印花税 + 律师费）`
+                  ? `目标首付至少 ${fmtS(minDownPayment)}`
                   : targetDownPaymentNum > 0
                     ? `≈ ${targetDownPaymentNum / 10000} 万 · 用于覆盖首付 + 印花税 + 律师费`
-                    : `留空则不限首付，房价只受收入与贷款成数限制（最低首付约 ${fmtS(minDownPayment)}）`
+                    : `留空则不限首付，房价只受收入与贷款成数限制（最低首付 ${fmtS(minDownPayment)}）`
               }
             />
           </div>
@@ -1343,7 +1338,11 @@ export default function CalculatorPage() {
 
     // Max purchasing power is below the viable-home bar → intercept and tell the
     // buyer what it would take, instead of showing tiers that don't mean much.
-    if (result.tiers.aggressive.price_high < result.viability.min_viable_price) {
+    // Gated off for now (MIN_VIABLE_PRICE_ENABLED); the result shows regardless.
+    if (
+      MIN_VIABLE_PRICE_ENABLED &&
+      result.tiers.aggressive.price_high < result.viability.min_viable_price
+    ) {
       return (
         <InterceptView
           viability={result.viability}
