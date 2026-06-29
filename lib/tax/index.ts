@@ -20,5 +20,10 @@ export type {
   TiersResult,
 } from "./tdsr";
 export { SEED_TAX_RATES } from "./seed";
-export { computeViability, MIN_VIABLE_PRICE } from "./viability";
+export {
+  computeViability,
+  MIN_VIABLE_PRICE,
+  MIN_VIABLE_PRICE_ENABLED,
+  MIN_DOWN_PAYMENT,
+} from "./viability";
 export type { Viability } from "./viability";

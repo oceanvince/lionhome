@@ -6,6 +6,7 @@ import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calcu
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
 import type { V2ComputeResult, TierData, PriceTierKey, Viability } from "@/lib/calculator/v2-types";
 import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
+import { MIN_DOWN_PAYMENT, MIN_VIABLE_PRICE_ENABLED } from "@/lib/tax";
 
 /* ─────────────────────────────────────────────────────────────────────
    COLORS / TOKENS
@@ -365,6 +366,7 @@ function MoneyInput({
   suffix,
   hint,
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
@@ -373,6 +375,8 @@ function MoneyInput({
   suffix?: string;
   hint?: string;
   placeholder?: string;
+  /** Red border + red hint, e.g. when the entered value is below an allowed minimum. */
+  error?: boolean;
 }) {
   return (
     <div>
@@ -381,7 +385,7 @@ function MoneyInput({
         style={{
           display: "flex",
           alignItems: "center",
-          border: `1px solid ${C.border}`,
+          border: `1px solid ${error ? C.warn : C.border}`,
           borderRadius: 4,
           padding: "0 16px",
           background: "#fff",
@@ -413,7 +417,13 @@ function MoneyInput({
       </div>
       {hint && (
         <p
-          style={{ fontSize: 11, color: C.gray400, fontWeight: 300, marginTop: 6, lineHeight: 1.6 }}
+          style={{
+            fontSize: 11,
+            color: error ? C.warn : C.gray400,
+            fontWeight: error ? 500 : 300,
+            marginTop: 6,
+            lineHeight: 1.6,
+          }}
         >
           {hint}
         </p>
@@ -750,8 +760,14 @@ export default function CalculatorPage() {
 
   const foreigner = isForeigner(form.residency);
   const step1Ready = form.residency !== null;
-  // Income is required; target down payment is optional (blank = no cash limit).
-  const step2Ready = toAmount(form.incomeMonthly) > 0;
+  // Flat minimum target down payment, enforced at input time.
+  const minDownPayment = MIN_DOWN_PAYMENT;
+  const targetDownPaymentNum = toAmount(form.targetDownPayment);
+  // A target down payment below the minimum is blocked here.
+  const targetBelowMin = targetDownPaymentNum > 0 && targetDownPaymentNum < minDownPayment;
+  // Income is required; target down payment is optional (blank = no cash limit) but,
+  // if given, must cover at least the minimum.
+  const step2Ready = toAmount(form.incomeMonthly) > 0 && !targetBelowMin;
   const step3Ready = form.timeline !== null;
 
   /* ─── Submit ─────────────────────────────────────────────────── */
@@ -1175,10 +1191,13 @@ export default function CalculatorPage() {
               value={form.targetDownPayment}
               onChange={(v) => setField("targetDownPayment", v)}
               placeholder="例如 500000"
+              error={targetBelowMin}
               hint={
-                toAmount(form.targetDownPayment) > 0
-                  ? `≈ ${toAmount(form.targetDownPayment) / 10000} 万 · 用于覆盖首付 + 印花税 + 律师费`
-                  : "留空则不限首付，房价只受收入与贷款成数限制"
+                targetBelowMin
+                  ? `目标首付至少 ${fmtS(minDownPayment)}`
+                  : targetDownPaymentNum > 0
+                    ? `≈ ${targetDownPaymentNum / 10000} 万 · 用于覆盖首付 + 印花税 + 律师费`
+                    : `留空则不限首付，房价只受收入与贷款成数限制（最低首付 ${fmtS(minDownPayment)}）`
               }
             />
           </div>
@@ -1319,7 +1338,11 @@ export default function CalculatorPage() {
 
     // Max purchasing power is below the viable-home bar → intercept and tell the
     // buyer what it would take, instead of showing tiers that don't mean much.
-    if (result.tiers.aggressive.price_high < result.viability.min_viable_price) {
+    // Gated off for now (MIN_VIABLE_PRICE_ENABLED); the result shows regardless.
+    if (
+      MIN_VIABLE_PRICE_ENABLED &&
+      result.tiers.aggressive.price_high < result.viability.min_viable_price
+    ) {
       return (
         <InterceptView
           viability={result.viability}

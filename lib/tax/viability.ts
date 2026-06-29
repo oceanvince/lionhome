@@ -14,6 +14,20 @@ import { calculateAbsd } from "./absd";
 const ENV_MIN = Number(process.env.NEXT_PUBLIC_MIN_VIABLE_PRICE);
 export const MIN_VIABLE_PRICE = Number.isFinite(ENV_MIN) && ENV_MIN > 0 ? ENV_MIN : 300_000;
 
+/**
+ * Master switch for the min-viable-price (300k) intercept that fires after compute
+ * when even the top tier lands below the bar. Currently OFF — the result is shown
+ * regardless of price. Re-enable via NEXT_PUBLIC_MIN_VIABLE_PRICE_ENABLED=1.
+ */
+export const MIN_VIABLE_PRICE_ENABLED = process.env.NEXT_PUBLIC_MIN_VIABLE_PRICE_ENABLED === "1";
+
+/**
+ * Flat minimum target down payment enforced at input time, independent of the
+ * profile-derived viable-home figure. Configurable via NEXT_PUBLIC_MIN_DOWN_PAYMENT.
+ */
+const ENV_MIN_DP = Number(process.env.NEXT_PUBLIC_MIN_DOWN_PAYMENT);
+export const MIN_DOWN_PAYMENT = Number.isFinite(ENV_MIN_DP) && ENV_MIN_DP > 0 ? ENV_MIN_DP : 50_000;
+
 export interface Viability {
   /** The price floor below which the flow intercepts (= MIN_VIABLE_PRICE). */
   min_viable_price: number;
