@@ -5,11 +5,11 @@
  * fails), this is a hard CI gate. It runs all 58 fixtures through computeV2 and
  * asserts:
  *   1. finiteness        — no NaN/Infinity leaks into any tier number or g*
- *   2. legal-fees fix    — a non-infeasible tier's transaction cash ≤ available
- *      cash (Commit 1: isFeasibleAtPrice now counts legal fees)
- *   3. emergency-fund fix — a feasible tier leaves the reserve intact, i.e.
- *      cash_gap ≤ 0 (Commit 3: reserve folded into the feasibility constraint)
- *   4. fixture expects    — each persona's `expect` band/flag holds (Commit 2)
+ *   2. cash constraint   — a non-infeasible tier's transaction cash ≤ available
+ *      cash (isFeasibleAtPrice counts down-payment + BSD + ABSD + legal fees)
+ *   3. no overspend      — a feasible tier never asks for more cash than available,
+ *      i.e. cash_gap ≤ 0
+ *   4. fixture expects    — each persona's `expect` band/flag holds
  */
 import { describe, it, expect } from "vitest";
 import { ALL_PERSONAS, toSolveParams, type Persona } from "./personas";
@@ -62,7 +62,7 @@ describe("persona regression gate", () => {
         }
       });
 
-      it("Commit 1: a non-infeasible tier's transaction cash ≤ available cash", () => {
+      it("a non-infeasible tier's transaction cash ≤ available cash", () => {
         for (const key of TIER_KEYS) {
           const t = v2.tiers[key];
           if (!isLiveTier(t)) continue;
@@ -72,7 +72,7 @@ describe("persona regression gate", () => {
         }
       });
 
-      it("Commit 3: a feasible tier leaves the emergency reserve intact (cash_gap ≤ 0)", () => {
+      it("a feasible tier never needs more cash than available (cash_gap ≤ 0)", () => {
         for (const key of TIER_KEYS) {
           const t = v2.tiers[key];
           if (!isLiveTier(t)) continue;
@@ -88,12 +88,12 @@ describe("persona regression gate", () => {
           p.input.availableCash >= bal.cash_breakdown.transaction_cash_total;
 
         if (e.feasible === true) {
-          it("Commit 2: expected feasible — balanced transaction is affordable", () => {
+          it("expected feasible — balanced transaction is affordable", () => {
             expect(txnAffordable).toBe(true);
           });
         }
         if (e.feasible === false) {
-          it("Commit 2: expected infeasible — balanced transaction is NOT affordable", () => {
+          it("expected infeasible — balanced transaction is NOT affordable", () => {
             expect(txnAffordable).toBe(false);
           });
         }

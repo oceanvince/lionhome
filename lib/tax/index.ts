@@ -9,7 +9,6 @@ export {
   buildOutput,
   COMFORT_RATIO,
   BALANCED_RATIO,
-  EMERGENCY_FUND_RATIO,
   estimateLegalFees,
 } from "./tdsr";
 export type {
@@ -21,5 +20,10 @@ export type {
   TiersResult,
 } from "./tdsr";
 export { SEED_TAX_RATES } from "./seed";
-export { computeMarketFloor, PRIVATE_FLOOR } from "./floor";
-export type { MarketFloor } from "./floor";
+export {
+  computeViability,
+  MIN_VIABLE_PRICE,
+  MIN_VIABLE_PRICE_ENABLED,
+  MIN_DOWN_PAYMENT,
+} from "./viability";
+export type { Viability } from "./viability";

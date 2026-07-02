@@ -1,9 +1,4 @@
-import {
-  computeTiers,
-  solveMaxPurchasePrice,
-  computeMarketFloor,
-  EMERGENCY_FUND_RATIO,
-} from "@/lib/tax";
+import { computeTiers, solveMaxPurchasePrice, computeViability } from "@/lib/tax";
 import type { CalcOutputs, PriceTier, PriceTierKey, SolveParams } from "@/lib/tax";
 import {
   breakEvenFromCalcOutputs,
@@ -28,15 +23,9 @@ export interface V2ComputeParams {
   taxRatesVersion: string;
 }
 
-function buildCashBreakdown(
-  output: CalcOutputs,
-  annualIncome: number,
-  availableCash: number
-): CashBreakdown {
+function buildCashBreakdown(output: CalcOutputs, availableCash: number): CashBreakdown {
   const transactionCash =
     output.down_payment.cash + output.bsd + output.absd + output.legal_fees_est;
-  const emergency = Math.round(annualIncome * EMERGENCY_FUND_RATIO);
-  const totalCashNeeded = transactionCash + emergency;
   return {
     price: output.max_price,
     loan_amount: output.loan_amount,
@@ -49,9 +38,8 @@ function buildCashBreakdown(
     absd_rate: output.absd_rate,
     legal_fees_est: output.legal_fees_est,
     transaction_cash_total: Math.round(transactionCash),
-    emergency_fund_suggested: emergency,
-    total_cash_needed: Math.round(totalCashNeeded),
-    cash_gap: Math.round(totalCashNeeded - availableCash),
+    total_cash_needed: Math.round(transactionCash),
+    cash_gap: Math.round(transactionCash - availableCash),
     monthly_payment: output.monthly_payment,
     tdsr_utilization: output.tdsr_utilization,
     infeasible_reason: output.infeasible_reason,
@@ -65,7 +53,7 @@ function toTierData(tier: PriceTier, annualIncome: number, availableCash: number
     price_low: tier.price_low,
     price_high: tier.price_high,
     midpoint: tier.midpoint,
-    cash_breakdown: buildCashBreakdown(tier.output, annualIncome, availableCash),
+    cash_breakdown: buildCashBreakdown(tier.output, availableCash),
     monthly: tier.output.monthly_payment,
     monthly_pct_of_income:
       monthlyIncome > 0
@@ -123,7 +111,7 @@ export function computeV2(p: V2ComputeParams): V2ComputeResult {
     tax_rates_version: taxRatesVersion,
     tiers,
     break_even: breakEven,
-    market_floor: computeMarketFloor(solveParams),
+    viability: computeViability(solveParams),
     degenerate: t.degenerate,
     legacy_max_price: t.aggressive.price_high,
     outputs: solveMaxPurchasePrice(solveParams),
