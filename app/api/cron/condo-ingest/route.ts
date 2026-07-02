@@ -13,8 +13,19 @@ export const maxDuration = 300;
  * Nightly condo ingestion (SPEC §6 / TD §6). Guarded by CRON_SECRET.
  * Re-ingests every active/stub project with the real URA/OneMap adapters,
  * recomputes scores, and promotes stubs once data is ready.
+ *
+ * Vercel Cron invokes this via GET with `Authorization: Bearer $CRON_SECRET`;
+ * a manual run can POST (or pass `?secret=`). Both share `runIngest`.
  */
+export async function GET(req: NextRequest) {
+  return runIngest(req);
+}
+
 export async function POST(req: NextRequest) {
+  return runIngest(req);
+}
+
+async function runIngest(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const provided =
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
