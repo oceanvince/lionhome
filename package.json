@@ -25,7 +25,8 @@
     "db:diff": "supabase db diff",
     "db:seed": "supabase db reset",
     "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
-    "db:types:remote": "supabase gen types typescript --linked > lib/supabase/database.types.ts"
+    "db:types:remote": "supabase gen types typescript --linked > lib/supabase/database.types.ts",
+    "condo:seed": "npx tsx scripts/condo-seed.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
