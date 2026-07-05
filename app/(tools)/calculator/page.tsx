@@ -1440,25 +1440,18 @@ export default function CalculatorPage() {
             {/* Block 1 · 三档房价区间 */}
             <section style={{ marginBottom: 32 }}>
               <h3 style={SECTION_TITLE}>① 你适合买多少钱的房子</h3>
-              {result.degenerate && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: C.warn,
-                    fontWeight: 300,
-                    marginBottom: 12,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  你的现金封顶限制了三档收敛到同一价位 —— 想买更高需先增加现金。
-                </p>
-              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {TIER_ORDER.map((key) => {
                   const td = result.tiers[key];
                   const active = key === selectedTier;
                   const pct = Math.round(td.ratio * 100);
                   const isAgg = key === "aggressive";
+                  // Per-tier budget hint: how much cash this tier actually needs, and
+                  // if the buyer set a target down payment, whether it covers it.
+                  const tierCash = td.cash_breakdown.transaction_cash_total;
+                  const tierGap = Math.max(0, tierCash - targetAmount);
+                  const tierOk = hasBudget && tierGap === 0 && tierCash > 0;
+                  const tierShort = hasBudget && tierGap > 0;
                   return (
                     <div
                       key={key}
@@ -1506,6 +1499,22 @@ export default function CalculatorPage() {
                       >
                         压力测试月供占月收入 ≤ {pct}%{isAgg && " · 日常生活会吃紧"}
                       </div>
+                      {tierCash > 0 && (
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 300,
+                            marginTop: 6,
+                            color: tierShort ? C.warn : tierOk ? C.primary : C.gray400,
+                          }}
+                        >
+                          {tierOk
+                            ? `✓ 需现金 ${fmtS(tierCash)}，你的目标首付够用`
+                            : tierShort
+                              ? `⚠ 需现金 ${fmtS(tierCash)}，还差 ${fmtS(tierGap)}`
+                              : `需现金 ${fmtS(tierCash)}`}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
