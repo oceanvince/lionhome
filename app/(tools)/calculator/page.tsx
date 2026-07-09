@@ -1356,7 +1356,14 @@ export default function CalculatorPage() {
       );
     }
 
-    const tier: TierData = result.tiers[selectedTier];
+    // When the down payment budget — not the monthly-payment ratio — is the
+    // binding constraint, all three tiers collapse to essentially the same
+    // ceiling (result.degenerate). Showing three near-identical cards is noise,
+    // so we render only the ceiling and pin the selection to it.
+    const effectiveTier: PriceTierKey = result.degenerate ? "aggressive" : selectedTier;
+    const visibleTiers: PriceTierKey[] = result.degenerate ? ["aggressive"] : TIER_ORDER;
+
+    const tier: TierData = result.tiers[effectiveTier];
     const cb = tier.cash_breakdown;
     // Cash shortfall only applies when the buyer set a target down payment.
     const cashGap = Math.max(0, cb.transaction_cash_total - targetAmount);
@@ -1384,9 +1391,9 @@ export default function CalculatorPage() {
       ? `目标首付 S$ ${targetAmount.toLocaleString("en-US")}`
       : "首付不限";
     const lowerTierName =
-      selectedTier === "aggressive"
+      effectiveTier === "aggressive"
         ? "平衡区"
-        : selectedTier === "balanced"
+        : effectiveTier === "balanced"
           ? "舒适区"
           : "更低预算";
 
@@ -1441,9 +1448,9 @@ export default function CalculatorPage() {
             <section style={{ marginBottom: 32 }}>
               <h3 style={SECTION_TITLE}>① 你适合买多少钱的房子</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {TIER_ORDER.map((key) => {
+                {visibleTiers.map((key) => {
                   const td = result.tiers[key];
-                  const active = key === selectedTier;
+                  const active = key === effectiveTier;
                   const pct = Math.round(td.ratio * 100);
                   const isAgg = key === "aggressive";
                   // Per-tier budget hint: how much cash this tier actually needs, and
@@ -1478,9 +1485,13 @@ export default function CalculatorPage() {
                           color: C.primary,
                         }}
                       >
-                        {TIER_NAME[key]}
-                        {key === "balanced" && <Badge>推荐</Badge>}
-                        {isAgg && <Badge warn>MAS 上限</Badge>}
+                        {result.degenerate ? "你的上限" : TIER_NAME[key]}
+                        {!result.degenerate && key === "balanced" && <Badge>推荐</Badge>}
+                        {result.degenerate ? (
+                          <Badge warn>首付封顶</Badge>
+                        ) : (
+                          isAgg && <Badge warn>MAS 上限</Badge>
+                        )}
                       </div>
                       <div
                         style={{
@@ -1497,7 +1508,9 @@ export default function CalculatorPage() {
                       <div
                         style={{ fontSize: 12, color: C.gray500, fontWeight: 300, marginTop: 4 }}
                       >
-                        压力测试月供占月收入 ≤ {pct}%{isAgg && " · 日常生活会吃紧"}
+                        {result.degenerate
+                          ? "受你的首付预算封顶 · 月供未到压力线"
+                          : `压力测试月供占月收入 ≤ ${pct}%${isAgg ? " · 日常生活会吃紧" : ""}`}
                       </div>
                       {tierCash > 0 && (
                         <div
@@ -1524,7 +1537,7 @@ export default function CalculatorPage() {
             {/* Block 2 · 现金需求拆解 */}
             <section style={{ marginBottom: 32 }}>
               <h3 style={SECTION_TITLE}>
-                ② 买 <span style={{ color: C.primary }}>“{TIER_NAME[selectedTier]}”</span>{" "}
+                ② 买 <span style={{ color: C.primary }}>“{TIER_NAME[effectiveTier]}”</span>{" "}
                 的房需要准备的现金
               </h3>
               <div
