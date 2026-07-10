@@ -6,16 +6,23 @@
  *   "MRT STATION" and "PRIMARY SCHOOL" results, then filter by distance around
  *   the project. This avoids relying on OneMap theme query names, which do not
  *   currently expose MRT/school POI layers in the available theme catalog.
+ * - MRT walkMinutes: enriched with the OneMap Routing API (routeType=walk),
+ *   which returns the real pedestrian-network walking time instead of a
+ *   straight-line estimate. Routing requires a token, so we fall back to the
+ *   haversine estimate when credentials are missing or a route call fails.
  *
- * Auth: geocoding and POI search are public; no OneMap token is required for
- * the MVP location score.
+ * Auth: geocoding and POI search are public (no token). The routing service
+ * needs a token obtained from ONEMAP_EMAIL / ONEMAP_PASSWORD via getToken; when
+ * those are unset the adapter still works, using the straight-line estimate.
  */
 
 import type { AmenityLite } from "@/lib/project-scoring";
 import type { OneMapSource, GeocodeResult } from "./sources";
 
 const SEARCH_URL = "https://www.onemap.gov.sg/api/common/elastic/search";
-const WALK_M_PER_MIN = 80; // ~4.8 km/h walking pace
+const TOKEN_URL = "https://www.onemap.gov.sg/api/auth/post/getToken";
+const ROUTE_URL = "https://www.onemap.gov.sg/api/public/routingsvc/route";
+const WALK_M_PER_MIN = 80; // ~4.8 km/h walking pace — straight-line fallback only
 const BOX_M = 1500; // half-extent of the search box around the project
 const MAX_SEARCH_PAGES = 100; // OneMap returns 10 rows/page; enough for full MRT/school catalogs.
 const PAGE_DELAY_MS = 100; // OneMap public search is rate-limited; keep catalog pulls gentle.
@@ -29,9 +36,11 @@ const POI_SEARCHES: { kind: "mrt" | "school"; query: string; radiusM: number }[]
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const searchCatalogCache = new Map<string, Promise<any[]>>();
+let tokenCache: { token: string; expiresAtMs: number } | null = null;
 
 export function clearOneMapSearchCacheForTests(): void {
   searchCatalogCache.clear();
+  tokenCache = null;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -73,6 +82,8 @@ export function mapSearchResults(
       lat,
       lng,
       distanceM,
+      // Straight-line seed; MRT is later overridden with the real walking
+      // time from the routing service (see enrichMrtWalkMinutes).
       walkMinutes: kind === "mrt" ? Math.max(1, Math.round(distanceM / WALK_M_PER_MIN)) : null,
     });
   }
@@ -128,6 +139,83 @@ function dedupeAmenities(items: AmenityLite[]): AmenityLite[] {
   return out;
 }
 
+/**
+ * Obtain a OneMap routing token from ONEMAP_EMAIL / ONEMAP_PASSWORD, cached
+ * until shortly before its expiry. Returns null when credentials are unset — the
+ * caller then keeps the straight-line walk estimate instead of failing.
+ */
+async function getRoutingToken(): Promise<string | null> {
+  const email = process.env.ONEMAP_EMAIL;
+  const password = process.env.ONEMAP_PASSWORD;
+  if (!email || !password) return null;
+
+  const now = Date.now();
+  if (tokenCache && tokenCache.expiresAtMs > now + 60_000) return tokenCache.token;
+
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+    signal: ctrl.signal,
+  }).finally(() => clearTimeout(timeout));
+  if (!res.ok) throw new Error(`OneMap getToken HTTP ${res.status}`);
+  const json: any = await res.json();
+  const token = json?.access_token;
+  if (!token) throw new Error("OneMap getToken: no access_token in response");
+  // expiry_timestamp is unix seconds (string); default to ~2h if absent.
+  const expirySec = Number(json?.expiry_timestamp);
+  const expiresAtMs =
+    Number.isFinite(expirySec) && expirySec > 0 ? expirySec * 1000 : now + 2 * 3_600_000;
+  tokenCache = { token, expiresAtMs };
+  return token;
+}
+
+/**
+ * Real pedestrian-network walking time (minutes) between two points via the
+ * OneMap Routing API. Returns null on any failure so the caller can fall back.
+ */
+export async function fetchWalkMinutes(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+  token: string
+): Promise<number | null> {
+  const url = `${ROUTE_URL}?start=${from.lat},${from.lng}&end=${to.lat},${to.lng}&routeType=walk`;
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  const res = await fetch(url, {
+    headers: { Authorization: token },
+    signal: ctrl.signal,
+  }).finally(() => clearTimeout(timeout));
+  if (!res.ok) return null;
+  const json: any = await res.json();
+  const seconds = Number(json?.route_summary?.total_time);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return Math.max(1, Math.round(seconds / 60));
+}
+
+/**
+ * Override each MRT amenity's walkMinutes with the real routing-service walking
+ * time. Best-effort: without a token (or if a route call fails) the amenity
+ * keeps its straight-line seed from mapSearchResults.
+ */
+async function enrichMrtWalkMinutes(
+  loc: GeocodeResult,
+  amenities: AmenityLite[]
+): Promise<AmenityLite[]> {
+  const token = await getRoutingToken().catch(() => null);
+  if (!token) return amenities;
+
+  for (const a of amenities) {
+    if (a.kind !== "mrt" || a.lat == null || a.lng == null) continue;
+    const real = await fetchWalkMinutes(loc, { lat: a.lat, lng: a.lng }, token).catch(() => null);
+    if (real != null) a.walkMinutes = real;
+    await sleep(PAGE_DELAY_MS);
+  }
+  return amenities;
+}
+
 async function fetchNearbySearchPois(loc: GeocodeResult): Promise<AmenityLite[]> {
   const groups: AmenityLite[][] = [];
   for (const { kind, query, radiusM } of POI_SEARCHES) {
@@ -135,7 +223,8 @@ async function fetchNearbySearchPois(loc: GeocodeResult): Promise<AmenityLite[]>
     groups.push(mapSearchResults(kind, loc, rows, radiusM));
     await sleep(PAGE_DELAY_MS);
   }
-  return dedupeAmenities(groups.flat());
+  const amenities = dedupeAmenities(groups.flat());
+  return enrichMrtWalkMinutes(loc, amenities);
 }
 
 export function createOneMapSource(): OneMapSource {

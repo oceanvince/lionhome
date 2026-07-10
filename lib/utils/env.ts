@@ -12,6 +12,8 @@ const serverEnvSchema = z.object({
   POSTHOG_API_KEY: z.string().optional(),
   POSTHOG_HOST: z.string().url().optional(),
   ONEMAP_API_KEY: z.string().optional(),
+  ONEMAP_EMAIL: z.string().optional(),
+  ONEMAP_PASSWORD: z.string().optional(),
   URA_API_KEY: z.string().optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 });
