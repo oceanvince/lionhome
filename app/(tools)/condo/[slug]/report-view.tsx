@@ -324,7 +324,6 @@ function DetailTabs({ report }: { report: CondoReport }) {
               >
                 <tr className="text-left">
                   <th className="py-2 font-medium">日期</th>
-                  <th className="font-medium">户型</th>
                   <th className="text-right font-medium">面积</th>
                   <th className="text-right font-medium">PSF</th>
                   <th className="text-right font-medium">成交价</th>
@@ -334,7 +333,6 @@ function DetailTabs({ report }: { report: CondoReport }) {
                 {report.transactions.slice(0, 12).map((t, i) => (
                   <tr key={i} className="border-b" style={{ borderColor: "#eee" }}>
                     <td className="py-2.5">{t.txnDate}</td>
-                    <td>{t.bedroomType ?? "—"} 房</td>
                     <td className="text-right">{Math.round(t.areaSqft)} sqft</td>
                     <td className="text-right">S${Math.round(t.psf).toLocaleString()}</td>
                     <td className="text-right font-medium">
