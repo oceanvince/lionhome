@@ -2,6 +2,27 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  // Lightweight access log: client IP + geo. Vercel injects these headers at the
+  // edge; locally they're absent (ip = "unknown"). NOTE: client IP is personal
+  // data (PDPA/GDPR) — this is for ops/traffic analysis, keep retention short.
+  // Skip RSC prefetches to avoid double-logging a single navigation.
+  if (!request.nextUrl.searchParams.has("_rsc")) {
+    const ip =
+      request.headers.get("x-vercel-forwarded-for") ??
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+    console.log(
+      JSON.stringify({
+        tag: "access",
+        ip,
+        country: request.headers.get("x-vercel-ip-country") ?? "",
+        city: request.headers.get("x-vercel-ip-city") ?? "",
+        method: request.method,
+        path: request.nextUrl.pathname,
+      })
+    );
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
