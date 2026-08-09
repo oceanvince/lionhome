@@ -1,13 +1,29 @@
 {
   "common": {
     "appName": "LionHome",
-    "tagline": "新加坡买房，更聪明的决策"
+    "brandName": "狮城家 LionHome",
+    "tagline": "新加坡买房，更聪明的决策",
+    "terms": "使用条款",
+    "privacy": "隐私政策",
+    "dataSharing": "信息分享说明"
   },
   "home": {
-    "heroTitle": "新加坡买房，我到底买得起多少？",
+    "eyebrow": "新加坡买房决策平台",
+    "heroTitleLine1": "新加坡买房，",
+    "heroTitleLine2": "我到底买得起多少？",
     "heroSubtitle": "用专业工具厘清 BSD、ABSD、TDSR、LTV，再做决定。",
+    "heroMetaFree": "免费使用",
+    "heroMetaNoSignup": "无需注册",
+    "sectionTitle": "从这里开始",
+    "comingSoon": "即将上线",
     "ctaCalculator": "开始测算",
+    "ctaCalculatorSub": "3 分钟算出三档购房预算，以及过户要准备多少现金",
+    "ctaCondo": "查一个楼盘",
+    "ctaCondoSub": "盈利、地段打分 + 一句话结论，看它值不值得进候选",
     "ctaQuiz": "做买家健康测试",
-    "ctaArticles": "阅读文章"
+    "ctaQuizSub": "几道题看清你离买房还差什么",
+    "ctaArticles": "阅读文章",
+    "ctaArticlesSub": "印花税、贷款成数、买租对比的逐项拆解",
+    "disclaimer": "本工具基于公开的 IRAS、MAS、URA 数据测算，结果仅供参考，不构成财务或投资建议。"
   }
 }

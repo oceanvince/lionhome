@@ -7,13 +7,19 @@
   --color-brand-600: oklch(0.55 0.2 30);
   --color-brand-900: oklch(0.3 0.12 30);
 
-  /* ── Calculator / LionHome design system ────────────────────── */
+  /* ── LionHome「Quiet Luxury」设计系统 ─────────────────────────
+     与 lib/design/tokens.ts 一一对应，改色时两处一起改。 */
   --color-primary: #2f4f3d;
   --color-primary-soft: #eaefeb;
   --color-charcoal: #1a1c1a;
   --color-offwhite: #fcfbf9;
   --color-cream: #f5f1e8;
   --color-border: #e5e5e5;
+  --color-warn: #8b3a1f;
+  --color-warn-soft: #f8efe8;
+  /* 次级正文 (tokens.ts gray500) / 说明文字 (tokens.ts gray400) */
+  --color-muted: #6b7280;
+  --color-faint: #9ca3af;
 
   /* ── Fonts ──────────────────────────────────────────────────── */
   --font-sans:

@@ -4,7 +4,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <article className="prose prose-sm prose-neutral mx-auto max-w-2xl space-y-6 py-8">
+    <article className="prose prose-sm prose-neutral mx-auto max-w-2xl space-y-6 px-4 py-8">
       <header className="space-y-1">
         <p className="text-xs tracking-widest text-neutral-500 uppercase">
           Privacy Policy · 隐私政策

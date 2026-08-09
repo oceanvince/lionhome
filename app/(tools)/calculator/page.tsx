@@ -7,23 +7,7 @@ import { INITIAL_FORM } from "@/lib/calculator/form-types";
 import type { V2ComputeResult, TierData, PriceTierKey, Viability } from "@/lib/calculator/v2-types";
 import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
 import { MIN_DOWN_PAYMENT, MIN_VIABLE_PRICE_ENABLED } from "@/lib/tax";
-
-/* ─────────────────────────────────────────────────────────────────────
-   COLORS / TOKENS
-───────────────────────────────────────────────────────────────────── */
-const C = {
-  primary: "#2F4F3D",
-  primarySoft: "#EAEFEB",
-  charcoal: "#1A1C1A",
-  offwhite: "#FCFBF9",
-  cream: "#F5F1E8",
-  border: "#E5E5E5",
-  warn: "#8B3A1F",
-  warnSoft: "#F8EFE8",
-  gray500: "#6B7280",
-  gray400: "#9CA3AF",
-};
-const SERIF = "'Noto Serif SC', serif";
+import { C, SERIF } from "@/lib/design/tokens";
 
 /* ─────────────────────────────────────────────────────────────────────
    HELPERS

@@ -1,13 +1,29 @@
 {
   "common": {
     "appName": "LionHome",
-    "tagline": "Buy property in Singapore, smarter."
+    "brandName": "LionHome",
+    "tagline": "Buy property in Singapore, smarter.",
+    "terms": "Terms of Use",
+    "privacy": "Privacy Policy",
+    "dataSharing": "Data Sharing Notice"
   },
   "home": {
-    "heroTitle": "How much property in Singapore can I actually afford?",
+    "eyebrow": "Singapore home-buying decisions",
+    "heroTitleLine1": "How much property in Singapore",
+    "heroTitleLine2": "can I actually afford?",
     "heroSubtitle": "Cut through BSD, ABSD, TDSR, and LTV before you decide.",
+    "heroMetaFree": "Free to use",
+    "heroMetaNoSignup": "No sign-up",
+    "sectionTitle": "Start here",
+    "comingSoon": "Coming soon",
     "ctaCalculator": "Start the calculator",
+    "ctaCalculatorSub": "Three budget tiers and the cash you need at completion, in 3 minutes",
+    "ctaCondo": "Look up a project",
+    "ctaCondoSub": "Profit and location scores plus a one-line verdict on whether it is worth shortlisting",
     "ctaQuiz": "Take the buyer quiz",
-    "ctaArticles": "Read articles"
+    "ctaQuizSub": "A few questions to show what still stands between you and a purchase",
+    "ctaArticles": "Read articles",
+    "ctaArticlesSub": "Stamp duty, loan-to-value, and buy-vs-rent, broken down line by line",
+    "disclaimer": "Estimates are based on public IRAS, MAS, and URA data and are for reference only. They are not financial or investment advice."
   }
 }
