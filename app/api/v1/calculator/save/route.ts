@@ -98,12 +98,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // If run_id provided, link the existing run to the resolved user and return
+  // The run normally already exists — /compute persists it before returning —
+  // so this links it to the resolved user. If the row is missing (a compute-time
+  // insert that failed, or a stale id from a cached tab) fall through to the
+  // insert below: returning an id that references nothing would lose the report
+  // exactly the way it was lost before runs were persisted at compute time.
   if (run_id) {
-    if (userId) {
-      await db(serviceClient).from("calculator_runs").update({ user_id: userId }).eq("id", run_id);
+    const { data: linked } = await db(serviceClient)
+      .from("calculator_runs")
+      .update({ user_id: userId })
+      .eq("id", run_id)
+      .select("id")
+      .maybeSingle();
+    if (linked) {
+      return NextResponse.json({ ok: true, data: { run_id } });
     }
-    return NextResponse.json({ ok: true, data: { run_id } });
+    console.warn("[/api/v1/calculator/save] run_id not found, inserting instead:", run_id);
   }
 
   const { data: run, error: runErr } = await db(serviceClient)

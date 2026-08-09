@@ -11,6 +11,8 @@ const serverEnvSchema = z.object({
   RESEND_FROM_EMAIL: z.string().email().optional(),
   POSTHOG_API_KEY: z.string().optional(),
   POSTHOG_HOST: z.string().url().optional(),
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_CHAT_ID: z.string().optional(),
   ONEMAP_API_KEY: z.string().optional(),
   ONEMAP_EMAIL: z.string().optional(),
   ONEMAP_PASSWORD: z.string().optional(),

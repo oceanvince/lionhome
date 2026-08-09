@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { track, trackingHeaders } from "@/lib/analytics/client";
 import { buildApiPayload, toAmount, isForeigner } from "@/lib/calculator/bucket-maps";
 import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calculator/form-types";
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
@@ -731,6 +732,16 @@ export default function CalculatorPage() {
   // Lead-sharing consent must be explicit (PDPA s.13). Default unchecked.
   const [leadConsent, setLeadConsent] = useState(false);
 
+  // Page view, counted in the browser so crawlers (a third of the traffic in the
+  // 2026-08-09 log export) never reach it. The ref keeps React's dev-mode double
+  // effect from logging the same visit twice.
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (viewTracked.current) return;
+    viewTracked.current = true;
+    track("calculator_view");
+  }, []);
+
   const setField = useCallback(
     <K extends keyof CalculatorFormState>(key: K, val: CalculatorFormState[K]) =>
       setForm((f) => ({ ...f, [key]: val })),
@@ -767,14 +778,20 @@ export default function CalculatorPage() {
     try {
       const res = await fetch("/api/v1/calculator/compute", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json", ...trackingHeaders() },
+        // `session_id` is sent alongside the payload but kept out of the stored
+        // inputs below, so a run persisted by /compute and one inserted by the
+        // /save fallback carry an identical `inputs` shape.
+        body: JSON.stringify({ ...payload, session_id: sessionId }),
       });
       const json = await res.json();
       clearInterval(interval);
       if (json.ok) {
         const data = json.data as V2ComputeResult;
         setResult(data);
+        // The server already stored this run. Null means it could not, in which
+        // case saveReport() falls back to posting the whole payload.
+        setRunId((json.run_id as string | null) ?? null);
         setSelectedTier("balanced");
         setYears(data.break_even?.default_holding_years ?? 7);
         setTenure(data.break_even?.default_tenure_years ?? 30);
@@ -826,6 +843,9 @@ export default function CalculatorPage() {
           outputs: result,
           tax_rates_version: result.tax_rates_version,
           session_id: sessionId,
+          // Present in the normal case: /compute already stored the run, so the
+          // server links that row instead of inserting a duplicate.
+          ...(runId ? { run_id: runId } : {}),
         }),
       });
       const data = await res.json();
@@ -839,16 +859,25 @@ export default function CalculatorPage() {
     return null;
   }
 
-  async function handleWhatsApp() {
+  function handleWhatsApp() {
     if (!leadConsent) {
       // 没勾选 PDPA 同意，滚动到 checkbox 并高亮提示。不发起任何保存/分享行为。
       const el = document.getElementById("lead-consent-box");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    const id = runId ?? (await saveReport());
-    const text = id
-      ? `Hi 狮城家，我的报告编号是 ${id}，请帮我看这个区间的房。`
+    track("whatsapp_click", { tier: selectedTier, run_id: runId });
+
+    // Fire-and-forget. /compute already stored the run, so nothing here has to
+    // finish before the handoff; awaiting it would push window.open out of the
+    // click's call stack, where iOS Safari and Chrome treat it as a popup and
+    // block it — losing the lead outright rather than losing a report number.
+    // With a run_id this links the stored row; without one (a compute-time
+    // insert that failed) it still inserts the report.
+    void saveReport();
+
+    const text = runId
+      ? `Hi 狮城家，我的报告编号是 ${runId}，请帮我看这个区间的房。`
       : `Hi 狮城家，请帮我看看适合我的房。`;
     window.open(
       `https://api.whatsapp.com/send?phone=6591115568&text=${encodeURIComponent(text)}`,
@@ -861,6 +890,9 @@ export default function CalculatorPage() {
   function resetAll() {
     setForm(INITIAL_FORM);
     setResult(null);
+    // Must clear with the result: a stale id would attach the next calculation
+    // to the previous run.
+    setRunId(null);
     setSelectedTier("balanced");
     setYears(7);
     setTenure(30);

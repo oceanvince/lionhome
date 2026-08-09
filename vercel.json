@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/condo-ingest",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/daily-report",
+      "schedule": "30 0 * * *"
     }
   ]
 }

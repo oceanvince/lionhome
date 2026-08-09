@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { SEED_TAX_RATES } from "@/lib/tax";
 import type { TaxRatesConfig } from "@/lib/tax";
 import { computeV2 } from "@/lib/calculator/v2-compute";
+import { readTrackingHeaders, trackEvent } from "@/lib/analytics/events";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,9 @@ const ComputeSchema = z.object({
   display_rate: z.number().min(0.005).max(0.06).default(DEFAULT_DISPLAY_RATE),
   // Lead label — not used in calculation
   timeline: z.enum(["6m", "1y", "explore"]).optional(),
+  // Browser-minted id grouping every run in one sitting. Optional so an older
+  // cached bundle keeps working; the column defaults to a fresh uuid.
+  session_id: z.string().uuid().optional(),
   // Optional legacy fields — accepted but unused
   marital_status: z.enum(["single", "married", "married_foreign_spouse"]).optional(),
   spouse_residency: z.enum(["citizen", "pr", "foreigner"]).optional(),
@@ -71,7 +75,60 @@ async function insertSeedRates(): Promise<boolean> {
   }
 }
 
+/**
+ * Persist the run the moment it is computed, rather than when the visitor
+ * presses 找顾问.
+ *
+ * Before this, a report only reached the database if the visitor both ticked
+ * the PDPA box and pressed the CTA. On 2026-07-13 that was 1 of 11 computations;
+ * the other 10 were unrecoverable, because Vercel runtime logs never carry
+ * response bodies — only metadata and whatever the function prints itself.
+ *
+ * Deliberately synchronous: the response hands `run_id` back to the client, and
+ * a run the client cannot reference is a lead that cannot be linked later. One
+ * insert behind the loading animation is not perceptible. A failure is
+ * swallowed — the visitor still gets their result, and the client falls back to
+ * posting the full payload to /save.
+ */
+async function persistRun(
+  inputs: Record<string, unknown>,
+  outputs: unknown,
+  taxRatesVersion: string,
+  sessionId: string | undefined
+): Promise<string | null> {
+  try {
+    // DB types are stubs pending `npm run db:types:remote`. Cast via `any`,
+    // matching /api/v1/calculator/save.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = getSupabaseServiceRoleClient() as any;
+    const { data, error } = await db
+      .from("calculator_runs")
+      .insert({
+        user_id: null,
+        ...(sessionId ? { session_id: sessionId } : {}),
+        inputs,
+        outputs,
+        tax_rates_version: taxRatesVersion,
+      })
+      .select("id")
+      .single();
+    if (error) {
+      console.error("[/api/v1/calculator/compute] Run insert failed:", error.message);
+      return null;
+    }
+    return (data as { id: string }).id;
+  } catch (err) {
+    console.error("[/api/v1/calculator/compute] Run insert threw:", err);
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
+  // Tracked server-side rather than in the browser: this is the conversion that
+  // matters, and an ad blocker must not be able to hide it. `after()` keeps the
+  // insert off the response path.
+  const tracking = readTrackingHeaders(req.headers);
+
   let body: unknown;
   try {
     body = await req.json();
@@ -88,6 +145,14 @@ export async function POST(req: NextRequest) {
       field: e.path.join("."),
       message: e.message,
     }));
+    after(() =>
+      trackEvent({
+        ...tracking,
+        name: "calculator_submit_failed",
+        path: "/calculator",
+        props: { reason: "INVALID_INPUT", fields: fields.map((f) => f.field) },
+      })
+    );
     return NextResponse.json({
       ok: false,
       error: { code: "INVALID_INPUT", message: "参数校验失败", fields },
@@ -135,9 +200,41 @@ export async function POST(req: NextRequest) {
       taxRatesVersion,
     });
 
-    return NextResponse.json({ ok: true, data });
+    // Crawlers that POST here would otherwise fill the table with PII-shaped
+    // rows and inflate every figure derived from it, so they compute but do not
+    // persist. `session_id` lives in its own column; keep it out of `inputs`.
+    const { session_id: sessionId, ...storedInputs } = input;
+    const runId = tracking.isBot
+      ? null
+      : await persistRun(storedInputs, data, taxRatesVersion, sessionId);
+
+    after(() =>
+      trackEvent({
+        ...tracking,
+        name: "calculator_submit",
+        path: "/calculator",
+        // Enum fields only — no income, no cash, nothing identifying.
+        props: {
+          residency: input.residency,
+          timeline: input.timeline ?? null,
+          existing_properties: input.existing_properties,
+          run_id: runId,
+        },
+      })
+    );
+    // `run_id` sits beside `data` rather than inside it: it describes the stored
+    // row, not the computation, and `data` is echoed back verbatim as `outputs`.
+    return NextResponse.json({ ok: true, data, run_id: runId });
   } catch (err) {
     console.error("[/api/v1/calculator/compute] Engine error:", err);
+    after(() =>
+      trackEvent({
+        ...tracking,
+        name: "calculator_submit_failed",
+        path: "/calculator",
+        props: { reason: "CALC_INTERNAL_ERROR" },
+      })
+    );
     return NextResponse.json({
       ok: false,
       error: { code: "CALC_INTERNAL_ERROR", message: "计算引擎出现意外错误，请重试" },
