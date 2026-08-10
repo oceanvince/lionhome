@@ -102,9 +102,13 @@ export async function GET(req: NextRequest) {
   };
   const rows = (data ?? []) as Row[];
 
-  const annualIncomes = rows.map((r) => num(r.inputs?.annual_income)).filter((n): n is number => n !== null);
+  const annualIncomes = rows
+    .map((r) => num(r.inputs?.annual_income))
+    .filter((n): n is number => n !== null);
   const monthlyIncomes = annualIncomes.map((n) => Math.round(n / 12));
-  const cash = rows.map((r) => num(r.inputs?.available_cash)).filter((n): n is number => n !== null);
+  const cash = rows
+    .map((r) => num(r.inputs?.available_cash))
+    .filter((n): n is number => n !== null);
   const cpf = rows.map((r) => num(r.inputs?.available_cpf)).filter((n): n is number => n !== null);
   const ages = rows.map((r) => num(r.inputs?.age)).filter((n): n is number => n !== null);
 
