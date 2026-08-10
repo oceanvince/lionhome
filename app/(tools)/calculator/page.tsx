@@ -831,13 +831,16 @@ export default function CalculatorPage() {
       const res = await fetch("/api/v1/calculator/compute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, session_id: sessionId }),
       });
       const json = await res.json();
       clearInterval(interval);
       if (json.ok) {
         const data = json.data as V2ComputeResult;
         setResult(data);
+        // The run was already stored anonymously server-side; hold its id so a
+        // later advisor request claims that row instead of inserting a duplicate.
+        if (json.run_id) setRunId(json.run_id as string);
         setSelectedTier("balanced");
         setYears(data.break_even?.default_holding_years ?? 7);
         setTenure(data.break_even?.default_tenure_years ?? 30);
@@ -889,6 +892,8 @@ export default function CalculatorPage() {
           outputs: result,
           tax_rates_version: result.tax_rates_version,
           session_id: sessionId,
+          // Claim the row compute already stored, rather than inserting a second copy.
+          ...(runId ? { run_id: runId } : {}),
         }),
       });
       const data = await res.json();

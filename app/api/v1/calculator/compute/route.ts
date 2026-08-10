@@ -23,6 +23,8 @@ const ComputeSchema = z.object({
   display_rate: z.number().min(0.005).max(0.06).default(DEFAULT_DISPLAY_RATE),
   // Lead label — not used in calculation
   timeline: z.enum(["6m", "1y", "explore"]).optional(),
+  // Anonymous run persistence — links this compute to a later lead claim.
+  session_id: z.string().uuid().optional(),
   // Optional legacy fields — accepted but unused
   marital_status: z.enum(["single", "married", "married_foreign_spouse"]).optional(),
   spouse_residency: z.enum(["citizen", "pr", "foreigner"]).optional(),
@@ -68,6 +70,41 @@ async function insertSeedRates(): Promise<boolean> {
     return !error;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Persist an anonymous run (user_id null) so we can see how the tool is actually
+ * used, not just the sliver of users who go on to contact an advisor.
+ *
+ * `inputs` deliberately excludes session_id and the unused legacy fields: this row
+ * carries budget figures but nothing that identifies a person. Association with a
+ * name/phone happens later, and only on explicit consent, via
+ * /api/v1/calculator/save claiming this run_id.
+ */
+async function insertAnonymousRun(
+  input: ComputeInput,
+  outputs: unknown,
+  taxRatesVersion: string
+): Promise<string | null> {
+  try {
+    const supabase = getSupabaseServiceRoleClient();
+    const { session_id, ...inputsToStore } = input;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.from("calculator_runs") as any)
+      .insert({
+        user_id: null,
+        ...(session_id ? { session_id } : {}),
+        inputs: inputsToStore,
+        outputs,
+        tax_rates_version: taxRatesVersion,
+      })
+      .select("id")
+      .single();
+    if (error || !data) return null;
+    return (data as { id: string }).id;
+  } catch {
+    return null;
   }
 }
 
@@ -135,7 +172,11 @@ export async function POST(req: NextRequest) {
       taxRatesVersion,
     });
 
-    return NextResponse.json({ ok: true, data });
+    // Persist anonymously. A DB failure must never break the calculation the user
+    // is waiting on, so a null run_id is an acceptable outcome here.
+    const runId = await insertAnonymousRun(input, data, taxRatesVersion);
+
+    return NextResponse.json({ ok: true, data, run_id: runId });
   } catch (err) {
     console.error("[/api/v1/calculator/compute] Engine error:", err);
     return NextResponse.json({

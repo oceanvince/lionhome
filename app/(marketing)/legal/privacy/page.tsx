@@ -48,12 +48,15 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold">2. 何时保存数据</h2>
         <p className="text-sm leading-relaxed text-neutral-700">
-          <strong>无需注册即可测算</strong>。在你完成测算但未联系顾问的情况下，
-          测算输入只在你的浏览器内临时使用，不会持久化到我们的数据库。
+          <strong>无需注册即可测算</strong>。你完成测算后，我们会以
+          <strong>匿名形式</strong>保存这次测算的输入和结果（身份、年龄、收入区间、
+          可动用现金、CPF 余额、测算出的预算等），用于分析工具的整体使用情况并改进产品。
+          这条记录<strong>不包含</strong>你的姓名、手机号或任何可直接识别你身份的信息。
         </p>
         <p className="text-sm leading-relaxed text-neutral-700">
-          <strong>仅当你主动点击「找顾问」类按钮时</strong>，我们才会保存你的测算输入和结果，
-          以便顾问准确理解你的画像并提供针对性建议。
+          <strong>仅当你主动点击「找顾问」类按钮并明示同意时</strong>，我们才会将上述匿名记录
+          与你的姓名、联系方式关联起来，以便顾问准确理解你的画像并提供针对性建议。
+          在你做出这个动作之前，我们无法将测算记录对应到具体的人。
         </p>
       </section>
 
@@ -89,7 +92,11 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold">5. 数据保留</h2>
         <p className="text-sm leading-relaxed text-neutral-700">
-          已保存的测算结果保留时长：<strong>留资后 24 个月</strong>，之后自动匿名化处理。
+          <strong>匿名测算记录</strong>（未与联系方式关联）：保留 <strong>12 个月</strong>，
+          到期后删除。
+        </p>
+        <p className="text-sm leading-relaxed text-neutral-700">
+          <strong>已留资的测算结果</strong>：<strong>留资后 24 个月</strong>，之后自动匿名化处理。
           同意记录（consent log）依 PDPA 要求至少保留 5 年。
         </p>
       </section>
