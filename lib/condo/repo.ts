@@ -22,6 +22,10 @@ import {
   devSearchActiveProjects,
   devGetScoresForProjects,
   devCountActiveProjects,
+  devGetActiveProjectBySlug,
+  devGetLatestScores,
+  devGetRecentTransactions,
+  devGetAmenities,
 } from "./dev-fixtures";
 
 /** Public boundary: callers pass the real (typed) supabase client. */
@@ -35,6 +39,13 @@ export type DbClient = ServerClient;
 function raw(db: DbClient): SupabaseClient {
   return db as unknown as SupabaseClient;
 }
+
+/**
+ * Ids per `.in()` request. A uuid costs ~37 bytes in the query string, so 200
+ * is ~7.4 KB — comfortably inside the 8 KB request line that proxies commonly
+ * enforce, even with the rest of the URL.
+ */
+const ID_CHUNK_SIZE = 200;
 
 const PROJECT_COLS =
   "id, slug, name, district, tenure, top_year, total_units, developer, lat, lng, psf_min, psf_max, psf_period_end, status";
@@ -116,24 +127,31 @@ export async function getActiveProjectBySlug(
   db: DbClient,
   slug: string
 ): Promise<CondoProject | null> {
+  if (devFixturesEnabled()) return devGetActiveProjectBySlug(slug);
   const { data, error } = await raw(db)
     .from("projects")
     .select(PROJECT_COLS)
     .eq("slug", slug)
     .eq("status", "active")
     .maybeSingle();
-  if (error || !data) return null;
+  // Same rule the search path already follows (§12-⑤): a DB error is not
+  // "no such project". Collapsing the two told visitors "这个盘我们还没收录"
+  // during an outage — wrong, noindexed, and it loses them for good.
+  if (error) throw new Error(`getActiveProjectBySlug: ${error.message}`);
+  if (!data) return null;
   return mapProject(data);
 }
 
 /** Latest score per dimension (one row per dimension, newest computed_at wins). */
 export async function getLatestScores(db: DbClient, projectId: string): Promise<ProjectScore[]> {
+  if (devFixturesEnabled()) return devGetLatestScores(projectId);
   const { data, error } = await raw(db)
     .from("project_scores")
     .select("*")
     .eq("project_id", projectId)
     .order("computed_at", { ascending: false });
-  if (error || !data) return [];
+  if (error) throw new Error(`getLatestScores: ${error.message}`);
+  if (!data) return [];
   const seen = new Set<string>();
   const out: ProjectScore[] = [];
   for (const row of data) {
@@ -150,22 +168,26 @@ export async function getRecentTransactions(
   projectId: string,
   months = 12
 ): Promise<TxnLite[]> {
+  if (devFixturesEnabled()) return devGetRecentTransactions(projectId, months);
   const { data, error } = await raw(db)
     .from("project_transactions")
     .select("*")
     .eq("project_id", projectId)
     .gte("txn_date", monthsAgoISO(months))
     .order("txn_date", { ascending: false });
-  if (error || !data) return [];
+  if (error) throw new Error(`getRecentTransactions: ${error.message}`);
+  if (!data) return [];
   return data.map(mapTxn);
 }
 
 export async function getAmenities(db: DbClient, projectId: string): Promise<AmenityLite[]> {
+  if (devFixturesEnabled()) return devGetAmenities(projectId);
   const { data, error } = await raw(db)
     .from("project_amenities")
     .select("*")
     .eq("project_id", projectId);
-  if (error || !data) return [];
+  if (error) throw new Error(`getAmenities: ${error.message}`);
+  if (!data) return [];
   return data.map(mapAmenity);
 }
 
@@ -178,6 +200,22 @@ export function escapeLike(term: string): string {
   return term.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
+/**
+ * Strip the characters PostgREST reads as structure inside `.or()`.
+ *
+ * `.or()` takes a comma-separated list of `column.operator.value` triples, with
+ * parentheses for grouping. A term containing `,` or `()` therefore does not
+ * search — it rewrites the filter. `Kovan, D19` breaks parsing and surfaces as
+ * "搜索暂不可用", and `zzz,name.not.is.null` appends a condition of the
+ * attacker's choosing. None of these characters carry search meaning for a
+ * project name or district, so drop them before the term reaches the filter.
+ * `.` is left alone: PostgREST splits a triple on the first two dots only, so a
+ * dot inside the value ("St. Regis") is safe.
+ */
+export function sanitizeOrTerm(term: string): string {
+  return term.replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
+}
+
 /** Autocomplete over active projects by name / district (SPEC §3.1). */
 export async function searchActiveProjects(
   db: DbClient,
@@ -185,7 +223,9 @@ export async function searchActiveProjects(
   limit = 8
 ): Promise<CondoProject[]> {
   if (devFixturesEnabled()) return devSearchActiveProjects(q, limit);
-  const term = escapeLike(q.trim());
+  // Structural characters go first, LIKE metacharacters second — escapeLike
+  // introduces backslashes that the structural pass must not see as content.
+  const term = escapeLike(sanitizeOrTerm(q));
   if (!term) return [];
   const { data, error } = await raw(db)
     .from("projects")
@@ -235,20 +275,39 @@ export async function getScoresForProjects(
   const out = new Map<string, ProjectScore[]>();
   if (projectIds.length === 0) return out;
   if (devFixturesEnabled()) return devGetScoresForProjects(projectIds);
-  const { data, error } = await raw(db)
-    .from("project_scores")
-    .select("*")
-    .in("project_id", projectIds)
-    .order("computed_at", { ascending: false });
-  if (error) throw new Error(`getScoresForProjects: ${error.message}`); // §12-⑤
+
+  // PostgREST renders `.in()` into the query string, so asking for the whole
+  // profit scan set in one call (up to MAX_SCAN = 3000 uuids, ~110 KB of URL)
+  // is rejected by the proxies in front of it — a 414/500 that only shows up
+  // once the catalogue reaches the size this sort was built for. Chunked, each
+  // request stays well inside the limit. Ids are unique, so a project lands in
+  // exactly one chunk and the newest-wins pass below is unaffected.
+  const chunks: string[][] = [];
+  for (let i = 0; i < projectIds.length; i += ID_CHUNK_SIZE) {
+    chunks.push(projectIds.slice(i, i + ID_CHUNK_SIZE));
+  }
+
+  const responses = await Promise.all(
+    chunks.map((chunk) =>
+      raw(db)
+        .from("project_scores")
+        .select("*")
+        .in("project_id", chunk)
+        .order("computed_at", { ascending: false })
+    )
+  );
+
   const seen = new Set<string>(); // project_id|dimension → keep newest
-  for (const row of data ?? []) {
-    const k = `${row.project_id}|${row.dimension}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    const arr = out.get(row.project_id) ?? [];
-    arr.push(mapScore(row));
-    out.set(row.project_id, arr);
+  for (const { data, error } of responses) {
+    if (error) throw new Error(`getScoresForProjects: ${error.message}`); // §12-⑤
+    for (const row of data ?? []) {
+      const k = `${row.project_id}|${row.dimension}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const arr = out.get(row.project_id) ?? [];
+      arr.push(mapScore(row));
+      out.set(row.project_id, arr);
+    }
   }
   return out;
 }
@@ -365,8 +424,14 @@ export async function upsertAmenities(
   projectId: string,
   amenities: AmenityLite[]
 ): Promise<void> {
-  await (raw(db).from("project_amenities") as any).delete().eq("project_id", projectId);
+  // Check before deleting, not after. There is no transaction around
+  // delete+insert, so an empty set used to clear the project's amenities
+  // permanently — a transient OneMap failure was enough to erase its MRT and
+  // school data. Leaving the previous rows in place is the safer failure mode:
+  // stale beats gone, and callers that genuinely have zero simply keep the last
+  // known set until a successful fetch replaces it.
   if (amenities.length === 0) return;
+  await (raw(db).from("project_amenities") as any).delete().eq("project_id", projectId);
   const rows = amenities.map((a) => ({
     project_id: projectId,
     kind: a.kind,

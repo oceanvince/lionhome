@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { track, trackingHeaders } from "@/lib/analytics/client";
+import { randomUuid, track, trackingHeaders } from "@/lib/analytics/client";
 import { buildApiPayload, toAmount, isForeigner } from "@/lib/calculator/bucket-maps";
 import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calculator/form-types";
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
@@ -724,9 +724,10 @@ export default function CalculatorPage() {
   const rentNum = rentDigits === "" ? 0 : Number(rentDigits);
   const rentEdited = useRef(false);
 
-  const [sessionId] = useState(() =>
-    typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())
-  );
+  // Must be a real uuid: it lands in calculator_runs.session_id. The old
+  // String(Date.now()) fallback was rejected by /save, and would have been
+  // rejected by /compute too once that route started accepting the field.
+  const [sessionId] = useState(randomUuid);
   const [runId, setRunId] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   // Lead-sharing consent must be explicit (PDPA s.13). Default unchecked.

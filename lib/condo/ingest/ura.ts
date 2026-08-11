@@ -160,7 +160,16 @@ export function createUraSource(): UraSource {
 
   return {
     async fetchTransactions(project: ProjectRef): Promise<TxnLite[]> {
-      if (!indexPromise) indexPromise = loadIndex();
+      // Cache the success, never the failure. A rejected promise left in place
+      // makes every remaining project in the same cron run await the same
+      // error, so a single URA 500 turned into an empty transaction list for
+      // the whole catalogue. Clearing it lets the next project retry.
+      if (!indexPromise) {
+        indexPromise = loadIndex().catch((err) => {
+          indexPromise = null;
+          throw err;
+        });
+      }
       const index = await indexPromise;
       return index.get(norm(project.name)) ?? [];
     },

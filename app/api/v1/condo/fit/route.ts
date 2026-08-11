@@ -48,7 +48,18 @@ export async function POST(req: NextRequest) {
   const { slug, calc } = parsed.data;
   const db = await getSupabaseServerClient();
 
-  const project = await getActiveProjectBySlug(db, slug);
+  // The repo throws on a DB error rather than reporting it as "no such project",
+  // so the outage gets its own code instead of hiding behind PROJECT_NOT_FOUND.
+  let project;
+  try {
+    project = await getActiveProjectBySlug(db, slug);
+  } catch (err) {
+    console.error("[/api/v1/condo/fit] project lookup failed:", err);
+    return NextResponse.json(
+      { ok: false, error: { code: "FIT_INTERNAL_ERROR", message: "服务暂时不可用，请稍后再试" } },
+      { status: 500 }
+    );
+  }
   if (!project) {
     return NextResponse.json({
       ok: false,

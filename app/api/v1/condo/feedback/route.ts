@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getActiveProjectBySlug, insertDataFeedback } from "@/lib/condo/repo";
+import { clientKey, rateLimit } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,24 @@ const FeedbackSchema = z.object({
 
 /** Data-correction report (SPEC §7.2). POST /api/v1/condo/feedback */
 export async function POST(req: NextRequest) {
+  // The only endpoint taking free text plus a contact detail, so it is the one
+  // worth flooding. Correcting a listing is a considered act — 5/min is well
+  // above anything a person does and well below anything a script wants.
+  const limit = rateLimit(clientKey(req.headers, "feedback"), { limit: 5, windowMs: 60_000 });
+  if (!limit.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "RATE_LIMITED",
+          message: "提交过于频繁，请稍后再试",
+          retryAfter: limit.retryAfter,
+        },
+      },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -39,7 +58,21 @@ export async function POST(req: NextRequest) {
   const { slug, dimension, note, contact } = parsed.data;
   const db = await getSupabaseServerClient();
 
-  const project = await getActiveProjectBySlug(db, slug);
+  // The repo throws on a DB error rather than reporting it as "no such project",
+  // so a lost correction is reported as an outage the sender can retry.
+  let project;
+  try {
+    project = await getActiveProjectBySlug(db, slug);
+  } catch (err) {
+    console.error("[/api/v1/condo/feedback] project lookup failed:", err);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: { code: "FEEDBACK_WRITE_FAILED", message: "服务暂时不可用，请稍后再试" },
+      },
+      { status: 500 }
+    );
+  }
   if (!project) {
     return NextResponse.json({
       ok: false,

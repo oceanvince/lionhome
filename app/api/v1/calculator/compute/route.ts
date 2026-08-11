@@ -5,10 +5,14 @@ import { SEED_TAX_RATES } from "@/lib/tax";
 import type { TaxRatesConfig } from "@/lib/tax";
 import { computeV2 } from "@/lib/calculator/v2-compute";
 import { readTrackingHeaders, trackEvent } from "@/lib/analytics/events";
+import { clientKey, rateLimit } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
 
 const DEFAULT_DISPLAY_RATE = 0.0165; // Default market rate shown to user
+
+/** `calculator_runs.session_id` is a uuid column; anything else is dropped. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const ComputeSchema = z.object({
   residency: z.enum(["citizen", "pr", "foreigner", "company"]),
@@ -24,9 +28,14 @@ const ComputeSchema = z.object({
   display_rate: z.number().min(0.005).max(0.06).default(DEFAULT_DISPLAY_RATE),
   // Lead label — not used in calculation
   timeline: z.enum(["6m", "1y", "explore"]).optional(),
-  // Browser-minted id grouping every run in one sitting. Optional so an older
-  // cached bundle keeps working; the column defaults to a fresh uuid.
-  session_id: z.string().uuid().optional(),
+  // Browser-minted id grouping every run in one sitting. Accepted as a plain
+  // string, NOT as z.string().uuid(): this is an analytics field, and rejecting
+  // a malformed one here would fail the whole calculation. `crypto.randomUUID`
+  // is undefined in any non-secure context, so a strict schema would take the
+  // core feature down on plain-http previews and older browsers alike. Shape is
+  // checked at the point of use instead, where a bad value degrades to "no
+  // session id" and the column falls back to its own default.
+  session_id: z.string().optional(),
   // Optional legacy fields — accepted but unused
   marital_status: z.enum(["single", "married", "married_foreign_spouse"]).optional(),
   spouse_residency: z.enum(["citizen", "pr", "foreigner"]).optional(),
@@ -105,7 +114,7 @@ async function persistRun(
       .from("calculator_runs")
       .insert({
         user_id: null,
-        ...(sessionId ? { session_id: sessionId } : {}),
+        ...(sessionId && UUID_RE.test(sessionId) ? { session_id: sessionId } : {}),
         inputs,
         outputs,
         tax_rates_version: taxRatesVersion,
@@ -124,6 +133,24 @@ async function persistRun(
 }
 
 export async function POST(req: NextRequest) {
+  // Every call now writes a row holding a full financial profile, so an
+  // unthrottled loop here is both a data-volume and a PII problem. Generous
+  // enough that re-running the questionnaire never trips it.
+  const limit = rateLimit(clientKey(req.headers, "compute"), { limit: 20, windowMs: 60_000 });
+  if (!limit.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "RATE_LIMITED",
+          message: "操作过于频繁，请稍后再试",
+          retryAfter: limit.retryAfter,
+        },
+      },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
+  }
+
   // Tracked server-side rather than in the browser: this is the conversion that
   // matters, and an ad blocker must not be able to hide it. `after()` keeps the
   // insert off the response path.

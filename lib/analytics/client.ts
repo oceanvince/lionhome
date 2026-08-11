@@ -13,6 +13,32 @@ function randomId(): string {
 }
 
 /**
+ * A v4 uuid, for ids that end up in a uuid database column — currently
+ * `calculator_runs.session_id`.
+ *
+ * `crypto.randomUUID` exists only in secure contexts, so it is absent on any
+ * plain-http preview as well as on older browsers. The timestamp fallback used
+ * for the storage ids above is fine for a varchar column but would be rejected
+ * by a uuid one, so build the uuid by hand instead: a weakly-seeded uuid still
+ * satisfies the column, where `String(Date.now())` fails the whole request.
+ */
+export function randomUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x40; // version 4
+  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80; // variant 1 0 x x
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
  * Read-or-mint an id in the given storage. Private-mode Safari and users who
  * block storage throw on access, so every path falls back to a throwaway id
  * rather than breaking the page.

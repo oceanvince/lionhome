@@ -81,3 +81,91 @@ describe("ingestProject (DI repo, no DB)", () => {
     expect(repo.calls.setProjectStatus ?? 0).toBe(0); // never promoted
   });
 });
+
+/**
+ * A transient upstream failure must never be written as "this project has no
+ * data". upsertAmenities replaces the whole set and upsertScores overwrites on
+ * a fixed conflict key, so a single URA or OneMap error used to erase good
+ * amenities and rewrite a real score as 数据不足.
+ */
+describe("ingestProject — an upstream failure must not overwrite good data", () => {
+  const db = {} as DbClient;
+  const project = { id: "p1", name: "The Gazania", district: "D19", topYear: 2018 };
+  const healthy = createFixtureSources({
+    "The Gazania": { geocode: { lat: 1.35, lng: 103.88 }, transactions: txns, amenities },
+  });
+
+  it("skips the transaction write and the score when URA throws", async () => {
+    const repo = mockRepo();
+    const sources = {
+      ...healthy,
+      ura: {
+        fetchTransactions: vi.fn(async () => {
+          throw new Error("URA batch 1 HTTP 500");
+        }),
+      },
+    };
+
+    const res = await ingestProject(db, project, sources, { snapshotDate: "2026-06-15", repo });
+
+    expect(repo.calls.upsertTransactions ?? 0).toBe(0);
+    expect(repo.calls.refreshPsfRange ?? 0).toBe(0);
+    expect(repo.calls.upsertScores ?? 0).toBe(0);
+    expect(repo.calls.setProjectStatus ?? 0).toBe(0);
+    expect(res.skipped).toContain("transactions");
+    expect(res.promoted).toBe(false);
+  });
+
+  it("skips the amenity write and the score when OneMap throws", async () => {
+    const repo = mockRepo();
+    const sources = {
+      ...healthy,
+      oneMap: {
+        geocode: async () => ({ lat: 1.35, lng: 103.88 }),
+        fetchAmenities: vi.fn(async () => {
+          throw new Error("OneMap 503");
+        }),
+      },
+    };
+
+    const res = await ingestProject(db, project, sources, { snapshotDate: "2026-06-15", repo });
+
+    expect(repo.calls.upsertAmenities ?? 0).toBe(0);
+    expect(repo.calls.upsertScores ?? 0).toBe(0);
+    expect(res.skipped).toContain("amenities");
+  });
+
+  it("treats a failed geocode as a failed amenity fetch, not as zero amenities", async () => {
+    const repo = mockRepo();
+    const sources = {
+      ...healthy,
+      oneMap: {
+        geocode: async () => null,
+        fetchAmenities: vi.fn(async () => amenities),
+      },
+    };
+
+    const res = await ingestProject(db, project, sources, { snapshotDate: "2026-06-15", repo });
+
+    expect(repo.calls.upsertAmenities ?? 0).toBe(0);
+    expect(repo.calls.updateProjectGeo ?? 0).toBe(0);
+    expect(res.skipped).toContain("amenities");
+  });
+
+  it("still writes a genuinely empty result, which is data and not a failure", async () => {
+    const repo = mockRepo();
+    const sources = {
+      ...healthy,
+      oneMap: {
+        geocode: async () => ({ lat: 1.35, lng: 103.88 }),
+        fetchAmenities: async () => [],
+      },
+    };
+
+    const res = await ingestProject(db, project, sources, { snapshotDate: "2026-06-15", repo });
+
+    expect(repo.calls.upsertAmenities).toBe(1);
+    expect(repo.calls.upsertScores).toBe(1);
+    expect(res.skipped).toEqual([]);
+  });
+});

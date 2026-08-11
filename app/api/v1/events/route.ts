@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isAnalyticsEventName, isBotUserAgent, trackEvent } from "@/lib/analytics/events";
+import { clientKey, rateLimit } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,14 @@ const EventSchema = z.object({
 const noContent = () => new NextResponse(null, { status: 204 });
 
 export async function POST(req: NextRequest) {
+  // These rows are what the morning digest counts, so an unthrottled beacon lets
+  // anyone forge the team's numbers. Still 204 on refusal: the beacon has no one
+  // listening, and a distinct status would only confirm the endpoint is live.
+  // A real session sends a handful of events, so 60/min never reaches a visitor.
+  if (!rateLimit(clientKey(req.headers, "events"), { limit: 60, windowMs: 60_000 }).ok) {
+    return noContent();
+  }
+
   // Crawlers do not normally run our JS, but a spoofed beacon is trivial to
   // send — flag rather than drop, so the daily report can show what was filtered.
   const isBot = isBotUserAgent(req.headers.get("user-agent"));

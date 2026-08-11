@@ -62,6 +62,9 @@ export interface DailySummary {
   submitVisitors: number;
   submitFailed: number;
   whatsappClicks: number;
+  /** Distinct people behind those clicks — the conversion rates divide people
+   *  by people, so one visitor clicking twice cannot push a rate over 100%. */
+  whatsappVisitors: number;
   savedReports: number;
   leads: number;
   botEvents: number;
@@ -87,6 +90,7 @@ export function summarizeWindow(
 
   const views = named("calculator_view");
   const submits = named("calculator_submit");
+  const whatsapp = named("whatsapp_click");
 
   return {
     date: window.date,
@@ -95,7 +99,8 @@ export function summarizeWindow(
     submits: submits.length,
     submitVisitors: uniqueVisitors(submits),
     submitFailed: named("calculator_submit_failed").length,
-    whatsappClicks: named("whatsapp_click").length,
+    whatsappClicks: whatsapp.length,
+    whatsappVisitors: uniqueVisitors(whatsapp),
     savedReports: runs.saved,
     leads: runs.leads,
     botEvents: inDay.filter((e) => e.is_bot).length,
@@ -185,9 +190,12 @@ export function formatTelegramReport(today: DailySummary, previous?: DailySummar
   lines.push("");
   lines.push("<b>转化率</b>");
   lines.push("<code>");
+  // Every ratio divides distinct people by distinct people. Dividing raw clicks
+  // by unique visitors used to let 提交 → 顾问 read over 100% whenever someone
+  // pressed the CTA twice.
   lines.push(`${pad("访问 → 提交", 14)}${pct(today.submitVisitors, today.viewVisitors)}`);
-  lines.push(`${pad("提交 → 顾问", 14)}${pct(today.whatsappClicks, today.submitVisitors)}`);
-  lines.push(`${pad("顾问 → 留资", 14)}${pct(today.leads, today.whatsappClicks)}`);
+  lines.push(`${pad("提交 → 顾问", 14)}${pct(today.whatsappVisitors, today.submitVisitors)}`);
+  lines.push(`${pad("顾问 → 留资", 14)}${pct(today.leads, today.whatsappVisitors)}`);
   lines.push("</code>");
 
   const notes: string[] = [];

@@ -28,7 +28,16 @@ export function isAnalyticsEventName(v: unknown): v is AnalyticsEventName {
  */
 const BOT_UA_PATTERN = new RegExp(
   [
-    "bot",
+    // A bare "bot" substring also matches device names — CUBOT ships Android
+    // phones whose UA reads "CUBOT NOTE 20". That used to cost one miscounted
+    // event; now that /compute skips persistence for bots it would silently
+    // throw away a real visitor's report, so require a delimiter that crawler
+    // tokens carry ("Googlebot/2.1", "bingbot;", "AhrefsBot)") and a device
+    // name does not.
+    "bot[/;)]",
+    "\\bbot\\b",
+    "googlebot",
+    "bingbot",
     "crawler",
     "spider",
     "crawling",

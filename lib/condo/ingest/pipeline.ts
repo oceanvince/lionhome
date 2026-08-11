@@ -45,6 +45,12 @@ export interface IngestResult {
   scores: ProjectScore[];
   promoted: boolean;
   txnCount: number;
+  /**
+   * Dimensions whose upstream fetch failed, so nothing was written for them.
+   * Non-empty means this project kept its previous data instead of being
+   * refreshed — surfaced so a cron run that quietly degraded is visible.
+   */
+  skipped: string[];
 }
 
 export async function ingestProject(
@@ -56,20 +62,42 @@ export async function ingestProject(
   const repo = opts.repo ?? defaultRepo;
   const snapshotDate = opts.snapshotDate ?? new Date().toISOString().slice(0, 10);
 
+  // A failed upstream fetch is NOT "this project has no data". Writing it as
+  // such is destructive and hard to notice: upsertAmenities replaces the whole
+  // set, and upsertScores overwrites on a fixed (project, dimension, version)
+  // key, so an empty result rewrites a good score as "数据不足". One URA 500
+  // used to be enough to do that across every project in the run. `null` means
+  // "could not fetch" and skips the write; `[]` means "fetched, genuinely
+  // empty" and is written normally.
+  const skipped: string[] = [];
+
   // 1. geocode (best-effort — location score degrades gracefully if missing)
   const loc = await sources.oneMap.geocode(project.name).catch(() => null);
   if (loc) await repo.updateProjectGeo(db, project.id, loc.lat, loc.lng);
 
   // 2. transactions → PSF range
-  const transactions = await sources.ura.fetchTransactions(project).catch(() => []);
-  await repo.upsertTransactions(db, project.id, transactions);
-  await repo.refreshPsfRange(db, project.id);
+  const transactions = await sources.ura.fetchTransactions(project).catch(() => null);
+  if (transactions) {
+    await repo.upsertTransactions(db, project.id, transactions);
+    await repo.refreshPsfRange(db, project.id);
+  } else {
+    skipped.push("transactions");
+  }
 
-  // 3. amenities
-  const amenities = loc ? await sources.oneMap.fetchAmenities(loc).catch(() => []) : [];
-  await repo.upsertAmenities(db, project.id, amenities);
+  // 3. amenities — a geocode failure is a fetch failure too, not zero amenities
+  const amenities = loc ? await sources.oneMap.fetchAmenities(loc).catch(() => null) : null;
+  if (amenities) {
+    await repo.upsertAmenities(db, project.id, amenities);
+  } else {
+    skipped.push("amenities");
+  }
 
-  // 4. score (pure)
+  // 4. score (pure) — only when both inputs are real, since a score computed
+  // from missing data would overwrite the last good one.
+  if (!transactions || !amenities) {
+    return { projectId: project.id, scores: [], promoted: false, txnCount: 0, skipped };
+  }
+
   const input: ScoringInput = {
     projectMeta: { id: project.id, district: project.district, topYear: project.topYear },
     transactions,
@@ -84,5 +112,5 @@ export async function ingestProject(
   const promoted = shouldPromote(scores);
   if (promoted) await repo.setProjectStatus(db, project.id, "active");
 
-  return { projectId: project.id, scores, promoted, txnCount: transactions.length };
+  return { projectId: project.id, scores, promoted, txnCount: transactions.length, skipped };
 }

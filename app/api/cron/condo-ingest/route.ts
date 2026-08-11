@@ -5,6 +5,7 @@ import { ingestProject } from "@/lib/condo/ingest/pipeline";
 import { createUraSource } from "@/lib/condo/ingest/ura";
 import { createOneMapSource } from "@/lib/condo/ingest/onemap";
 import { defaultRegionalBaseline } from "@/lib/condo/ingest/sources";
+import { isAuthorizedCron } from "@/lib/utils/cron-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -15,7 +16,8 @@ export const maxDuration = 300;
  * recomputes scores, and promotes stubs once data is ready.
  *
  * Vercel Cron invokes this via GET with `Authorization: Bearer $CRON_SECRET`;
- * a manual run can POST (or pass `?secret=`). Both share `runIngest`.
+ * a manual run POSTs with the same header. Both share `runIngest`. The secret is
+ * never accepted as a query parameter — that would log it (lib/utils/cron-auth.ts).
  */
 export async function GET(req: NextRequest) {
   return runIngest(req);
@@ -26,11 +28,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function runIngest(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const provided =
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
-    req.nextUrl.searchParams.get("secret");
-  if (!secret || provided !== secret) {
+  if (!isAuthorizedCron(req.headers)) {
     return NextResponse.json(
       { ok: false, error: { code: "UNAUTHORIZED", message: "invalid cron secret" } },
       { status: 401 }

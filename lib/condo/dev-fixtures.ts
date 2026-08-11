@@ -20,6 +20,11 @@ import { regionalAppreciationLookup } from "@/lib/finance";
 import type { CondoProject } from "./types";
 
 export function devFixturesEnabled(): boolean {
+  // The env var alone did not match the "never in production" promise above: a
+  // CONDO_DEV_FIXTURES=1 left in the Vercel project — or copied into it from a
+  // preview config — would serve invented projects and scores to real visitors
+  // as if they were market data. The NODE_ENV check makes that impossible.
+  if (process.env.NODE_ENV === "production") return false;
   return process.env.CONDO_DEV_FIXTURES === "1";
 }
 
@@ -180,4 +185,37 @@ export function devGetScoresForProjects(ids: string[]): Map<string, ProjectScore
 
 export function devCountActiveProjects(): number {
   return Number(process.env.CONDO_DEV_ACTIVE_COUNT ?? 50);
+}
+
+/* ── detail path ─────────────────────────────────────────────────────
+ * Only the search path used to consult fixtures, so with CONDO_DEV_FIXTURES=1
+ * every result card linked to a detail page that 404'd — the mode was unusable
+ * for exactly the flow it was meant to exercise. The fixtures already carry
+ * transactions and amenities, so the whole report renders from them.
+ * ─────────────────────────────────────────────────────────────────── */
+
+const BY_SLUG = new Map(FIXTURES.map((f) => [f.project.slug, f]));
+const BY_ID = new Map(FIXTURES.map((f) => [f.project.id, f]));
+
+export function devGetActiveProjectBySlug(slug: string): CondoProject | null {
+  return BY_SLUG.get(slug)?.project ?? null;
+}
+
+export function devGetLatestScores(projectId: string): ProjectScore[] {
+  return SCORES.get(projectId) ?? [];
+}
+
+export function devGetRecentTransactions(projectId: string, months: number): TxnLite[] {
+  const fixture = BY_ID.get(projectId);
+  if (!fixture) return [];
+  // Windowed against the pinned SNAPSHOT rather than the wall clock, so the
+  // fixture report looks the same today as it will next year.
+  const cutoff = new Date(SNAPSHOT);
+  cutoff.setMonth(cutoff.getMonth() - months);
+  const from = cutoff.toISOString().slice(0, 10);
+  return fixture.transactions.filter((t) => t.txnDate >= from);
+}
+
+export function devGetAmenities(projectId: string): AmenityLite[] {
+  return BY_ID.get(projectId)?.amenities ?? [];
 }

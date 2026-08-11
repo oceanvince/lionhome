@@ -4,21 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { BAND_LABEL_ZH, type Band, type ProjectScore, type Dimension } from "@/lib/project-scoring";
 import type { CondoReport } from "@/lib/condo/types";
+import { C, SERIF } from "@/lib/design/tokens";
 
 /* ── palette (mirrors prototypes/condo-search/DESIGN.md) ─────────────── */
-const C = {
-  primary: "#2F4F3D",
-  primarySoft: "#EAEFEB",
-  charcoal: "#1A1C1A",
-  offwhite: "#FCFBF9",
-  cream: "#F5F1E8",
-  border: "#E5E5E5",
-  warn: "#8B3A1F",
-  warnSoft: "#F8EFE8",
-  gray500: "#6B7280",
-  gray400: "#9CA3AF",
-};
-const SERIF = "'Noto Serif SC', serif";
+// Palette and serif come from the design tokens, not a local copy. Both were
+// duplicated here verbatim, so a colour change had to be made in three files
+// and silently drifted if it was not.
 
 const BAND_COLOR: Record<Band, string> = {
   excellent: "#2F6B4A",
@@ -94,12 +85,21 @@ function Radar({ scores }: { scores: ProjectScore[] }) {
     CENTER.x + (vec[0] * score) / 10,
     CENTER.y + (vec[1] * score) / 10,
   ];
-  const points = AXES.map(({ dim, vec }) => {
-    const s = byDim(dim)?.score;
-    return vtx(vec, s ?? 1.6)
-      .map((n) => n.toFixed(0))
-      .join(",");
-  }).join(" ");
+  // An unscored dimension used to be drawn at 1.6/10, which reads as a bad
+  // score rather than as missing data — the shape claimed a reading we do not
+  // have. Unscored axes are left out of the shape and get no vertex dot; the
+  // axis label already says N/A. Fewer than three readings cannot form an
+  // honest polygon, so none is drawn.
+  const scored = AXES.map((axis) => ({ ...axis, score: byDim(axis.dim)?.score })).filter(
+    (a): a is typeof a & { score: number } => a.score != null
+  );
+  const points = scored
+    .map(({ vec, score }) =>
+      vtx(vec, score)
+        .map((n) => n.toFixed(0))
+        .join(",")
+    )
+    .join(" ");
 
   return (
     <svg viewBox="-40 0 300 200" width="260" style={{ maxWidth: "100%" }} aria-label="四维评分雷达">
@@ -113,12 +113,12 @@ function Radar({ scores }: { scores: ProjectScore[] }) {
         <line x1="110" y1="105" x2="110" y2="180" />
         <line x1="110" y1="105" x2="35" y2="105" />
       </g>
-      <polygon points={points} fill="rgba(47,79,61,.12)" stroke={C.primary} strokeWidth="2" />
-      {AXES.map(({ dim, vec }) => {
-        const s = byDim(dim)?.score;
-        const [x, y] = vtx(vec, s ?? 1.6);
-        const color = s == null ? "#B8B8B0" : BAND_COLOR[byDim(dim)!.band];
-        return <circle key={dim} cx={x} cy={y} r="3.4" fill={color} />;
+      {scored.length >= 3 && (
+        <polygon points={points} fill="rgba(47,79,61,.12)" stroke={C.primary} strokeWidth="2" />
+      )}
+      {scored.map(({ dim, vec, score }) => {
+        const [x, y] = vtx(vec, score);
+        return <circle key={dim} cx={x} cy={y} r="3.4" fill={BAND_COLOR[byDim(dim)!.band]} />;
       })}
       <g fontSize="11" fontFamily="Noto Sans SC" fill={C.charcoal}>
         {AXES.map(({ dim, label, anchor, lx, ly }) => {
@@ -542,12 +542,17 @@ export function CondoReportView({ report }: { report: CondoReport }) {
           <p className="mt-1 mb-4 text-sm" style={{ color: C.gray500 }}>
             无需登录即可看完整报告；保存 / 深度报告 / 约顾问需登录。
           </p>
-          <button
+          {/* The page's primary conversion. It was a bare <button> with no
+              onClick and no href, so every click on it did nothing. The copy
+              above already says this step needs a login, and /login honours
+              ?next=, so it returns here once signed in. */}
+          <Link
+            href={`/login?next=${encodeURIComponent(`/condo/${report.project.slug}`)}`}
             className="flex w-full items-center justify-center rounded-[4px] px-6 font-medium text-white"
             style={{ background: C.primary, minHeight: 52 }}
           >
             要这个盘的深度报告（免费）
-          </button>
+          </Link>
         </section>
 
         {/* 合规免责 */}

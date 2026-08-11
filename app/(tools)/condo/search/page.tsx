@@ -5,20 +5,14 @@
  * sort/filter controls, result cards, and the cold_start / zero_result / none
  * fallback states. Consumes the two read APIs; no direct DB access.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { C, SERIF } from "@/lib/design/tokens";
 
-/* ── palette (mirrors the detail page / DESIGN.md) ──────────────────── */
-const C = {
-  primary: "#2F4F3D",
-  charcoal: "#1A1C1A",
-  offwhite: "#FCFBF9",
-  cream: "#F5F1E8",
-  border: "#E5E5E5",
-  gray500: "#6B7280",
-  gray400: "#9CA3AF",
-};
-const SERIF = "'Noto Serif SC', serif";
+/* ── palette ─────────────────────────────────────────────────────────
+ * From the design tokens, not a local copy — see the same note in
+ * ../[slug]/report-view.tsx.
+ * ─────────────────────────────────────────────────────────────────── */
 type VerdictTier = "green" | "amber" | "orange";
 const VERDICT: Record<VerdictTier, { c: string; bg: string }> = {
   green: { c: "#2F6B4A", bg: "#E7F0EA" },
@@ -81,32 +75,41 @@ export default function CondoSearchPage() {
   const [error, setError] = useState<string | null>(null);
 
   /* ── results list (district + sort) ──────────────────────────────── */
-  const loadList = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = new URLSearchParams({ sort });
-      if (district) qs.set("district", district);
-      const res = await fetch(`/api/v1/condo/projects?${qs}`);
-      const json = await res.json();
-      if (!json.ok) {
-        setError(json.error?.message ?? "搜索暂不可用");
-        setCards([]);
-        return;
-      }
-      setCards(json.data.cards);
-      setFallback(json.data.fallback ?? "none");
-    } catch {
-      setError("网络错误，请重试");
-      setCards([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [district, sort]);
-
+  // Every filter change starts a request and aborts the one before it. Without
+  // that, flipping district or sort quickly let a slow earlier response land
+  // last and overwrite the results for the filter actually on screen.
   useEffect(() => {
-    void loadList();
-  }, [loadList]);
+    const controller = new AbortController();
+
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const qs = new URLSearchParams({ sort });
+        if (district) qs.set("district", district);
+        const res = await fetch(`/api/v1/condo/projects?${qs}`, { signal: controller.signal });
+        const json = await res.json();
+        if (controller.signal.aborted) return;
+        if (!json.ok) {
+          setError(json.error?.message ?? "搜索暂不可用");
+          setCards([]);
+          return;
+        }
+        setCards(json.data.cards);
+        setFallback(json.data.fallback ?? "none");
+      } catch {
+        // An abort is this effect being superseded, not a failure the visitor
+        // should see — the newer request owns the UI now.
+        if (controller.signal.aborted) return;
+        setError("网络错误，请重试");
+        setCards([]);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [district, sort]);
 
   /* ── autocomplete (debounced) ────────────────────────────────────── */
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -149,7 +152,18 @@ export default function CondoSearchPage() {
         </p>
 
         {/* search box + autocomplete */}
-        <div style={{ position: "relative", marginBottom: 20 }}>
+        {/* Closing on the input's own blur after a 150ms timer raced the very
+            interaction it was meant to allow: tabbing to the first suggestion
+            blurred the input, and the list vanished from under the focus that
+            had just landed on it. Close when focus leaves the whole combobox
+            instead, which covers both the mouse and the keyboard.
+            Still missing: arrow-key navigation between options. */}
+        <div
+          style={{ position: "relative", marginBottom: 20 }}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setShowSug(false);
+          }}
+        >
           <input
             value={query}
             onChange={(e) => {
@@ -157,7 +171,13 @@ export default function CondoSearchPage() {
               setShowSug(true);
             }}
             onFocus={() => setShowSug(true)}
-            onBlur={() => setTimeout(() => setShowSug(false), 150)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setShowSug(false);
+            }}
+            role="combobox"
+            aria-expanded={showSug && suggestions.length > 0}
+            aria-controls="condo-suggestions"
+            aria-autocomplete="list"
             placeholder="输入楼盘名 / 区（如 Gazania、D19）"
             style={{
               width: "100%",
@@ -172,6 +192,7 @@ export default function CondoSearchPage() {
           />
           {showSug && suggestions.length > 0 && (
             <ul
+              id="condo-suggestions"
               style={{
                 position: "absolute",
                 zIndex: 10,
