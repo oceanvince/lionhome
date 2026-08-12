@@ -148,7 +148,8 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold">8. Cookies</h2>
         <p className="text-sm leading-relaxed text-neutral-700">
-          本工具使用必要的会话 Cookie 维持你的测算流程。不使用追踪类第三方 Cookie。
+          本工具使用必要的会话 Cookie 维持你的测算流程。不使用追踪类第三方 Cookie，
+          也不向广告网络分享数据。我们不录制你的操作过程。
         </p>
       </section>
 

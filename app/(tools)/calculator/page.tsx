@@ -7,6 +7,7 @@ import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calcu
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
 import type { V2ComputeResult, TierData, PriceTierKey, Viability } from "@/lib/calculator/v2-types";
 import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
+import { track as trackFunnel } from "@/lib/analytics/posthog";
 import { MIN_DOWN_PAYMENT, MIN_VIABLE_PRICE_ENABLED } from "@/lib/tax";
 import { C, SERIF } from "@/lib/design/tokens";
 
@@ -815,6 +816,8 @@ export default function CalculatorPage() {
 
   /* ─── Submit ─────────────────────────────────────────────────── */
   async function handleSubmit() {
+    // Residency and timeline are labels, not figures — safe to send to analytics.
+    trackFunnel("calc_submitted", { residency: form.residency, timeline: form.timeline });
     goTo("loading");
     setLoadingIdx(0);
     const interval = setInterval(
@@ -842,6 +845,11 @@ export default function CalculatorPage() {
         // Assigned unconditionally, including null: a re-computation whose insert
         // failed must clear the previous id, or the CTA would claim the wrong row.
         setRunId((json.run_id as string | null) ?? null);
+        trackFunnel("calc_result_viewed", {
+          viability: data.viability,
+          // Bucketed to the nearest 10万 — a band, not the user's exact figure.
+          budget_band: `${Math.round((data.tiers.balanced.midpoint ?? 0) / 100_000) * 10}万`,
+        });
         setSelectedTier("balanced");
         setYears(data.break_even?.default_holding_years ?? 7);
         setTenure(data.break_even?.default_tenure_years ?? 30);
@@ -862,11 +870,13 @@ export default function CalculatorPage() {
         }
         goTo("result");
       } else {
+        trackFunnel("calc_failed", { reason: json.error?.code ?? "unknown" });
         goTo("step3");
         alert(json.error?.message ?? "计算失败，请重试");
       }
     } catch {
       clearInterval(interval);
+      trackFunnel("calc_failed", { reason: "network" });
       goTo("step3");
       alert("网络错误，请检查连接后重试");
     }
@@ -874,6 +884,7 @@ export default function CalculatorPage() {
 
   /* ─── Tier switch: re-estimate rent unless user edited it ─────── */
   function pickTier(t: PriceTierKey) {
+    trackFunnel("calc_tier_switched", { tier: t });
     setSelectedTier(t);
     if (!rentEdited.current && result) {
       setRentDigits(String(estimateMedianRent(result.tiers[t].midpoint)));
@@ -910,13 +921,17 @@ export default function CalculatorPage() {
   }
 
   function handleWhatsApp() {
+    trackFunnel("advisor_cta_clicked", { consent: leadConsent });
     if (!leadConsent) {
       // 没勾选 PDPA 同意，滚动到 checkbox 并高亮提示。不发起任何保存/分享行为。
+      // Tracked separately: repeated hits here mean the consent box is the blocker.
+      trackFunnel("advisor_consent_missing");
       const el = document.getElementById("lead-consent-box");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     track("whatsapp_click", { tier: selectedTier, run_id: runId });
+    trackFunnel("advisor_shared", { has_run_id: runId !== null });
 
     // Fire-and-forget. /compute already stored the run, so nothing here has to
     // finish before the handoff; awaiting it would push window.open out of the
@@ -938,6 +953,7 @@ export default function CalculatorPage() {
   }
 
   function resetAll() {
+    trackFunnel("calc_restarted");
     setForm(INITIAL_FORM);
     setResult(null);
     // Must clear with the result: a stale id would attach the next calculation
@@ -1089,7 +1105,14 @@ export default function CalculatorPage() {
         </div>
 
         <div style={{ flexShrink: 0, padding: "24px 20px max(24px, env(safe-area-inset-bottom))" }}>
-          <BtnPrimary onClick={() => goTo("step1")}>快速测算</BtnPrimary>
+          <BtnPrimary
+            onClick={() => {
+              trackFunnel("calc_started");
+              goTo("step1");
+            }}
+          >
+            快速测算
+          </BtnPrimary>
           <p
             style={{
               textAlign: "center",
@@ -1194,7 +1217,13 @@ export default function CalculatorPage() {
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 16 }}>
-          <BtnPrimary disabled={!step1Ready} onClick={() => goTo("step2")}>
+          <BtnPrimary
+            disabled={!step1Ready}
+            onClick={() => {
+              trackFunnel("calc_step_completed", { step: 1, residency: form.residency });
+              goTo("step2");
+            }}
+          >
             下一步
           </BtnPrimary>
         </div>
@@ -1237,7 +1266,17 @@ export default function CalculatorPage() {
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 16 }}>
-          <BtnPrimary disabled={!step2Ready} onClick={() => goTo("step3")}>
+          <BtnPrimary
+            disabled={!step2Ready}
+            onClick={() => {
+              // Whether a target down payment was given, not the amount itself.
+              trackFunnel("calc_step_completed", {
+                step: 2,
+                has_target_down_payment: targetDownPaymentNum > 0,
+              });
+              goTo("step3");
+            }}
+          >
             下一步
           </BtnPrimary>
         </div>
