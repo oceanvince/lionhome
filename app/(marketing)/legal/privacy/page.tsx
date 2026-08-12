@@ -80,8 +80,8 @@ export default function PrivacyPage() {
             一位与你画像匹配的 CEA 注册中介。每次分享都会单独征求同意。
           </li>
           <li>
-            <strong>技术服务商</strong>：如托管平台（Vercel）、数据库（Supabase）、
-            产品分析（PostHog）等。这些服务商签有数据处理协议，不会将你的数据用于他途。
+            <strong>技术服务商</strong>：如托管平台（Vercel）、数据库（Supabase）等。
+            这些服务商签有数据处理协议，不会将你的数据用于他途。
           </li>
           <li>
             <strong>法律要求</strong>：在新加坡执法机关或法院依法要求时披露。
@@ -138,16 +138,10 @@ export default function PrivacyPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold">8. Cookies 与使用分析</h2>
+        <h2 className="text-base font-semibold">8. Cookies</h2>
         <p className="text-sm leading-relaxed text-neutral-700">
-          本工具使用必要的会话 Cookie 维持你的测算流程。我们不使用广告类 Cookie，
-          也不向广告网络分享数据。
-        </p>
-        <p className="text-sm leading-relaxed text-neutral-700">
-          我们使用 <strong>PostHog</strong> 分析产品使用情况（页面访问、
-          各步骤的完成与流失、按钮点击），以便找出流程中让人卡住的环节。 这些事件
-          <strong>不包含</strong>你填写的收入、现金、CPF 等具体数字，也不包含姓名或手机号。 我们
-          <strong>不录制</strong>你的操作过程。
+          本工具使用必要的会话 Cookie 维持你的测算流程。不使用追踪类第三方 Cookie，
+          也不向广告网络分享数据。我们不录制你的操作过程。
         </p>
       </section>
 

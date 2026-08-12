@@ -9,8 +9,13 @@ import posthog from "posthog-js";
  * who arrives, where they come from, and where they drop out before the
  * calculation that would have been persisted.
  *
- * No-ops when NEXT_PUBLIC_POSTHOG_KEY is unset, so local dev and preview
- * deploys stay out of production analytics without extra configuration.
+ * DORMANT: NEXT_PUBLIC_POSTHOG_KEY is deliberately unset, so nothing is sent
+ * and no third-party script loads. The wiring is kept so analytics can be
+ * switched on later without rebuilding it.
+ *
+ * BEFORE SETTING THE KEY: the privacy policy (app/(marketing)/legal/privacy)
+ * §4 and §8 currently state that no third-party tracking happens. Enabling
+ * this makes that false — update the policy in the same deploy.
  */
 function PageViewTracker() {
   const pathname = usePathname();
