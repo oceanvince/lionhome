@@ -161,28 +161,95 @@ function BrandLogo() {
   );
 }
 
-function StepHeader({ label, onBack }: { label: string; onBack: () => void }) {
+/**
+ * StepHeader with 3-node horizontal progress:
+ *   ●───●───○   (current highlighted, done filled, todo hollow)
+ */
+function StepHeader({ current, onBack }: { current: 1 | 2 | 3; onBack: () => void }) {
+  const total = 3;
+  const nodes = [1, 2, 3] as const;
   return (
-    <div
-      style={{
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 28,
-      }}
-    >
-      <BackBtn onClick={onBack} />
-      <span
+    <div style={{ width: "100%", marginBottom: 28 }}>
+      <div
         style={{
-          fontSize: 12,
-          letterSpacing: "0.1em",
-          color: C.gray400,
-          textTransform: "uppercase",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 20,
         }}
       >
-        {label}
-      </span>
+        <BackBtn onClick={onBack} />
+        <span
+          style={{
+            fontSize: 12,
+            letterSpacing: "0.06em",
+            color: C.gray400,
+          }}
+        >
+          {current} / {total}
+        </span>
+      </div>
+      {/* Progress track */}
+      <div
+        style={{
+          position: "relative",
+          height: 20,
+          display: "flex",
+          alignItems: "center",
+          padding: "0 10px",
+        }}
+      >
+        {/* Background line */}
+        <div
+          style={{
+            position: "absolute",
+            left: 10,
+            right: 10,
+            height: 1,
+            background: C.border,
+          }}
+        />
+        {/* Filled line (up to current node) */}
+        <div
+          style={{
+            position: "absolute",
+            left: 10,
+            width: `calc((100% - 20px) * ${(current - 1) / (total - 1)})`,
+            height: 1,
+            background: C.primary,
+            transition: "width 0.25s ease-out",
+          }}
+        />
+        {/* Nodes */}
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {nodes.map((n) => {
+            const done = n < current;
+            const active = n === current;
+            const size = active ? 14 : 10;
+            return (
+              <div
+                key={n}
+                style={{
+                  width: size,
+                  height: size,
+                  borderRadius: "50%",
+                  background: done || active ? C.primary : "#fff",
+                  border: `1px solid ${done || active ? C.primary : C.border}`,
+                  transition: "all 0.2s ease-out",
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -200,26 +267,6 @@ function InputLabel({ children }: { children: React.ReactNode }) {
     >
       {children}
     </label>
-  );
-}
-
-function QuestionTitle({ title, sub }: { title: string; sub: string }) {
-  return (
-    <>
-      <h2
-        style={{
-          fontFamily: SERIF,
-          fontSize: 24,
-          fontWeight: 600,
-          lineHeight: 1.3,
-          marginBottom: 8,
-          color: C.charcoal,
-        }}
-      >
-        {title}
-      </h2>
-      <p style={{ fontSize: 14, color: C.gray500, marginBottom: 28, fontWeight: 300 }}>{sub}</p>
-    </>
   );
 }
 
@@ -790,8 +837,10 @@ export default function CalculatorPage() {
       if (json.ok) {
         const data = json.data as V2ComputeResult;
         setResult(data);
-        // The server already stored this run. Null means it could not, in which
-        // case saveReport() falls back to posting the whole payload.
+        // The run was already stored anonymously server-side; hold its id so a
+        // later advisor request claims that row instead of inserting a duplicate.
+        // Assigned unconditionally, including null: a re-computation whose insert
+        // failed must clear the previous id, or the CTA would claim the wrong row.
         setRunId((json.run_id as string | null) ?? null);
         setSelectedTier("balanced");
         setYears(data.break_even?.default_holding_years ?? 7);
@@ -844,8 +893,8 @@ export default function CalculatorPage() {
           outputs: result,
           tax_rates_version: result.tax_rates_version,
           session_id: sessionId,
-          // Present in the normal case: /compute already stored the run, so the
-          // server links that row instead of inserting a duplicate.
+          // Present in the normal case: claim the row /compute already stored,
+          // rather than inserting a second copy.
           ...(runId ? { run_id: runId } : {}),
         }),
       });
@@ -965,25 +1014,18 @@ export default function CalculatorPage() {
           >
             新加坡买房，
             <br />
-            我适合买多少钱的房子？
+            预算多少钱适合我？
           </h1>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 12, color: C.gray500, fontWeight: 300 }}>
-              3 分钟看懂你的购房预算
-            </span>
-            <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#D1D5DB" }} />
-            <span style={{ fontSize: 12, color: C.gray500, fontWeight: 300 }}>无需注册</span>
-          </div>
           <p
             style={{
-              fontSize: 11,
+              fontSize: 13,
               color: C.gray500,
               fontWeight: 300,
-              marginTop: 12,
+              marginTop: 4,
               lineHeight: 1.5,
             }}
           >
-            根据收入、存款和购房计划，估算适合你的购房预算。
+            根据你的情况，3 分钟定制属于你的购房计划。
           </p>
         </div>
 
@@ -1087,19 +1129,12 @@ export default function CalculatorPage() {
      STEP 1 — 身份 / 套数 / 年龄
   ═══════════════════════════════════════════════════════════════ */
   if (view === "step1") {
-    const ageSum = form.age + 30;
-    const ltvWarn = ageSum > 65;
     return (
       <div style={STEP_PAGE}>
-        <StepHeader label="步骤 1 / 3 · 你和这次买房" onBack={() => goTo("hero")} />
+        <StepHeader current={1} onBack={() => goTo("hero")} />
         <div style={{ flex: 1 }}>
-          <QuestionTitle
-            title="关于你的身份"
-            sub="这三项决定你的印花税率、贷款成数与 CPF 可用性。"
-          />
-
           <div style={{ marginBottom: 24 }}>
-            <InputLabel>主申请人身份</InputLabel>
+            <InputLabel>你的身份</InputLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {(
                 [
@@ -1121,7 +1156,7 @@ export default function CalculatorPage() {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <InputLabel>名下已有几套住宅（含全球）</InputLabel>
+            <InputLabel>新加坡已有几套住宅</InputLabel>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {(
                 [
@@ -1142,22 +1177,10 @@ export default function CalculatorPage() {
           </div>
 
           <div style={{ marginBottom: 8 }}>
-            <InputLabel>主申请人年龄</InputLabel>
+            <InputLabel>你的年龄</InputLabel>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
               <span style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 600 }}>{form.age}</span>
               <span style={{ color: C.gray500 }}>岁</span>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 300,
-                  marginLeft: "auto",
-                  color: ltvWarn ? C.warn : C.gray400,
-                }}
-              >
-                {ltvWarn
-                  ? `年龄 + 30 年 = ${ageSum}（>65），LTV 降至 55%`
-                  : `年龄 + 30 年 = ${ageSum}，可享 75% LTV`}
-              </span>
             </div>
             <input
               type="range"
@@ -1185,35 +1208,28 @@ export default function CalculatorPage() {
   if (view === "step2") {
     return (
       <div style={STEP_PAGE}>
-        <StepHeader label="步骤 2 / 3 · 你的钱" onBack={() => goTo("step1")} />
+        <StepHeader current={2} onBack={() => goTo("step1")} />
         <div style={{ flex: 1 }}>
-          <QuestionTitle title="你的收入与首付" sub="直接填写你的实际数字，估个大概也行。" />
-
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <MoneyInput
               label="家庭税前月收入（含配偶）"
               value={form.incomeMonthly}
               onChange={(v) => setField("incomeMonthly", v)}
               suffix="/ 月"
-              placeholder="例如 18000"
-              hint={
-                toAmount(form.incomeMonthly) > 0
-                  ? `≈ 年收入 S$ ${(toAmount(form.incomeMonthly) * 12).toLocaleString("en-US")}`
-                  : undefined
-              }
+              placeholder=""
             />
 
             <MoneyInput
               label="目标首付（含现金 + CPF，可选填）"
               value={form.targetDownPayment}
               onChange={(v) => setField("targetDownPayment", v)}
-              placeholder="例如 500000"
+              placeholder=""
               error={targetBelowMin}
               hint={
                 targetBelowMin
                   ? `目标首付至少 ${fmtS(minDownPayment)}`
                   : targetDownPaymentNum > 0
-                    ? `≈ ${targetDownPaymentNum / 10000} 万 · 用于覆盖首付 + 印花税 + 律师费`
+                    ? undefined
                     : `留空则不限首付，房价只受收入与贷款成数限制（最低首付 ${fmtS(minDownPayment)}）`
               }
             />
@@ -1235,37 +1251,26 @@ export default function CalculatorPage() {
   if (view === "step3") {
     return (
       <div style={STEP_PAGE}>
-        <StepHeader label="步骤 3 / 3 · 你的计划" onBack={() => goTo("step2")} />
+        <StepHeader current={3} onBack={() => goTo("step2")} />
         <div style={{ flex: 1 }}>
-          <QuestionTitle
-            title="你打算何时买？"
-            sub="这一项不影响计算，只用于后续匹配合适节奏的顾问。"
-          />
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(
-              [
-                { value: "6m", label: "半年内" },
-                { value: "1y", label: "1 年内" },
-                { value: "explore", label: "1 年以上 / 仅了解" },
-              ] as { value: Timeline; label: string }[]
-            ).map(({ value, label }) => (
-              <RadioCard
-                key={value}
-                label={label}
-                selected={form.timeline === value}
-                onClick={() => setField("timeline", value)}
-              />
-            ))}
-          </div>
-
-          <div style={{ background: "#FAF8F2", borderRadius: 4, padding: 16, marginTop: 24 }}>
-            <p style={{ fontSize: 12, color: "#4B5563", fontWeight: 300, lineHeight: 1.7 }}>
-              系统默认按{" "}
-              <span style={{ fontWeight: 500, color: C.charcoal }}>
-                贷款 30 年 · 持有 7 年 · 利率 1.65%
-              </span>{" "}
-              测算。结果页可调，看不同情境下的数字。
-            </p>
+          <div style={{ marginBottom: 24 }}>
+            <InputLabel>你打算何时买？</InputLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {(
+                [
+                  { value: "6m", label: "半年内" },
+                  { value: "1y", label: "1 年内" },
+                  { value: "explore", label: "1 年以上 / 仅了解" },
+                ] as { value: Timeline; label: string }[]
+              ).map(({ value, label }) => (
+                <RadioCard
+                  key={value}
+                  label={label}
+                  selected={form.timeline === value}
+                  onClick={() => setField("timeline", value)}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -1370,7 +1375,14 @@ export default function CalculatorPage() {
       );
     }
 
-    const tier: TierData = result.tiers[selectedTier];
+    // When the down payment budget — not the monthly-payment ratio — is the
+    // binding constraint, all three tiers collapse to essentially the same
+    // ceiling (result.degenerate). Showing three near-identical cards is noise,
+    // so we render only the ceiling and pin the selection to it.
+    const effectiveTier: PriceTierKey = result.degenerate ? "aggressive" : selectedTier;
+    const visibleTiers: PriceTierKey[] = result.degenerate ? ["aggressive"] : TIER_ORDER;
+
+    const tier: TierData = result.tiers[effectiveTier];
     const cb = tier.cash_breakdown;
     // Cash shortfall only applies when the buyer set a target down payment.
     const cashGap = Math.max(0, cb.transaction_cash_total - targetAmount);
@@ -1398,9 +1410,9 @@ export default function CalculatorPage() {
       ? `目标首付 S$ ${targetAmount.toLocaleString("en-US")}`
       : "首付不限";
     const lowerTierName =
-      selectedTier === "aggressive"
+      effectiveTier === "aggressive"
         ? "平衡区"
-        : selectedTier === "balanced"
+        : effectiveTier === "balanced"
           ? "舒适区"
           : "更低预算";
 
@@ -1454,25 +1466,18 @@ export default function CalculatorPage() {
             {/* Block 1 · 三档房价区间 */}
             <section style={{ marginBottom: 32 }}>
               <h3 style={SECTION_TITLE}>① 你适合买多少钱的房子</h3>
-              {result.degenerate && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: C.warn,
-                    fontWeight: 300,
-                    marginBottom: 12,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  你的现金封顶限制了三档收敛到同一价位 —— 想买更高需先增加现金。
-                </p>
-              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {TIER_ORDER.map((key) => {
+                {visibleTiers.map((key) => {
                   const td = result.tiers[key];
-                  const active = key === selectedTier;
+                  const active = key === effectiveTier;
                   const pct = Math.round(td.ratio * 100);
                   const isAgg = key === "aggressive";
+                  // Per-tier budget hint: how much cash this tier actually needs, and
+                  // if the buyer set a target down payment, whether it covers it.
+                  const tierCash = td.cash_breakdown.transaction_cash_total;
+                  const tierGap = Math.max(0, tierCash - targetAmount);
+                  const tierOk = hasBudget && tierGap === 0 && tierCash > 0;
+                  const tierShort = hasBudget && tierGap > 0;
                   return (
                     <div
                       key={key}
@@ -1499,9 +1504,13 @@ export default function CalculatorPage() {
                           color: C.primary,
                         }}
                       >
-                        {TIER_NAME[key]}
-                        {key === "balanced" && <Badge>推荐</Badge>}
-                        {isAgg && <Badge warn>MAS 上限</Badge>}
+                        {result.degenerate ? "你的上限" : TIER_NAME[key]}
+                        {!result.degenerate && key === "balanced" && <Badge>推荐</Badge>}
+                        {result.degenerate ? (
+                          <Badge warn>首付封顶</Badge>
+                        ) : (
+                          isAgg && <Badge warn>MAS 上限</Badge>
+                        )}
                       </div>
                       <div
                         style={{
@@ -1518,8 +1527,26 @@ export default function CalculatorPage() {
                       <div
                         style={{ fontSize: 12, color: C.gray500, fontWeight: 300, marginTop: 4 }}
                       >
-                        压力测试月供占月收入 ≤ {pct}%{isAgg && " · 日常生活会吃紧"}
+                        {result.degenerate
+                          ? "受你的首付预算封顶 · 月供未到压力线"
+                          : `压力测试月供占月收入 ≤ ${pct}%${isAgg ? " · 日常生活会吃紧" : ""}`}
                       </div>
+                      {tierCash > 0 && (
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 300,
+                            marginTop: 6,
+                            color: tierShort ? C.warn : tierOk ? C.primary : C.gray400,
+                          }}
+                        >
+                          {tierOk
+                            ? `✓ 需现金 ${fmtS(tierCash)}，你的目标首付够用`
+                            : tierShort
+                              ? `⚠ 需现金 ${fmtS(tierCash)}，还差 ${fmtS(tierGap)}`
+                              : `需现金 ${fmtS(tierCash)}`}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1529,7 +1556,7 @@ export default function CalculatorPage() {
             {/* Block 2 · 现金需求拆解 */}
             <section style={{ marginBottom: 32 }}>
               <h3 style={SECTION_TITLE}>
-                ② 买 <span style={{ color: C.primary }}>“{TIER_NAME[selectedTier]}”</span>{" "}
+                ② 买 <span style={{ color: C.primary }}>“{TIER_NAME[effectiveTier]}”</span>{" "}
                 的房需要准备的现金
               </h3>
               <div

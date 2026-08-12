@@ -28,13 +28,14 @@ const ComputeSchema = z.object({
   display_rate: z.number().min(0.005).max(0.06).default(DEFAULT_DISPLAY_RATE),
   // Lead label — not used in calculation
   timeline: z.enum(["6m", "1y", "explore"]).optional(),
-  // Browser-minted id grouping every run in one sitting. Accepted as a plain
-  // string, NOT as z.string().uuid(): this is an analytics field, and rejecting
-  // a malformed one here would fail the whole calculation. `crypto.randomUUID`
-  // is undefined in any non-secure context, so a strict schema would take the
-  // core feature down on plain-http previews and older browsers alike. Shape is
-  // checked at the point of use instead, where a bad value degrades to "no
-  // session id" and the column falls back to its own default.
+  // Anonymous run persistence — links this compute to a later lead claim.
+  //
+  // Accepted as a plain string, NOT as z.string().uuid(): this is an analytics
+  // field, and rejecting a malformed one here would fail the whole calculation.
+  // `crypto.randomUUID` is undefined in any non-secure context, so a strict
+  // schema takes the core feature down on plain-http previews and older browsers
+  // alike. Shape is checked at the point of use instead, where a bad value
+  // degrades to "no session id" and the column falls back to its own default.
   session_id: z.string().optional(),
   // Optional legacy fields — accepted but unused
   marital_status: z.enum(["single", "married", "married_foreign_spouse"]).optional(),
@@ -85,13 +86,19 @@ async function insertSeedRates(): Promise<boolean> {
 }
 
 /**
- * Persist the run the moment it is computed, rather than when the visitor
- * presses 找顾问.
+ * Persist an anonymous run (user_id null) the moment it is computed, rather than
+ * when the visitor presses 找顾问 — so we see how the tool is actually used, not
+ * just the sliver of people who go on to contact an advisor.
  *
- * Before this, a report only reached the database if the visitor both ticked
- * the PDPA box and pressed the CTA. On 2026-07-13 that was 1 of 11 computations;
- * the other 10 were unrecoverable, because Vercel runtime logs never carry
- * response bodies — only metadata and whatever the function prints itself.
+ * Before this, a report only reached the database if the visitor both ticked the
+ * PDPA box and pressed the CTA. On 2026-07-13 that was 1 of 11 computations; the
+ * other 10 were unrecoverable, because Vercel runtime logs never carry response
+ * bodies — only metadata and whatever the function prints itself.
+ *
+ * `inputs` deliberately excludes session_id (it has its own column): the row
+ * carries budget figures but nothing that identifies a person. A name/phone is
+ * attached later, and only on explicit consent, when /api/v1/calculator/save
+ * claims this run_id.
  *
  * Deliberately synchronous: the response hands `run_id` back to the client, and
  * a run the client cannot reference is a lead that cannot be linked later. One
@@ -99,23 +106,25 @@ async function insertSeedRates(): Promise<boolean> {
  * swallowed — the visitor still gets their result, and the client falls back to
  * posting the full payload to /save.
  */
-async function persistRun(
-  inputs: Record<string, unknown>,
+async function insertAnonymousRun(
+  input: ComputeInput,
   outputs: unknown,
-  taxRatesVersion: string,
-  sessionId: string | undefined
+  taxRatesVersion: string
 ): Promise<string | null> {
   try {
     // DB types are stubs pending `npm run db:types:remote`. Cast via `any`,
     // matching /api/v1/calculator/save.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = getSupabaseServiceRoleClient() as any;
+    const { session_id, ...inputsToStore } = input;
     const { data, error } = await db
       .from("calculator_runs")
       .insert({
         user_id: null,
-        ...(sessionId && UUID_RE.test(sessionId) ? { session_id: sessionId } : {}),
-        inputs,
+        // The column is a uuid; a browser without crypto.randomUUID sends
+        // something else, and dropping it beats failing the whole insert.
+        ...(session_id && UUID_RE.test(session_id) ? { session_id } : {}),
+        inputs: inputsToStore,
         outputs,
         tax_rates_version: taxRatesVersion,
       })
@@ -227,13 +236,12 @@ export async function POST(req: NextRequest) {
       taxRatesVersion,
     });
 
-    // Crawlers that POST here would otherwise fill the table with PII-shaped
-    // rows and inflate every figure derived from it, so they compute but do not
-    // persist. `session_id` lives in its own column; keep it out of `inputs`.
-    const { session_id: sessionId, ...storedInputs } = input;
-    const runId = tracking.isBot
-      ? null
-      : await persistRun(storedInputs, data, taxRatesVersion, sessionId);
+    // Persist anonymously. A DB failure must never break the calculation the user
+    // is waiting on, so a null run_id is an acceptable outcome here.
+    //
+    // Crawlers that POST here would otherwise fill the table with PII-shaped rows
+    // and inflate every figure derived from it, so they compute but do not persist.
+    const runId = tracking.isBot ? null : await insertAnonymousRun(input, data, taxRatesVersion);
 
     after(() =>
       trackEvent({

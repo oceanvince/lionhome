@@ -16,7 +16,16 @@ import { createHash, timingSafeEqual } from "node:crypto";
  * would leak the secret's length through the error path).
  */
 export function isAuthorizedCron(headers: Headers): boolean {
-  const expected = process.env.CRON_SECRET;
+  return verifyBearer(headers, process.env.CRON_SECRET);
+}
+
+/**
+ * Constant-time `Authorization: Bearer <token>` check against a shared secret.
+ * Also used by the admin read API, which compared with `!==`.
+ *
+ * An unset secret refuses everyone — never the reverse.
+ */
+export function verifyBearer(headers: Headers, expected: string | undefined): boolean {
   if (!expected) return false;
 
   // The `Bearer ` prefix is required, not stripped-if-present. A plain

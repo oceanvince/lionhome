@@ -15,12 +15,10 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /**
- * Retention windows enforced here, mirroring what /legal/privacy §5 promises.
- * Changing either number means changing that page too — a policy that overstates
- * what the cron actually deletes is worse than having no policy at all.
+ * How long funnel events are kept, mirroring /legal/privacy §5. Calculator runs
+ * have their own, longer windows and are swept by /api/cron/retention.
  */
-const RETENTION_DAYS = 180; // analytics events + anonymous calculator runs
-const LEAD_RETENTION_DAYS = 730; // 24 months, then the run is anonymised
+const RETENTION_DAYS = 180; // analytics events only
 
 /**
  * Daily ops digest (calculator funnel) pushed to the Telegram group.
@@ -103,13 +101,11 @@ async function runReport(req: NextRequest) {
 
   // `?dry=1` means "show me what would be sent". Deleting six months of events
   // is not part of that — it used to run on dry invocations too.
-  const retention = dryRun
-    ? { events: 0, anonymousRuns: 0, anonymised: 0 }
-    : {
-        events: await pruneOldEvents(db),
-        anonymousRuns: await pruneAnonymousRuns(db),
-        anonymised: await anonymiseOldLeadRuns(db),
-      };
+  //
+  // Only `analytics_events`: `calculator_runs` retention belongs to
+  // /api/cron/retention, so one table has exactly one owner and the two windows
+  // (180 days here, 12/24 months there) cannot silently diverge.
+  const prunedEvents = dryRun ? 0 : await pruneOldEvents(db);
 
   const payload = {
     date: todaySummary.date,
@@ -117,7 +113,7 @@ async function runReport(req: NextRequest) {
     sent,
     sendError,
     message,
-    retention,
+    prunedEvents,
   };
 
   // A digest nobody received is a failed run. Returning 200 here made Vercel Cron
@@ -179,52 +175,6 @@ async function pruneOldEvents(db: any): Promise<number> {
     .select("id");
   if (error) {
     console.error("[daily-report] prune failed:", error.message);
-    return 0;
-  }
-  return data?.length ?? 0;
-}
-
-/**
- * Enforce the retention promised in /legal/privacy §5.
- *
- * /compute persists every non-bot run, so `calculator_runs` now grows with
- * traffic rather than with leads, and `inputs` holds a full financial profile
- * (income, cash, CPF, age). Anonymous runs — the overwhelming majority — are
- * deleted at 180 days, matching the analytics events beside them.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function pruneAnonymousRuns(db: any): Promise<number> {
-  const cutoff = new Date(Date.now() - RETENTION_DAYS * 86_400_000).toISOString();
-  const { data, error } = await db
-    .from("calculator_runs")
-    .delete()
-    .is("user_id", null)
-    .lt("created_at", cutoff)
-    .select("id");
-  if (error) {
-    console.error("[daily-report] anonymous run prune failed:", error.message);
-    return 0;
-  }
-  return data?.length ?? 0;
-}
-
-/**
- * A run tied to a lead is kept for 24 months and then anonymised rather than
- * deleted: detaching the user keeps the aggregate funnel intact while the row
- * stops being personal data. It is picked up by the anonymous prune 180 days
- * later. (/legal/privacy §5.)
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function anonymiseOldLeadRuns(db: any): Promise<number> {
-  const cutoff = new Date(Date.now() - LEAD_RETENTION_DAYS * 86_400_000).toISOString();
-  const { data, error } = await db
-    .from("calculator_runs")
-    .update({ user_id: null })
-    .not("user_id", "is", null)
-    .lt("created_at", cutoff)
-    .select("id");
-  if (error) {
-    console.error("[daily-report] lead run anonymise failed:", error.message);
     return 0;
   }
   return data?.length ?? 0;

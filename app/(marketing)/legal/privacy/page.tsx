@@ -48,17 +48,18 @@ export default function PrivacyPage() {
       <section className="space-y-2">
         <h2 className="text-base font-semibold">2. 何时保存数据</h2>
         <p className="text-sm leading-relaxed text-neutral-700">
-          <strong>无需注册即可测算</strong>。你点击「生成评估」完成一次测算时，
-          我们会把这次测算的输入和结果<strong>匿名保存</strong>到数据库：
-          它不含姓名、手机号或任何可直接识别你的信息，只关联一个随机生成的会话编号。
+          <strong>无需注册即可测算</strong>。你点击「生成评估」完成一次测算时，我们会以
+          <strong>匿名形式</strong>保存这次测算的输入和结果（身份、年龄、收入区间、 可动用现金、CPF
+          余额、测算出的预算等），只关联一个随机生成的会话编号。 这条记录<strong>不包含</strong>
+          你的姓名、手机号或任何可直接识别你身份的信息。
           这样做是为了在你后续联系顾问时能准确还原你看到的那份报告，
-          并让我们发现并修复测算工具本身的问题。
+          并让我们分析工具的整体使用情况、发现并修复测算本身的问题。
         </p>
         <p className="text-sm leading-relaxed text-neutral-700">
           <strong>只有当你勾选同意并主动点击「找顾问」类按钮时</strong>，
-          我们才会把这份匿名记录与你的联系方式关联起来，
-          使其成为一份可识别到你本人的留资记录。在你做出这个动作之前，
-          我们无法、也不会把任何一次测算对应到具体的人。
+          我们才会把这份匿名记录与你的姓名、联系方式关联起来，
+          使其成为一份可识别到你本人的留资记录，以便顾问准确理解你的画像。
+          在你做出这个动作之前，我们无法、也不会把任何一次测算对应到具体的人。
         </p>
       </section>
 
@@ -95,14 +96,14 @@ export default function PrivacyPage() {
         <h2 className="text-base font-semibold">5. 数据保留</h2>
         <ul className="list-disc pl-5 text-sm leading-relaxed text-neutral-700">
           <li>
-            <strong>匿名测算记录</strong>（未关联联系方式）：保留 <strong>180 天</strong>
-            ，到期后自动删除。
+            <strong>匿名测算记录</strong>（未与联系方式关联）：保留 <strong>12 个月</strong>，
+            到期后删除。
           </li>
           <li>
-            <strong>已留资的测算结果</strong>：保留 <strong>24 个月</strong>，之后自动匿名化处理。
+            <strong>已留资的测算结果</strong>：<strong>留资后 24 个月</strong>，之后自动匿名化处理。
           </li>
           <li>
-            <strong>使用日志</strong>：保留 180 天。
+            <strong>使用日志</strong>（页面浏览、按钮点击等埋点事件）：保留 180 天。
           </li>
           <li>同意记录（consent log）依 PDPA 要求至少保留 5 年。</li>
         </ul>
