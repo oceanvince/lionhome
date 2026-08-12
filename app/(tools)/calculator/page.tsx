@@ -6,6 +6,7 @@ import type { CalculatorFormState, ResidencyOption, Timeline } from "@/lib/calcu
 import { INITIAL_FORM } from "@/lib/calculator/form-types";
 import type { V2ComputeResult, TierData, PriceTierKey, Viability } from "@/lib/calculator/v2-types";
 import { computeBreakEven, estimateMedianRent } from "@/lib/finance";
+import { track } from "@/lib/analytics/events";
 import { MIN_DOWN_PAYMENT, MIN_VIABLE_PRICE_ENABLED } from "@/lib/tax";
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -819,6 +820,8 @@ export default function CalculatorPage() {
 
   /* ─── Submit ─────────────────────────────────────────────────── */
   async function handleSubmit() {
+    // Residency and timeline are labels, not figures — safe to send to analytics.
+    track("calc_submitted", { residency: form.residency, timeline: form.timeline });
     goTo("loading");
     setLoadingIdx(0);
     const interval = setInterval(
@@ -841,6 +844,11 @@ export default function CalculatorPage() {
         // The run was already stored anonymously server-side; hold its id so a
         // later advisor request claims that row instead of inserting a duplicate.
         if (json.run_id) setRunId(json.run_id as string);
+        track("calc_result_viewed", {
+          viability: data.viability,
+          // Bucketed to the nearest 10万 — a band, not the user's exact figure.
+          budget_band: `${Math.round((data.tiers.balanced.midpoint ?? 0) / 100_000) * 10}万`,
+        });
         setSelectedTier("balanced");
         setYears(data.break_even?.default_holding_years ?? 7);
         setTenure(data.break_even?.default_tenure_years ?? 30);
@@ -861,11 +869,13 @@ export default function CalculatorPage() {
         }
         goTo("result");
       } else {
+        track("calc_failed", { reason: json.error?.code ?? "unknown" });
         goTo("step3");
         alert(json.error?.message ?? "计算失败，请重试");
       }
     } catch {
       clearInterval(interval);
+      track("calc_failed", { reason: "network" });
       goTo("step3");
       alert("网络错误，请检查连接后重试");
     }
@@ -873,6 +883,7 @@ export default function CalculatorPage() {
 
   /* ─── Tier switch: re-estimate rent unless user edited it ─────── */
   function pickTier(t: PriceTierKey) {
+    track("calc_tier_switched", { tier: t });
     setSelectedTier(t);
     if (!rentEdited.current && result) {
       setRentDigits(String(estimateMedianRent(result.tiers[t].midpoint)));
@@ -908,13 +919,17 @@ export default function CalculatorPage() {
   }
 
   async function handleWhatsApp() {
+    track("advisor_cta_clicked", { consent: leadConsent });
     if (!leadConsent) {
       // 没勾选 PDPA 同意，滚动到 checkbox 并高亮提示。不发起任何保存/分享行为。
+      // Tracked separately: repeated hits here mean the consent box is the blocker.
+      track("advisor_consent_missing");
       const el = document.getElementById("lead-consent-box");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     const id = runId ?? (await saveReport());
+    track("advisor_shared", { has_run_id: id !== null });
     const text = id
       ? `Hi 狮城家，我的报告编号是 ${id}，请帮我看这个区间的房。`
       : `Hi 狮城家，请帮我看看适合我的房。`;
@@ -927,6 +942,7 @@ export default function CalculatorPage() {
   }
 
   function resetAll() {
+    track("calc_restarted");
     setForm(INITIAL_FORM);
     setResult(null);
     setSelectedTier("balanced");
@@ -1075,7 +1091,14 @@ export default function CalculatorPage() {
         </div>
 
         <div style={{ flexShrink: 0, padding: "24px 20px max(24px, env(safe-area-inset-bottom))" }}>
-          <BtnPrimary onClick={() => goTo("step1")}>快速测算</BtnPrimary>
+          <BtnPrimary
+            onClick={() => {
+              track("calc_started");
+              goTo("step1");
+            }}
+          >
+            快速测算
+          </BtnPrimary>
           <p
             style={{
               textAlign: "center",
@@ -1180,7 +1203,13 @@ export default function CalculatorPage() {
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 16 }}>
-          <BtnPrimary disabled={!step1Ready} onClick={() => goTo("step2")}>
+          <BtnPrimary
+            disabled={!step1Ready}
+            onClick={() => {
+              track("calc_step_completed", { step: 1, residency: form.residency });
+              goTo("step2");
+            }}
+          >
             下一步
           </BtnPrimary>
         </div>
@@ -1223,7 +1252,17 @@ export default function CalculatorPage() {
         </div>
 
         <div style={{ marginTop: 24, paddingTop: 16 }}>
-          <BtnPrimary disabled={!step2Ready} onClick={() => goTo("step3")}>
+          <BtnPrimary
+            disabled={!step2Ready}
+            onClick={() => {
+              // Whether a target down payment was given, not the amount itself.
+              track("calc_step_completed", {
+                step: 2,
+                has_target_down_payment: targetDownPaymentNum > 0,
+              });
+              goTo("step3");
+            }}
+          >
             下一步
           </BtnPrimary>
         </div>

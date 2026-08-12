@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { PostHogProvider } from "@/components/analytics/posthog-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -35,7 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="bg-white text-neutral-900 antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
+          <PostHogProvider>{children}</PostHogProvider>
         </NextIntlClientProvider>
       </body>
     </html>

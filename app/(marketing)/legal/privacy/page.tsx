@@ -49,9 +49,9 @@ export default function PrivacyPage() {
         <h2 className="text-base font-semibold">2. 何时保存数据</h2>
         <p className="text-sm leading-relaxed text-neutral-700">
           <strong>无需注册即可测算</strong>。你完成测算后，我们会以
-          <strong>匿名形式</strong>保存这次测算的输入和结果（身份、年龄、收入区间、
-          可动用现金、CPF 余额、测算出的预算等），用于分析工具的整体使用情况并改进产品。
-          这条记录<strong>不包含</strong>你的姓名、手机号或任何可直接识别你身份的信息。
+          <strong>匿名形式</strong>保存这次测算的输入和结果（身份、年龄、收入区间、 可动用现金、CPF
+          余额、测算出的预算等），用于分析工具的整体使用情况并改进产品。 这条记录
+          <strong>不包含</strong>你的姓名、手机号或任何可直接识别你身份的信息。
         </p>
         <p className="text-sm leading-relaxed text-neutral-700">
           <strong>仅当你主动点击「找顾问」类按钮并明示同意时</strong>，我们才会将上述匿名记录
@@ -80,8 +80,8 @@ export default function PrivacyPage() {
             一位与你画像匹配的 CEA 注册中介。每次分享都会单独征求同意。
           </li>
           <li>
-            <strong>技术服务商</strong>：如托管平台（Vercel）、数据库（Supabase）等。
-            这些服务商签有数据处理协议，不会将你的数据用于他途。
+            <strong>技术服务商</strong>：如托管平台（Vercel）、数据库（Supabase）、
+            产品分析（PostHog）等。这些服务商签有数据处理协议，不会将你的数据用于他途。
           </li>
           <li>
             <strong>法律要求</strong>：在新加坡执法机关或法院依法要求时披露。
@@ -138,9 +138,16 @@ export default function PrivacyPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold">8. Cookies</h2>
+        <h2 className="text-base font-semibold">8. Cookies 与使用分析</h2>
         <p className="text-sm leading-relaxed text-neutral-700">
-          本工具使用必要的会话 Cookie 维持你的测算流程。不使用追踪类第三方 Cookie。
+          本工具使用必要的会话 Cookie 维持你的测算流程。我们不使用广告类 Cookie，
+          也不向广告网络分享数据。
+        </p>
+        <p className="text-sm leading-relaxed text-neutral-700">
+          我们使用 <strong>PostHog</strong> 分析产品使用情况（页面访问、
+          各步骤的完成与流失、按钮点击），以便找出流程中让人卡住的环节。 这些事件
+          <strong>不包含</strong>你填写的收入、现金、CPF 等具体数字，也不包含姓名或手机号。 我们
+          <strong>不录制</strong>你的操作过程。
         </p>
       </section>
 
