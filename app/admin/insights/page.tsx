@@ -96,12 +96,21 @@ function wan(n: number | null): string {
   return `${Math.round(n / 10_000)} 万`;
 }
 
+/** Users are in Singapore; dates shown here are SGT, matching the API's buckets. */
+const SGT_OFFSET_MS = 8 * 3_600_000;
+
 function todayYmd(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Date(Date.now() + SGT_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 function ymdMinus(days: number): string {
-  return new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  return new Date(Date.now() + SGT_OFFSET_MS - days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** `2026-08-13T15:00:00Z` → `08-13 23:00` in Singapore time. */
+function sgtStamp(iso: string): string {
+  const s = new Date(Date.parse(iso) + SGT_OFFSET_MS).toISOString();
+  return `${s.slice(5, 10)} ${s.slice(11, 16)}`;
 }
 
 /** Horizontal bar row. Width is relative to the largest count in its group. */
@@ -690,7 +699,7 @@ export default function InsightsPage() {
                               borderBottom: `1px solid ${C.track}`,
                             }}
                           >
-                            {r.created_at.slice(0, 16).replace("T", " ")}
+                            {sgtStamp(r.created_at)}
                           </td>
                           <td
                             style={{

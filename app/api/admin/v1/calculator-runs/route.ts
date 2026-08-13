@@ -79,6 +79,27 @@ function addDays(ymd: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Every user is in Singapore, so days are bucketed in SGT (UTC+8), not UTC.
+ * Bucketing by the raw UTC date would push a 07:00 SGT run into the previous day.
+ */
+const SGT_OFFSET_MS = 8 * 3_600_000;
+
+/** Calendar date in Singapore for an instant, as `YYYY-MM-DD`. */
+function sgtDay(iso: string): string {
+  return new Date(Date.parse(iso) + SGT_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/** Start of an SGT calendar day, as a UTC instant for querying. */
+function sgtDayStartUtc(ymd: string): string {
+  return new Date(Date.parse(`${ymd}T00:00:00.000Z`) - SGT_OFFSET_MS).toISOString();
+}
+
+/** Today's date in Singapore. */
+function sgtToday(): string {
+  return sgtDay(new Date().toISOString());
+}
+
 export async function GET(req: NextRequest) {
   const secret = process.env.ADMIN_API_SECRET;
   if (!secret) {
@@ -102,27 +123,34 @@ export async function GET(req: NextRequest) {
   const toParam = url.searchParams.get("to");
 
   // An explicit from/to pair wins; otherwise fall back to a rolling `days` window.
-  let since: string;
-  let until: string | null = null;
-  let windowDays: number;
+  // Boundaries are SGT calendar days converted to UTC instants for the query.
+  let startDay: string;
+  let endDay: string;
 
   if (isYmd(fromParam) && isYmd(toParam)) {
-    // Inclusive of the whole `to` day: compare against the start of the next day.
-    since = `${fromParam}T00:00:00.000Z`;
-    until = `${addDays(toParam, 1)}T00:00:00.000Z`;
-    windowDays = Math.max(1, Math.round((Date.parse(until) - Date.parse(since)) / 86_400_000));
+    startDay = fromParam;
+    endDay = toParam;
   } else {
-    windowDays = Math.min(Math.max(Number(url.searchParams.get("days") ?? 30), 1), 365);
-    since = new Date(Date.now() - windowDays * 86_400_000).toISOString();
+    const windowDays = Math.min(Math.max(Number(url.searchParams.get("days") ?? 30), 1), 365);
+    endDay = sgtToday();
+    // `days` counts back inclusive of today, so a 7-day window spans today and
+    // the six days before it.
+    startDay = addDays(endDay, -(windowDays - 1));
   }
+
+  const since = sgtDayStartUtc(startDay);
+  // Inclusive of the whole end day: stop at the start of the next SGT day.
+  const until = sgtDayStartUtc(addDays(endDay, 1));
+  const windowDays = Math.max(1, Math.round((Date.parse(until) - Date.parse(since)) / 86_400_000));
 
   const supabase = getSupabaseServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query = (supabase.from("calculator_runs") as any)
+  const { data, error } = await (supabase.from("calculator_runs") as any)
     .select("id, user_id, inputs, outputs, created_at")
-    .gte("created_at", since);
-  if (until) query = query.lt("created_at", until);
-  const { data, error } = await query.order("created_at", { ascending: false }).limit(MAX_ROWS);
+    .gte("created_at", since)
+    .lt("created_at", until)
+    .order("created_at", { ascending: false })
+    .limit(MAX_ROWS);
 
   if (error) {
     console.error("[/api/admin/v1/calculator-runs] Query failed:", error);
@@ -163,11 +191,9 @@ export async function GET(req: NextRequest) {
   // instead of silently collapsing an empty month into an adjacent bar.
   const byDay: Record<string, number> = {};
   for (const r of rows) {
-    const day = r.created_at.slice(0, 10);
+    const day = sgtDay(r.created_at);
     byDay[day] = (byDay[day] ?? 0) + 1;
   }
-  const startDay = since.slice(0, 10);
-  const endDay = (until ? addDays(until.slice(0, 10), -1) : new Date().toISOString()).slice(0, 10);
   const runsByDay: { date: string; count: number }[] = [];
   for (let d = startDay; d <= endDay; d = addDays(d, 1)) {
     runsByDay.push({ date: d, count: byDay[d] ?? 0 });
@@ -180,8 +206,10 @@ export async function GET(req: NextRequest) {
     ok: true,
     data: {
       window_days: windowDays,
-      from: since.slice(0, 10),
+      // SGT calendar dates, matching how the daily buckets are grouped.
+      from: startDay,
       to: endDay,
+      timezone: "Asia/Singapore",
       total_runs: rows.length,
       truncated: rows.length === MAX_ROWS,
       // How many went on to be linked to a person — the real funnel end.
@@ -227,7 +255,7 @@ export async function GET(req: NextRequest) {
           claimed: r.user_id !== null,
           // Runs before this date only exist if the user shared to WhatsApp —
           // a biased sample. After it, every completed calculation is stored.
-          legacy: r.created_at < ANON_CAPTURE_SINCE,
+          legacy: sgtDay(r.created_at) < ANON_CAPTURE_SINCE,
         };
       }),
     },
